@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_skill_item,access.skill.item,model_skill_item,base.group_user,1,1,1,1
+access_skill_group,access.skill.group,model_skill_group,base.group_user,1,1,1,1
+access_skill_line,access.skill.line,model_skill_line,base.group_user,1,1,1,1
+access_skill_extraction,access.skill.extraction,model_skill_extraction,base.group_user,1,1,1,1

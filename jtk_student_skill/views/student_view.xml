@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record model="ir.ui.view" id="view_student_form_inherit">
+            <field name="name">view.student.form.inherit</field>
+            <field name="model">student.student</field>
+            <field name="inherit_id" ref="jtk_academic_base.view_student_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//form/sheet/group[1]" position="before">
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object" name="action_view_skill_extraction"
+                                icon="fa-list">
+                            <field string="Skill Extraction" name="skill_extraction_count" widget="statinfo"/>
+                        </button>
+                    </div>
+
+                </xpath>
+
+
+                <xpath expr="//notebook" position="inside">
+                    <page string="Skills">
+                        <field name="skill_line_ids" context="{'default_student_id': id}">
+                            <list editable="bottom">
+                                <field name="skill_type"/>
+                                <field name="skill_group_id"/>
+                                <field name="skill_item_id"/>
+                                <field name="level"/>
+                                <field name="total_point"/>
+                            </list>
+                        </field>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+    </data>
+</odoo>

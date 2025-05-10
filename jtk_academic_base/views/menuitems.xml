@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Parent Menu: Logbook -->
+    <menuitem id="menu_academic_root"
+              name="Academic"
+              sequence="10"/>
+
+    <!-- Child Menu: Mahasiswa -->
+    <menuitem id="menu_academic_student"
+              name="Mahasiswa"
+              parent="menu_academic_root"
+              sequence="10"
+              action="action_student"/>
+
+    <!-- Child Menu: Dosen -->
+    <menuitem id="menu_academic_lecturer"
+              name="Dosen"
+              parent="menu_academic_root"
+              sequence="15"
+              action="action_lecturer"/>
+
+    <!-- Child Menu: Kelas -->
+    <menuitem id="menu_academic_class"
+              name="Kelas"
+              parent="menu_academic_root"
+              sequence="20"
+              action="action_class"/>
+
+    <!-- Child Menu: Subject -->
+    <menuitem id="menu_academic_subject"
+              name="Subject"
+              parent="menu_academic_root"
+              sequence="22"/>
+
+    <menuitem id="menu_academic_subject_list"
+              name="Subject"
+              parent="menu_academic_subject"
+              sequence="10"
+              action = "action_subject"/>
+    
+    <menuitem id="menu_academic_project_course"
+              name="Project Course"
+              parent="menu_academic_subject"
+              sequence="10"
+              action = "action_project_course"/>          
+
+    
+
+    <!-- Child Menu: Study Program -->
+    <menuitem id="menu_academic_study_program"
+              name="Study Program"
+              parent="menu_academic_root"
+              sequence="25"
+              action="action_study_program"/>          
+</odoo>

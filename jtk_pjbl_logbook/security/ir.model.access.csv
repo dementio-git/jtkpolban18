@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_logbook_logbook,access.logbook.logbook,model_logbook_logbook,base.group_user,1,1,1,1
+access_logbook_extraction,access.logbook.extraction,model_logbook_extraction,base.group_user,1,1,1,1
+access_logbook_label,access.logbook.label,model_logbook_label,base.group_user,1,1,1,1
+access_logbook_keyword,access.logbook.keyword,model_logbook_keyword,base.group_user,1,1,1,1
+access_logbook_label_level,access.logbook.label.level,model_logbook_label_level,base.group_user,1,1,1,1

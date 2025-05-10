@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <menuitem
+            id="menu_skill_root"
+            name="Student Skill"
+            parent="jtk_academic_base.menu_academic_root"
+            sequence="30"/>
+
+        <menuitem
+            id="menu_skill_item"
+            name="Skill Item"
+            parent="menu_skill_root"
+            sequence="10"
+            action="action_skill_item"/>
+        
+        <menuitem
+            id="menu_skill_detail"
+            name="Skill Group"
+            parent="menu_skill_root"
+            sequence="20"
+            action="action_skill_group"/>
+
+
+
+    </data>
+    
+
+
+</odoo>

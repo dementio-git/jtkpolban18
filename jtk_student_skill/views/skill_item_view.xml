@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Form View -->
+    <record id="skill_item_view_form" model="ir.ui.view">
+        <field name="name">skill.item.form</field>
+        <field name="model">skill.item</field>
+        <field name="arch" type="xml">
+            <form string="Skill Item">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="skill_group_id"/>
+                            <field name="skill_type"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Extraction" name="extraction">
+                            <field name="skill_extraction_ids"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree View -->
+    <record id="skill_item_view_list" model="ir.ui.view">
+        <field name="name">skill.item.list</field>
+        <field name="model">skill.item</field>
+        <field name="arch" type="xml">
+            <list string="Skill Items">
+                <field name="name"/>
+                <field name="skill_group_id"/>
+                <field name="skill_type"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_skill_item" model="ir.actions.act_window">
+        <field name="name">Skill Items</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">skill.item</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

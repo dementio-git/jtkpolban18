@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- list/List View -->
+    <record id="view_lecturer_list" model="ir.ui.view">
+        <field name="name">lecturer.lecturer.list</field>
+        <field name="model">lecturer.lecturer</field>
+        <field name="arch" type="xml">
+            <list string="Lecturers">
+                <field name="nip"/>
+                <field name="name"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <field name="expertise"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_lecturer_form" model="ir.ui.view">
+        <field name="name">lecturer.lecturer.form</field>
+        <field name="model">lecturer.lecturer</field>
+        <field name="arch" type="xml">
+            <form string="Lecturer">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="nip"/>
+                            <field name="name"/>
+                            <field name="expertise"/>
+                        </group>
+                        <group>
+                            <field name="email"/>
+                            <field name="phone"/>
+                            <!-- <field name="address"/> -->
+                            <field name="active"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_lecturer_search" model="ir.ui.view">
+        <field name="name">lecturer.lecturer.search</field>
+        <field name="model">lecturer.lecturer</field>
+        <field name="arch" type="xml">
+            <search string="Search Lecturer">
+                <field name="nip"/>
+                <field name="name"/>
+                <field name="expertise"/>
+                <filter name="active" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="inactive" string="Inactive" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_lecturer" model="ir.actions.act_window">
+        <field name="name">Lecturers</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">lecturer.lecturer</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_lecturer_search"/>
+    </record>
+</odoo>
