@@ -1,0 +1,214 @@
+@startuml jtk_student_skill
+!define Model(name,desc) class name as "desc" << (M,#FFAAAA) >>
+!define TransientModel(name,desc) class name as "desc" << (T,magenta) >>
+!define AbstractModel(name,desc) class name as "desc" << (T,green) >>
+!define model(x) -<b>_<color:red>x</color></b>
+!define char(x) +<b><i>x</i> Char</b>
+!define m2o(x) +<b><color:magenta><i>x</i> Many2one</color></b>
+!define m2m(x) +<b><color:magenta><i>x</i> Many2many</color></b>
+!define o2m(x) +<b><color:darkorange><i>x</i> One2many</color></b>
+!define ref(x) +<b><color:magenta><i>x</i> Reference</color></b>
+!define text(x) +<b><i>x</i> Text</b>
+!define html(x) +<b><i>x</i> Html</b>
+!define int(x) +<b><color:blue><i>x</i> Integer</color></b>
+!define float(x) +<b><color:blue><i>x </i>Float</color></b>
+!define money(x) +<b><color:blue><i>x </i>Monetary</color></b>
+!define sel(x) +<b><color:green><i>x</i> Selection</color></b>
+!define bool(x) +<b><color:darkblue><i>x</i> Boolean</color></b>
+!define date(x) +<b><color:darkgreen><i>x</i> Date</color></b>
+!define dtime(x) +<b><color:darkgreen><i>x</i> Datetime</color></b>
+!define bin(x) +<b><color:purple><i>x</i> Binary</color></b>
+!define help(x) x
+!define cm(x) <color:magenta>->x</color>
+!define inv(x) <color:darkorange><-x</color>
+!define rtbl(x) <color:magenta>x</color>
+!define col1(x) <color:magenta>x</color>
+!define col2(x) <color:magenta>x</color>
+!define dom(x) <color:red>x</color>
+!define is(x) <color:red>x</color>
+!define not(x) <color:red><s>x</s></color>
+!define variants(x) <color:green>x</color>
+!define default(x) <color:red>default=x</color>
+!define related(x) <color:red><i>-->x</i></color>
+!define compute(x) <color:red>x()</color>
+hide methods
+hide stereotypes
+
+package "New" {
+
+Model(SkillExtraction, "Skill Extraction") {
+model(name) skill.extraction
+model(inherit) skill.extraction
+==New or Modified==
+m2o(student_id) Student
+cm(student.student)
+..
+m2o(skill_item_id) Skill
+cm(skill.item)
+..
+int(skill_point) Skill Point
+..
+m2o(skill_group_id) Skill Group
+cm(skill.group)
+related(skill_item_id.skill_group_id)
+is(computed)
+not(copy)
+..
+sel(skill_type) Skill Classification
+variants(<function Selection.setup_related.<locals>.<lambda> at 0x000002407C1F60C0>())
+related(skill_group_id.skill_type)
+is(computed)
+not(copy)
+..
+text(content) Content
+..
+}
+
+Model(SkillGroup, "Skill Group") {
+model(name) skill.group
+model(inherit) base
+==New or Modified==
+char(name) Nama Kelompok Skill
+is(required)
+..
+sel(skill_type) Tipe Skill
+variants(hardskill: Hard Skill; softskill: Soft Skill)
+..
+o2m(skill_item_ids) Skill Items
+cm(skill.item) inv(skill_group_id)
+not(copy)
+..
+o2m(skill_line_ids) Skill Lines
+cm(skill.line) inv(skill_group_id)
+not(copy)
+..
+}
+
+Model(SkillItem, "Skill Item") {
+model(name) skill.item
+model(inherit) base
+==New or Modified==
+char(name) Skill Name
+is(required)
+..
+m2o(skill_group_id) Skill Group
+cm(skill.group)
+..
+m2m(student_ids) Mahasiswa yang Memiliki
+cm(student.student)
+rtbl(student_skill_summary_rel) col1(skill_id) col2(student_id)
+..
+sel(skill_type) Skill Classification
+variants(<function Selection.setup_related.<locals>.<lambda> at 0x000002407C1F6160>())
+related(skill_group_id.skill_type)
+is(computed)
+not(copy)
+..
+o2m(skill_extraction_ids) Skill Extraction
+cm(skill.extraction) inv(skill_item_id)
+not(copy)
+..
+}
+
+Model(SkillLine, "Skill Line") {
+model(name) skill.line
+model(inherit) base
+==New or Modified==
+m2o(student_id) Student
+cm(student.student)
+..
+m2o(skill_item_id) Skill
+cm(skill.item)
+..
+m2o(skill_group_id) Skill Category
+cm(skill.group)
+related(skill_item_id.skill_group_id)
+is(computed)
+is(readonly) not(copy)
+..
+sel(skill_type) Skill Classification
+variants(<function Selection.setup_related.<locals>.<lambda> at 0x000002407C1F6200>())
+related(skill_group_id.skill_type)
+is(computed)
+is(readonly) not(copy)
+..
+int(total_point) Total Poin
+..
+sel(level) Level
+variants(1: Level 1; 2: Level 2; 3: Level 3; 4: Level 4; 5: Level 5)
+default(lambda self: ...())
+..
+}
+
+note "<b>student_skill_summary_rel</b>\nskill_id\nstudent_id" as student_skill_summary_rel
+}
+
+package "Inherited" {
+
+Model(StudentStudent, "Student") {
+model(inherit) student.student
+==New or Modified==
+o2m(skill_line_ids) Skill Lines
+cm(skill.line) inv(student_id)
+not(copy)
+..
+o2m(skill_extraction_ids) Skill Extractions
+cm(skill.extraction) inv(student_id)
+not(copy)
+..
+int(skill_extraction_count) Skill Extraction Count
+is(computed)
+is(readonly) not(copy)
+..
+==Inherited==
+m2o(partner_id) Partner ID
+cm(res.partner)
+..
+char(name) Nama
+related(partner_id.name)
+is(computed) is(stored)
+not(copy)
+..
+char(email) Email
+related(partner_id.email)
+is(computed) is(stored)
+not(copy)
+..
+char(phone) Telepon
+related(partner_id.phone)
+is(computed) is(stored)
+not(copy)
+..
+char(nim) NIM
+..
+sel(gender) Jenis Kelamin
+variants(male: Laki-laki; female: Perempuan)
+..
+char(school_origin) Asal Sekolah
+..
+float(current_gpa) IPK Terbaru
+..
+m2o(class_id) Kelas
+cm(class.class)
+..
+}
+
+}
+
+Model(ResPartner, "Kontak") {
+model(name) res.partner
+}
+Model(ClassClass, "Class") {
+model(name) class.class
+}
+SkillItem --> "skill_group_id" SkillGroup: "skill_item_ids"
+SkillLine --> "skill_group_id" SkillGroup: "skill_line_ids"
+SkillExtraction --> "skill_item_id" SkillItem: "skill_extraction_ids"
+SkillLine --> "student_id" StudentStudent: "skill_line_ids"
+SkillExtraction --> "student_id" StudentStudent: "skill_extraction_ids"
+SkillLine --> "skill_item_id" SkillItem
+StudentStudent --> "partner_id" ResPartner
+StudentStudent --> "class_id" ClassClass
+SkillItem .. student_skill_summary_rel
+student_skill_summary_rel .. StudentStudent
+@enduml

@@ -1,0 +1,500 @@
+@startuml jtk_academic_base
+!define Model(name,desc) class name as "desc" << (M,#FFAAAA) >>
+!define TransientModel(name,desc) class name as "desc" << (T,magenta) >>
+!define AbstractModel(name,desc) class name as "desc" << (T,green) >>
+!define model(x) -<b>_<color:red>x</color></b>
+!define char(x) +<b><i>x</i> Char</b>
+!define m2o(x) +<b><color:magenta><i>x</i> Many2one</color></b>
+!define m2m(x) +<b><color:magenta><i>x</i> Many2many</color></b>
+!define o2m(x) +<b><color:darkorange><i>x</i> One2many</color></b>
+!define ref(x) +<b><color:magenta><i>x</i> Reference</color></b>
+!define text(x) +<b><i>x</i> Text</b>
+!define html(x) +<b><i>x</i> Html</b>
+!define int(x) +<b><color:blue><i>x</i> Integer</color></b>
+!define float(x) +<b><color:blue><i>x </i>Float</color></b>
+!define money(x) +<b><color:blue><i>x </i>Monetary</color></b>
+!define sel(x) +<b><color:green><i>x</i> Selection</color></b>
+!define bool(x) +<b><color:darkblue><i>x</i> Boolean</color></b>
+!define date(x) +<b><color:darkgreen><i>x</i> Date</color></b>
+!define dtime(x) +<b><color:darkgreen><i>x</i> Datetime</color></b>
+!define bin(x) +<b><color:purple><i>x</i> Binary</color></b>
+!define help(x) x
+!define cm(x) <color:magenta>->x</color>
+!define inv(x) <color:darkorange><-x</color>
+!define rtbl(x) <color:magenta>x</color>
+!define col1(x) <color:magenta>x</color>
+!define col2(x) <color:magenta>x</color>
+!define dom(x) <color:red>x</color>
+!define is(x) <color:red>x</color>
+!define not(x) <color:red><s>x</s></color>
+!define variants(x) <color:green>x</color>
+!define default(x) <color:red>default=x</color>
+!define related(x) <color:red><i>-->x</i></color>
+!define compute(x) <color:red>x()</color>
+hide methods
+hide stereotypes
+
+package "New" {
+
+Model(ClassClass, "Class") {
+model(name) class.class
+model(inherit) base
+==New or Modified==
+char(name) Nama
+..
+char(code) Kode
+..
+bool(active) Active
+default(lambda self: ...())
+..
+m2o(study_program_id) Program Studi
+cm(study.program)
+..
+sel(semester) Semester
+variants(1: Semester 1; 2: Semester 2; 3: Semester 3; 4: Semester 4; 5: Semester 5; 6: Semester 6; 7: Semester 7; 8: Semester 8)
+..
+o2m(student_ids) Students
+cm(student.student) inv(class_id)
+not(copy)
+..
+}
+
+Model(LecturerLecturer, "Lecturer") {
+model(name) lecturer.lecturer
+model(inherit) base
+==New or Modified==
+m2o(partner_id) Partner ID
+cm(res.partner)
+is(required)
+..
+char(name) Nama
+related(partner_id.name)
+is(computed) is(stored)
+not(copy)
+..
+char(email) Email
+related(partner_id.email)
+is(computed) is(stored)
+not(copy)
+..
+char(phone) Phone
+related(partner_id.phone)
+is(computed) is(stored)
+not(copy)
+..
+char(nip) NIP
+is(required)
+..
+char(expertise) Expertise
+..
+bool(active) Active
+default(lambda self: ...())
+..
+}
+
+Model(ProjectCourse, "Project Course") {
+model(name) project.course
+model(inherit) project.course
+==New or Modified==
+char(name) Nama
+is(required)
+..
+char(code) Kode
+is(required)
+..
+bool(active) Active
+default(lambda self: ...())
+..
+m2o(subject_id) Subject
+cm(subject.subject)
+..
+o2m(week_line_ids) Week Lines
+cm(week.line) inv(course_id)
+not(copy)
+..
+}
+
+Model(StudentStudent, "Student") {
+model(name) student.student
+model(inherit) student.student
+==New or Modified==
+m2o(partner_id) Partner ID
+cm(res.partner)
+..
+char(name) Nama
+related(partner_id.name)
+is(computed) is(stored)
+not(copy)
+..
+char(email) Email
+related(partner_id.email)
+is(computed) is(stored)
+not(copy)
+..
+char(phone) Telepon
+related(partner_id.phone)
+is(computed) is(stored)
+not(copy)
+..
+char(nim) NIM
+..
+sel(gender) Jenis Kelamin
+variants(male: Laki-laki; female: Perempuan)
+..
+char(school_origin) Asal Sekolah
+..
+float(current_gpa) IPK Terbaru
+..
+m2o(class_id) Kelas
+cm(class.class)
+..
+}
+
+Model(StudyProgram, "Study Program") {
+model(name) study.program
+model(inherit) base
+==New or Modified==
+char(name) Nama
+is(required)
+..
+char(code) Kode
+is(required)
+..
+bool(active) Active
+default(lambda self: ...())
+..
+text(description) Description
+..
+m2o(head_of_program) Head of Program
+cm(lecturer.lecturer)
+..
+}
+
+Model(SubjectSubject, "Subject") {
+model(name) subject.subject
+model(inherit) base
+==New or Modified==
+char(name) Nama
+is(required)
+..
+char(code) Kode
+is(required)
+..
+bool(active) Active
+default(lambda self: ...())
+..
+bool(is_practicum) Mata Kuliah Praktikum
+default(lambda self: ...())
+..
+m2o(study_program_id) Program Studi
+cm(study.program)
+..
+}
+
+Model(WeekLine, "Week Line") {
+model(name) week.line
+model(inherit) base
+==New or Modified==
+char(name) Week Name
+is(required)
+..
+m2o(course_id) Course
+cm(project.course)
+..
+date(start_date) Start Date
+..
+date(end_date) End Date
+..
+}
+
+}
+
+package "Inherited" {
+
+Model(ResPartner, "Kontak") {
+model(inherit) res.partner
+==New or Modified==
+m2o(lecturer_id) Lecturer Record
+cm(lecturer.lecturer)
+..
+m2o(student_id) Student ID
+cm(student.student)
+..
+==Inherited==
+bin(image_1920) Gambar
+..
+bin(image_1024) Gambar 1024
+related(image_1920)
+is(computed) is(stored)
+is(readonly) not(copy)
+..
+bin(image_512) Gambar 512
+related(image_1920)
+is(computed) is(stored)
+is(readonly) not(copy)
+..
+bin(image_256) Gambar 256
+related(image_1920)
+is(computed) is(stored)
+is(readonly) not(copy)
+..
+bin(image_128) Gambar 128
+related(image_1920)
+is(computed) is(stored)
+is(readonly) not(copy)
+..
+bin(avatar_1920) Avatar
+is(computed)
+is(readonly) not(copy)
+..
+bin(avatar_1024) Avatar 1024
+is(computed)
+is(readonly) not(copy)
+..
+bin(avatar_512) Avatar 512
+is(computed)
+is(readonly) not(copy)
+..
+bin(avatar_256) Avatar 256
+is(computed)
+is(readonly) not(copy)
+..
+bin(avatar_128) Avatar 128
+is(computed)
+is(readonly) not(copy)
+..
+char(name) Nama
+is(index)
+..
+char(complete_name) Nama Lengkap
+is(computed) is(stored)
+is(readonly) not(copy) is(index)
+..
+m2o(title) Judul
+cm(res.partner.title)
+..
+m2o(parent_id) Perusahaan Terkait
+cm(res.partner)
+is(index)
+..
+char(parent_name) Nama Induk
+related(parent_id.name)
+is(computed)
+is(readonly) not(copy)
+..
+o2m(child_ids) Kontak
+cm(res.partner) inv(parent_id)
+not(copy)
+..
+char(ref) Referensi
+is(index)
+..
+sel(lang) Bahasa
+variants(<function _lang_get at 0x0000024078622FC0>())
+Semua email dan dokumen yang dikirim ke kontak ini akan diterjemahkan ke bahasa ini.
+..
+int(active_lang_count) Jumlah Bahasa Aktif
+is(computed)
+is(readonly) not(copy)
+..
+sel(tz) Zona Waktu
+variants(596  selection options)
+default(lambda self: ...())
+Saat mencetak dokumen dan ekspor/impor data, value waktu akan dihitung berdasarkan timezone ini.
+Bila timezone belum ditetapkan, UTC (Waktu Universal Terkoordinasi) akan digunakan.
+DI tempat lain, value waktu akan dihitung berdasarkan offset waktu dari klien website Anda.
+..
+char(tz_offset) Offset timezone
+is(computed)
+is(readonly) not(copy)
+..
+m2o(user_id) Penjual
+cm(res.users)
+is(computed) is(stored)
+User internal yang bertanggung jawab untuk kontak ini.
+..
+char(vat) ID Pajak
+is(index)
+Nomor Identifikasi Pajak. Nomor di sini akan divalidasi berdasarkan format negara. Anda dapat menggunakan '/' untuk mengindikasikan bahwa mitra tidak dikenakan pajak.
+..
+m2o(same_vat_partner_id) Partner dengan ID Pajak yang sama
+cm(res.partner)
+is(computed)
+is(readonly) not(copy)
+..
+m2o(same_company_registry_partner_id) Partner dengan Registri Perusahaan yang sama
+cm(res.partner)
+is(computed)
+is(readonly) not(copy)
+..
+char(company_registry) ID Perusahaan
+is(computed) is(stored)
+Nomor registrasi perusahaan. Isi bila berbeda dari ID Pajak. Harus unik untuk semua mitra di negara yang sama
+..
+o2m(bank_ids) Bank
+cm(res.partner.bank) inv(partner_id)
+not(copy)
+..
+char(website) Link Website
+..
+html(comment) Catatan
+..
+m2m(category_id) Label
+cm(res.partner.category)
+rtbl(res_partner_res_partner_category_rel) col1(partner_id) col2(category_id)
+default(_default_category())
+..
+bool(active) Aktif
+default(lambda self: ...())
+..
+bool(employee) Karyawan
+Centang kotak ini jika kontak adalah pegawai
+..
+char(function) Jabatan Kerja
+..
+sel(type) Tipe Alamat
+variants(contact: Contact; invoice: Invoice Address; delivery: Delivery Address; other: Other Address)
+default(lambda self: ...())
+..
+char(street) Jalan
+..
+char(street2) Jalan ke-2
+..
+char(zip) Kode Pos
+..
+char(city) Kota
+..
+m2o(state_id) Status
+cm(res.country.state)
+..
+m2o(country_id) Negara
+cm(res.country)
+..
+char(country_code) Kode Negara
+related(country_id.code)
+is(computed)
+is(readonly) not(copy)
+Kode ISO negara dalam dua karakter.
+Anda dapat menggunakan kolom ini untuk pencarian cepat.
+..
+float(partner_latitude) Garis Lintang
+..
+float(partner_longitude) Garis Bujur
+..
+char(email) Email
+..
+char(email_formatted) Email yang telah diformat
+is(computed)
+is(readonly) not(copy)
+Format alamat email "Name <email@domain>"
+..
+char(phone) Telepon
+..
+char(mobile) Telepon Mobile
+..
+bool(is_company) Perusahaan
+default(lambda self: ...())
+Periksa bila kontak merupakan perusahaan, bila tidak maka orang
+..
+bool(is_public) Apakah Publik
+is(computed)
+is(readonly) not(copy)
+..
+m2o(industry_id) Industri
+cm(res.partner.industry)
+..
+sel(company_type) Jenis Perusahaan
+variants(person: Individual; company: Company)
+is(computed)
+not(copy)
+..
+m2o(company_id) Perusahaan
+cm(res.company)
+is(index)
+..
+int(color) Indeks Warna
+default(lambda self: ...())
+..
+o2m(user_ids) Pengguna
+cm(res.users) inv(partner_id)
+not(copy)
+..
+bool(partner_share) Share Partner
+is(computed) is(stored)
+is(readonly) not(copy)
+Baik pelanggan (bukan user), atau shared user. Indikasikan partner saat ini adalah pelanggan tanpa akses atau dengan akses terbatas yang dibuat untuk data sharing.
+..
+char(contact_address) Alamat Lengkap
+is(computed)
+is(readonly) not(copy)
+..
+m2o(commercial_partner_id) Entitas Komersial
+cm(res.partner)
+is(computed) is(stored)
+is(readonly) not(copy) is(index)
+..
+char(commercial_company_name) Entitas Nama Perusahaan
+is(computed) is(stored)
+is(readonly) not(copy)
+..
+char(company_name) Nama Perusahaan
+..
+char(barcode) Barcode
+not(copy) is(index)
+Gunakan barcode untuk mengidentifikasi kontak ini.
+..
+m2o(self) Diri sendiri
+cm(res.partner)
+is(computed)
+is(readonly) not(copy)
+..
+}
+
+note "<b>res_partner_res_partner_category_rel</b>\npartner_id\ncategory_id" as res_partner_res_partner_category_rel
+}
+
+Model(ResPartnerIndustry, "Industri") {
+model(name) res.partner.industry
+}
+Model(ResPartnerTitle, "Judul Partner") {
+model(name) res.partner.title
+}
+Model(ResCountry, "Negara") {
+model(name) res.country
+}
+Model(ResCountryState, "Negara bagian") {
+model(name) res.country.state
+}
+Model(ResUsers, "Pengguna") {
+model(name) res.users
+}
+Model(ResCompany, "Perusahaan") {
+model(name) res.company
+}
+Model(ResPartnerBank, "Rekening Bank") {
+model(name) res.partner.bank
+}
+Model(ResPartnerCategory, "Tag Rekanan") {
+model(name) res.partner.category
+}
+StudentStudent --> "class_id" ClassClass: "student_ids"
+WeekLine --> "course_id" ProjectCourse: "week_line_ids"
+ResPartner --> "parent_id" ResPartner: "child_ids"
+ResPartnerBank --> "partner_id" ResPartner: "bank_ids"
+ResUsers --> "partner_id" ResPartner: "user_ids"
+ClassClass --> "study_program_id" StudyProgram
+LecturerLecturer --> "partner_id" ResPartner
+ProjectCourse --> "subject_id" SubjectSubject
+ResPartner --> "lecturer_id" LecturerLecturer
+ResPartner --> "student_id" StudentStudent
+ResPartner --> "title" ResPartnerTitle
+ResPartner --> "state_id" ResCountryState
+ResPartner --> "country_id" ResCountry
+ResPartner --> "industry_id" ResPartnerIndustry
+ResPartner --> "company_id" ResCompany
+StudentStudent --> "partner_id" ResPartner
+StudyProgram --> "head_of_program" LecturerLecturer
+SubjectSubject --> "study_program_id" StudyProgram
+ResPartner .. res_partner_res_partner_category_rel
+res_partner_res_partner_category_rel .. ResPartnerCategory
+@enduml
