@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <menuitem id="menu_logbook_dashboard_root" name="Dashboard Logbook" sequence="10"/>
+
+    <menuitem id="menu_logbook_label_analytics"
+            name="Frekuensi Label"
+            parent="menu_logbook_dashboard_root"
+            action="action_logbook_label_analytics"
+            sequence="10"/>
+
+
+    <menuitem id="menu_logbook_stats_dashboard" name="Dashboard Frekuensi Label" parent="menu_logbook_dashboard_root" action="action_logbook_label_stats"/>
+
+
+</odoo>

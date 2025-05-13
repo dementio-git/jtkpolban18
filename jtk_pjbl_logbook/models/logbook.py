@@ -10,44 +10,40 @@ class Logbook(models.Model):
     _name = 'logbook.logbook'
     _description = 'Logbook'
 
-    name = fields.Char(string='Kode Logbook', compute='_compute_name', store=True)
+    name = fields.Char(string='Kode Logbook', compute='_compute_name',store=True)
     student_id = fields.Many2one('student.student', string='Nama Mahasiswa')
     project_course_id = fields.Many2one('project.course', string='Mata Kuliah')
-    week = fields.Selection([
-        ('1', 'W1'),
-        ('2', 'W2'),
-        ('3', 'W3'),
-        ('4', 'W4'),
-        ('5', 'W5'),
-        ('6', 'W6'),
-        ('7', 'W7'),
-        ('8', 'W8'),
-        ('9', 'W9'),
-        ('10', 'W10'),
-        ('11', 'W11'),
-        ('12', 'W12'),
-        ('13', 'W13'),
-        ('14', 'W14'),
-        ('ets', 'ETS'),
-        ('eas', 'EAS'),
-    ], string='Minggu Ke-')
+    week_id = fields.Many2one('week.line', string='Minggu Ke-', compute='_compute_week', store=True)
     logbook_date = fields.Date(string='Tanggal Logbook')
     logbook_content = fields.Text(string='Isi Logbook')
     logbook_summary = fields.Text(string='Ringkasan Logbook')
     logbook_keyword_ids = fields.One2many('logbook.keyword', 'logbook_id', string='Keyword')
     logbook_extraction_ids = fields.One2many('logbook.extraction', 'logbook_id', string='Logbook Extraction')
     skill_extraction_ids = fields.One2many('skill.extraction', 'logbook_id', string='Skill Extraction')
+    is_extracted = fields.Boolean(string='Sudah diekstrak', default=False)
     
-    @api.depends('week', 'student_id')
+    @api.depends('week_id', 'student_id')
     def _compute_name(self):
         for record in self:
-            if record.week and record.student_id.name:
-                record.name = f"{record.week}-{record.student_id.name}"
+            if record.week_id and record.student_id.name:
+                record.name = f"{record.week_id}-{record.student_id.name}"
             else:
                 record.name = False
+                
+    @api.depends('logbook_date', 'project_course_id')
+    def _compute_week(self):
+        for record in self:
+            if record.logbook_date and record.project_course_id:
+                week_line = self.env['week.line'].search([
+                    ('start_date', '<=', record.logbook_date),
+                    ('end_date', '>=', record.logbook_date),
+                    ('course_id', '=', record.project_course_id.id)
+                ], limit=1)
+                record.week_id = week_line.id if week_line else False
+            else:
+                record.week_id = False
 
     # Finalized extract_logbook function with skill integration, level handling, and validation
-
     def extract_logbook(self):
         for record in self:
             if not record.logbook_content:
@@ -95,6 +91,20 @@ Tugas Anda:
 - group: salah satu dari: {skill_group_str}
 - point: 1 s.d. 6 sesuai taksonomi Bloom (Remember=1 s.d. Create=6)
 
+5. Ambil keyword penting dari isi logbook mahasiswa. Gunakan aturan berikut:
+- Pilih hanya 1 kata atau 1 frase utama yang mewakili konsep penting dalam logbook.
+- Gunakan kata benda atau kata kerja utama, bukan frasa naratif atau kalimat lengkap.
+- Hindari penggunaan kata bantu atau kata kerja abstrak di awal seperti: "mencoba", "belajar", "tahu", "sedang", "akan", "lesson", "proses", "melakukan", "menyadari", "mengetahui", dll.
+- Hindari frasa seperti "tahu micro frontend", "lesson learned", "mencobakan MFE".
+- Gunakan hanya istilah utama seperti: "Micro Frontend", "MFE", "error running", "explorasi OpenEdX", "instalasi gagal", "sandbox", "integrasi WSL".
+- Keyword yang baik: "GitHub", "error 403", "XBlock", "eksplorasi internet", "OpenEdX", "modifikasi tampilan"
+- Keyword yang salah: "mencoba menginstall", "belajar micro frontend", "tahu docker", "lesson learned"
+- Gunakan maksimal 1 sampai 3 kata per keyword, hanya jika benar-benar merupakan satu konsep teknis.
+
+Format array JSON:
+"keywords": ["...", "...", "..."]
+
+
 Format JSON:
 {{
 "summary": "...",
@@ -132,7 +142,8 @@ Berikan hanya JSON valid. Jangan sertakan markdown, komentar, atau penjelasan ta
                     output = output[:-3].strip()
                 parsed = json.loads(output)
             except Exception as e:
-                raise UserError(f"Ekstraksi gagal:\n{e}")
+                _logger.error(f"Error parsing JSON response: {e}")
+                continue
 
             record.logbook_summary = parsed.get("summary")
             record.logbook_extraction_ids.unlink()
@@ -155,7 +166,7 @@ Berikan hanya JSON valid. Jangan sertakan markdown, komentar, atau penjelasan ta
                     'label_id': label.id if label else False,
                     'content': aspect.get("isi"),
                     'point': aspect.get("poin") or 0.0,
-                    'level_ids': [(6, 0, level_ids)]
+                    'level_ids': [(6, 0, level_ids)],
                 })
 
                 for kw in aspect.get("keywords", []):
@@ -189,3 +200,6 @@ Berikan hanya JSON valid. Jangan sertakan markdown, komentar, atau penjelasan ta
                     'logbook_id': record.id,
                     'content': skill.get("source", ""),  # ambil potongan kutipan yang relevan
                 })
+                
+            record.is_extracted = True
+            _logger.info(f"Logbook {record.student_id.name} tanggal {record.logbook_date} berhasil diekstrak.")

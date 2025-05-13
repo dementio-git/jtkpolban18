@@ -6,7 +6,7 @@ class LogbookExtraction(models.Model):
     
 
     name = fields.Char(string='Kode', compute='_compute_name', store=True)
-    logbook_id = fields.Many2one('logbook.logbook', string='Logbook', required=True)
+    logbook_id = fields.Many2one('logbook.logbook', string='Logbook', required=True, ondelete='cascade')
     label_id = fields.Many2one('logbook.label', string='Label')
     content = fields.Text(string='Content')
     logbook_keyword_ids = fields.One2many('logbook.keyword', 'logbook_extraction_id', string='Keyword')

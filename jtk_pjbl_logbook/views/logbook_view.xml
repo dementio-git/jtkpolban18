@@ -7,10 +7,11 @@
         <field name="arch" type="xml">
             <list string="Logbook">
                 <field name="student_id"/>
-                <field name="week"/>
+                <field name="week_id"/>
                 <field name="logbook_date"/>
                 <field name="logbook_summary"/>
                 <field name="logbook_keyword_ids" widget="many2many_tags"/>
+                <field name="is_extracted"/>
             </list>
         </field>
     </record>
@@ -30,9 +31,10 @@
                             <field name="name"/>
                             <field name="student_id"/>
                             <field name="project_course_id"/>
+                            <field name="is_extracted"/>
                         </group>
                         <group>
-                            <field name="week"/>
+                            <field name="week_id"/>
                             <field name="logbook_date"/>
                             <field name="logbook_keyword_ids" widget="many2many_tags"/>
                         </group>
@@ -79,4 +81,17 @@
         <field name="res_model">logbook.logbook</field>
         <field name="view_mode">list,form</field>
     </record>
+
+    <record id="action_extract_logbook_multi" model="ir.actions.server">
+        <field name="name">Ekstrak Logbook</field>
+        <field name="model_id" ref="model_logbook_logbook"/>
+        <field name="binding_model_id" ref="model_logbook_logbook"/>
+        <field name="binding_type">action</field> <!-- agar muncul di tree view atas -->
+        <field name="state">code</field>
+        <field name="code">
+            for rec in env['logbook.logbook'].browse(env.context.get('active_ids', [])):
+                rec.extract_logbook()
+        </field>
+    </record>
+
 </odoo>

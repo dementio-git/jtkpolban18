@@ -8,3 +8,5 @@ class ProjectCourse(models.Model):
     code = fields.Char(string='Kode', required=True)
     active = fields.Boolean(string='Active', default=True)
     subject_id = fields.Many2one('subject.subject', string='Subject')
+    week_line_ids = fields.One2many('week.line', 'course_id', string='Week Lines')
+    

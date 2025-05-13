@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_logbook_label_analytics_graph" model="ir.ui.view">
+        <field name="name">logbook.label.analytics.graph</field>
+        <field name="model">logbook.label.analytics</field>
+        <field name="arch" type="xml">
+            <graph string="Frekuensi Label Logbook" type="bar">
+                <field name="count" type="measure"/>
+                <field name="label_id" type="row"/>
+                <field name="week_id" type="col"/>
+            </graph>
+        </field>
+    </record>
+
+
+    <record id="view_logbook_label_analytics_search" model="ir.ui.view">
+        <field name="name">logbook.label.analytics.search</field>
+        <field name="model">logbook.label.analytics</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="project_course_id"/>
+                <field name="week_id"/>
+                <filter name="this_week" string="Minggu Ini" domain="[('week_id','!=',False)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="by_project" string="Project" context="{'group_by': 'project_course_id'}"/>
+                    <filter name="by_week" string="Minggu" context="{'group_by': 'week_id'}"/>
+                    <filter name="by_label" string="Label" context="{'group_by': 'label_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+
+
+    <record id="action_logbook_label_analytics" model="ir.actions.act_window">
+        <field name="name">Dashboard Label Logbook</field>
+        <field name="res_model">logbook.label.analytics</field>
+        <field name="view_mode">graph,list</field>
+        <field name="view_id" ref="jtk_logbook_analytics.view_logbook_label_analytics_graph"/>
+        <field name="search_view_id" ref="jtk_logbook_analytics.view_logbook_label_analytics_search"/>
+        <field name="context">{'search_default_by_project': 1, 'default_view': 'graph'}</field>
+        <field name="domain">[('project_course_id', '!=', False)]</field>
+    </record>
+
+
+
+
+
+
+</odoo>

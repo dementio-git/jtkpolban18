@@ -6,6 +6,7 @@ class SkillExtraction(models.Model):
     logbook_id = fields.Many2one(
         'logbook.logbook',
         string='Logbook',
+        ondelete='cascade'
     )
     
     

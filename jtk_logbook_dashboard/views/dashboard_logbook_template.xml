@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <template id="dashboard_logbook_template" name="Dashboard Logbook">
+      <t t-call="web.layout">
+        <t t-set="title">Dashboard Logbook</t>
+        <div class="container mt-3">
+          <h2>Dashboard Logbook Interaktif</h2>
+
+          <div class="my-4">
+            <h4>1. Jumlah Logbook per Proyek</h4>
+            <canvas id="projectChart" height="80"></canvas>
+          </div>
+
+          <div class="my-4">
+            <h4>2. Jumlah Logbook per Kelas (Klik Proyek terlebih dahulu)</h4>
+            <canvas id="classChart" height="80"></canvas>
+          </div>
+
+          <div class="my-4">
+            <h4>3. Jumlah Label (Klik Kelas terlebih dahulu)</h4>
+            <canvas id="labelChart" height="80"></canvas>
+          </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+          let currentProjectId = null;
+          let currentClassId = null;
+
+          async function fetchAndRenderChart(endpoint, chartId, labelField, valueField, onClickCallback) {
+            const response = await fetch(endpoint, { method: 'POST' });
+            const data = await response.json();
+
+            const ctx = document.getElementById(chartId).getContext('2d');
+            if (window[chartId]) window[chartId].destroy();
+            window[chartId] = new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: data.map(d => d[labelField]),
+                datasets: [{
+                  label: 'Jumlah',
+                  data: data.map(d => d[valueField]),
+                  backgroundColor: '#36a2eb'
+                }]
+              },
+              options: {
+                onClick: (e, elements) => {
+                  if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const selected = data[index];
+                    onClickCallback(selected);
+                  }
+                }
+              }
+            });
+          }
+
+          function renderProjectChart() {
+            fetchAndRenderChart('/dashboard_logbook/project', 'projectChart', 'label', 'count', (project) => {
+              currentProjectId = project.id;
+              renderClassChart();
+            });
+          }
+
+          function renderClassChart() {
+            if (!currentProjectId) return;
+            fetchAndRenderChart(`/dashboard_logbook/class/${currentProjectId}`, 'classChart', 'label', 'count', (cls) => {
+              currentClassId = cls.id;
+              renderLabelChart();
+            });
+          }
+
+          function renderLabelChart() {
+            if (!currentProjectId || !currentClassId) return;
+            fetchAndRenderChart(`/dashboard_logbook/label/${currentProjectId}/${currentClassId}`, 'labelChart', 'label', 'count', () => {});
+          }
+
+          document.addEventListener('DOMContentLoaded', () => {
+            renderProjectChart();
+          });
+        </script>
+      </t>
+  </template>
+</odoo>

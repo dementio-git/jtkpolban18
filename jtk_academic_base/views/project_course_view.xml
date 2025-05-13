@@ -17,7 +17,16 @@
                             <field name="active" widget="boolean_toggle"/>
                         </group>
                     </group>
+                    <group>
+                        <field name="week_line_ids" context="{'default_course_id': id}">
+                            <list editable="bottom">
+                                <field name="name"/>
+                                <field name="start_date" widget="daterange" options="{'end_date_field': 'end_date'}"/>
+                            </list>
+                        </field>
+                    </group>
                     <notebook>
+                        
                     </notebook>
                 </sheet>
             </form>
