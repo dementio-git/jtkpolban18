@@ -5,13 +5,15 @@
         <field name="name">logbook.label.analytics.graph</field>
         <field name="model">logbook.label.analytics</field>
         <field name="arch" type="xml">
-            <graph string="Frekuensi Label Logbook" type="bar">
-                <field name="count" type="measure"/>
-                <field name="label_id" type="row"/>
-                <field name="week_id" type="col"/>
+            <graph string="Analytics per Label" type="bar">
+                <field name="label_id"/>
+                <field name="total_count" type="measure"/>
+                <field name="project_course_id" group="true"/>
+                <field name="class_id" group="true"/>
             </graph>
         </field>
     </record>
+
 
 
     <record id="view_logbook_label_analytics_search" model="ir.ui.view">
@@ -20,11 +22,13 @@
         <field name="arch" type="xml">
             <search>
                 <field name="project_course_id"/>
-                <field name="week_id"/>
-                <filter name="this_week" string="Minggu Ini" domain="[('week_id','!=',False)]"/>
+                <field name="class_id"/>
+                <field name="label_id"/>
+                <!-- <field name="week_id"/> -->
+                <!-- <filter name="this_week" string="Minggu Ini" domain="[('week_id','!=',False)]"/> -->
                 <group expand="0" string="Group By">
                     <filter name="by_project" string="Project" context="{'group_by': 'project_course_id'}"/>
-                    <filter name="by_week" string="Minggu" context="{'group_by': 'week_id'}"/>
+                    <!-- <filter name="by_week" string="Minggu" context="{'group_by': 'week_id'}"/> -->
                     <filter name="by_label" string="Label" context="{'group_by': 'label_id'}"/>
                 </group>
             </search>

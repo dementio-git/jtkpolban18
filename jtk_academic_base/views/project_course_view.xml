@@ -11,6 +11,7 @@
                         <group>
                             <field name="name"/>
                             <field name="code"/>
+                            <field name="class_ids" widget="many2many_tags" options="{'no_create': True}"/>
                         </group>
                         <group>
                             <field name="subject_id"/>

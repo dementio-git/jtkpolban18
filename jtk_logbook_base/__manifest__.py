@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "JTK PJBL Logbook",
+    'name': "JTK Logbook Base",
     'summary': """
-        JTK PJBL Logbook""",
+        JTK Logbook Base""",
     'description': """
-        JTK PJBL Logbook
+        JTK Logbook Base
     """,
 
     'author': "KoTA 407 - S.Tr. 2021",
