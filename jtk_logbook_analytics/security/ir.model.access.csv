@@ -1,3 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_label_analytics,access_label_analytics,model_logbook_label_analytics,base.group_user,1,1,1,1
 access_label_stats,access_label_stats,model_logbook_label_stats,base.group_user,1,1,1,1
+access_student_progress,access_student_progress,model_logbook_student_progress,base.group_user,1,1,1,1

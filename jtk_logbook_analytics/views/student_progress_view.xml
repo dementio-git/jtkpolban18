@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <record id="view_student_progress_graph" model="ir.ui.view">
+        <field name="name">logbook.student.progress.graph</field>
+        <field name="model">logbook.student.progress</field>
+        <field name="arch" type="xml">
+            <graph string="Perkembangan Poin Mahasiswa" type="line">
+                <field name="week_id" type="row"/>
+                <field name="total_point" type="measure"/>
+                <field name="student_id" type="col"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_student_progress_search" model="ir.ui.view">
+        <field name="name">logbook.student.progress.search</field>
+        <field name="model">logbook.student.progress</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="student_id"/>
+                <field name="week_id"/>
+
+                <filter string="Poin > 5" name="filter_point_gt_5" domain="[('total_point', '>', 5)]"/>
+
+                <group expand="0" string="Group By">
+                    <filter string="Mahasiswa" name="group_by_student" context="{'group_by': 'student_id'}"/>
+                    <filter string="Minggu" name="group_by_week" context="{'group_by': 'week_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+
+    <record id="action_student_progress_graph" model="ir.actions.act_window">
+        <field name="name">Grafik Perkembangan Mahasiswa</field>
+        <field name="res_model">logbook.student.progress</field>
+        <field name="view_mode">graph</field>
+        <field name="view_id" ref="jtk_logbook_analytics.view_student_progress_graph"/>
+        <field name="search_view_id" ref="jtk_logbook_analytics.view_student_progress_search"/>
+    </record>
+
+
+
+</odoo>

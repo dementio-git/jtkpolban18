@@ -1,0 +1,22 @@
+.logbook-dashboard-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.logbook-dashboard-scroll {
+  overflow-x: auto !important;
+  display: block;
+  max-width: 100%;
+}
+
+.logbook-dashboard-scroll table {
+  min-width: 1200px;
+  white-space: nowrap;
+}
+
+.o_action_manager {
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    flex: 1 1 auto !important;
+}
+
