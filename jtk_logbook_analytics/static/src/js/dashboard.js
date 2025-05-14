@@ -1,98 +1,121 @@
-/** @odoo-module **/
+/** @odoo-module */
 
-import { Component, useRef, useState, onWillStart } from "@odoo/owl";
+import { Component, useRef, useState, onWillStart, onMounted } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { useEffect} from "@odoo/owl";
-
 
 export class LogbookDashboard extends Component {
-    setup() {
-        this.orm = useService("orm");
-        this.state = useState({ data: [] });
-        this.barChartRef = useRef("barChartRef");
+  setup() {
+    this.orm = useService("orm");
+    this.state = useState({
+      projects: [],
+      weeks: [],
+      selectedProjectId: null,
+      selectedWeekId: null,
+      data: [],
+    });
+    this.barChartRef = useRef("barChartRef");
+    this.chartInstance = null;
 
-        onWillStart(async () => {
-            this.state.data = await this.orm.searchRead(
-                "logbook.label.analytics",
-                [],
-                ["label_id", "week_id", "count"]
-            );
-            console.log("📦 Data Loaded:", this.state.data);
-        });
+    onWillStart(async () => {
+      this.state.projects = await this.orm.searchRead("project.course", [], ["name"]);
+    });
+  }
 
-        useEffect(() => {
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    console.log("Canvas Ref:", this.barChartRef.el);
+  async onProjectChange(ev) {
+    const projectId = parseInt(ev.target.value) || null;
+    this.state.selectedProjectId = projectId;
+    this.state.selectedWeekId = null;
+    this.state.data = [];
+    if (projectId) {
+      this.state.weeks = await this.orm.searchRead(
+        "week.line",
+        [["course_id", "=", projectId]],
+        ["name"]
+      );
+    } else {
+      this.state.weeks = [];
+    }
+  }
 
-                    if (!this.barChartRef.el || this.state.data.length === 0) {
-                        console.warn("⛔ Chart skipped: not fully ready");
-                        return;
-                    }
+  async onWeekChange(ev) {
+    const weekId = parseInt(ev.target.value) || null;
+    this.state.selectedWeekId = weekId;
+    this.state.data = [];
 
-                    if (typeof window.Chart === "undefined") {
-                        console.error("❌ Chart.js is not loaded.");
-                        return;
-                    }
+    if (this.state.selectedProjectId && weekId) {
+      const result = await this.orm.searchRead(
+        "logbook.label.analytics",
+        [
+          ["project_course_id", "=", this.state.selectedProjectId],
+          ["week_id", "=", weekId],
+        ],
+        ["label_id", "class_id", "total_point"]
+      );
+      this.state.data = result;
+      // langsung render—karena t-ref udah bener, barChartRef.el pasti ada
+      this._renderChart();
+    }
+  }
 
-                    console.log("🟢 Chart.js loaded:", typeof window.Chart);
-                    this.renderBarChart();
-                });
-            });
-        }, () => [this.state.data]);
-
-
-
-
+  _renderChart() {
+    const canvas = this.barChartRef.el;
+    if (!canvas) {
+        console.error("Canvas tidak ditemukan!");
+        return;
     }
 
-    renderBarChart() {
-        console.log("🎯 Rendering chart...");
-        console.log("Canvas Ref:", this.barChartRef.el);
+    const ctx = canvas.getContext("2d");
 
-        const dataByWeek = {};
-        for (const row of this.state.data) {
-            const week = row.week_id?.[1] || "Unknown";
-            const label = row.label_id?.[1] || "Unknown";
+    // ✅ Ini dia baris yang sudah benar
+    if (this.chartInstance) {
+        this.chartInstance.destroy();  // ini mencegah chart tumpuk dan ukuran error
+    }
+    // bersihin chart sebelumnya
+    if (this.chartInstance) {
+      this.chartInstance.destroy();
+    }
+    // kumpulkan data
+    const byClass = {};
+    const labels = [];
+    for (const r of this.state.data) {
+      const lbl = r.label_id[1] || "Unknown";
+      const cls = r.class_id[1] || "Unknown";
+      byClass[cls] = byClass[cls] || {};
+      byClass[cls][lbl] = (byClass[cls][lbl] || 0) + (r.total_point || 0);
+      if (!labels.includes(lbl)) {
+        labels.push(lbl);
+      }
+    }
+    const classNames = Object.keys(byClass);
+    const datasets = classNames.map((cls, idx) => ({
+      label: cls,
+      data: labels.map(l => byClass[cls][l] || 0),
+      backgroundColor: `hsl(${(idx * 60) % 360},70%,60%)`,
+    }));
 
-            if (!dataByWeek[week]) dataByWeek[week] = {};
-            if (!dataByWeek[week][label]) dataByWeek[week][label] = 0;
-            dataByWeek[week][label] += row.count;
-        }
-
-        const labels = [...new Set(this.state.data.map(r => r.label_id?.[1]))];
-        const weeks = Object.keys(dataByWeek);
-
-        const datasets = weeks.map((week, idx) => ({
-            label: week,
-            data: labels.map(label => dataByWeek[week][label] || 0),
-            backgroundColor: `hsl(${(idx * 60) % 360}, 70%, 60%)`
-        }));
-
-        console.log("✅ Labels:", labels);
-        console.log("✅ Datasets:", datasets);
-
-        const ctx = this.barChartRef.el.getContext("2d");
-        new window.Chart(ctx, {
-            type: "bar",
-            data: {
-                labels: labels,
-                datasets: datasets,
+    this.chartInstance = new window.Chart(ctx, {
+      type: "bar",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            tooltip: {
+            mode: 'index',
+            position: 'nearest',
+            intersect: false,
             },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'top' },
-                    title: { display: true, text: 'Frekuensi Label per Minggu' }
-                },
-                scales: {
-                    x: { stacked: true },
-                    y: { stacked: true, beginAtZero: true }
-                }
-            }
-        });
-    }
+            legend: { position: "top" },
+            title: { display: true, text: "Total Poin per Kelas" },
+        },
+        scales: {
+            x: { stacked: false },
+            y: { stacked: false, beginAtZero: true }
+        },
+        },
+    });
+  }
 }
 
 LogbookDashboard.template = "jtk_logbook_analytics.LogbookDashboard";

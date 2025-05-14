@@ -20,3 +20,51 @@
     flex: 1 1 auto !important;
 }
 
+.logbook-dashboard-wrapper {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  max-width: 900px;
+  margin: auto;
+}
+
+.logbook-dashboard-wrapper h2 {
+  font-size: 1.75rem;
+  margin-bottom: 24px;
+  color: #1f2937; /* dark gray */
+}
+
+.logbook-dashboard-wrapper .form-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.logbook-dashboard-wrapper .form-select {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.logbook-dashboard-wrapper .text-muted {
+  font-size: 13px;
+  color: #6c757d;
+  margin-top: 8px;
+}
+
+.logbook-dashboard-wrapper .text-warning {
+  font-size: 13px;
+  color: #d97706;
+  margin-top: 8px;
+}
+
+canvas {
+  margin-top: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+

@@ -3,40 +3,49 @@
     <div class="logbook-dashboard-wrapper p-3">
       <h2>📊 Dashboard Analitik Logbook</h2>
 
-      <!-- Loading saat data masih kosong -->
-      <div t-if="state.data.length === 0">Loading data...</div>
+      <!-- Pilih Project -->
+      <div class="mb-3">
+        <label class="form-label">📘 Pilih Project:</label>
+        <select class="form-select" t-att-value="state.selectedProjectId" t-on-change="onProjectChange">
+          <option value="">-- Pilih Project --</option>
+          <t t-foreach="state.projects" t-as="proj" t-key="proj.id">
+            <option t-att-value="proj.id"><t t-esc="proj.name"/></option>
+          </t>
+        </select>
+      </div>
 
-      <!-- Render chart dan tabel HANYA kalau data sudah ada -->
-      <t t-if="state.data.length > 0">
-        <div class="logbook-dashboard-scroll">
-          <h3>Grafik Frekuensi Label per Minggu</h3>
-          <canvas t-ref="barChartRef" width="600" height="300" style="border: 1px solid red;"></canvas>
-
-          <table class="table table-striped table-bordered">
-            <thead>
-              <tr>
-                <th>Label</th>
-                <th>Minggu</th>
-                <th>Kelas</th>
-                <th>Frekuensi</th>
-                <th>Total Poin</th>
-              </tr>
-            </thead>
-            <tbody>
-              <t t-foreach="state.data" t-as="row" t-key="row.id">
-                <tr>
-                  <td><t t-esc="row.label_id and row.label_id[1] or 'Unknown'"/></td>
-                  <td><t t-esc="row.week_id and row.week_id[1] or 'Unknown'"/></td>
-                  <td><t t-esc="row.class_id and row.class_id[1] or 'Unknown'"/></td>
-                  <td><t t-esc="row.count"/></td>
-                  <td><t t-esc="row.total_point"/></td>
-                </tr>
-              </t>
-            </tbody>
-          </table>
+      <!-- Pilih Minggu -->
+      <t t-if="state.weeks.length">
+        <div class="mb-3">
+          <label class="form-label">📅 Pilih Minggu:</label>
+          <select class="form-select" t-att-value="state.selectedWeekId" t-on-change="onWeekChange">
+            <option value="">-- Pilih Minggu --</option>
+            <t t-foreach="state.weeks" t-as="w" t-key="w.id">
+              <option t-att-value="w.id"><t t-esc="w.name"/></option>
+            </t>
+          </select>
         </div>
       </t>
 
+      <!-- Pesan jika belum pilih -->
+      <t t-if="!state.selectedProjectId">
+        <p class="text-muted">Silakan pilih project terlebih dahulu.</p>
+      </t>
+      <t t-if="state.selectedProjectId and !state.selectedWeekId">
+        <p class="text-muted">Silakan pilih minggu untuk melihat grafik.</p>
+      </t>
+
+      <!-- Chart -->
+      <div style="max-height: 500px; overflow-x: auto; overflow-y: auto; position: relative;">
+      <canvas
+          t-ref="barChartRef"
+          style="min-width: 1000px; height: 400px; width: 100%; display: block;" />
+      </div>
+
+
+      <t t-if="state.selectedWeekId and state.data.length === 0">
+        <p class="text-warning">Tidak ada data label untuk minggu ini.</p>
+      </t>
     </div>
   </t>
 </templates>

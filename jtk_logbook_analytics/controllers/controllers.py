@@ -1,21 +1,29 @@
-# -*- coding: utf-8 -*-
-# from odoo import http
+# file: controllers/dashboard_api.py (misal)
+from odoo import http
+from odoo.http import request
 
+class LogbookDashboardAPI(http.Controller):
 
-# class JtkLogbookAnalytic(http.Controller):
-#     @http.route('/jtk_logbook_analytic/jtk_logbook_analytic', auth='public')
-#     def index(self, **kw):
-#         return "Hello, world"
+    @http.route('/logbook_dashboard/label_points_by_class', type='json', auth='user')
+    def label_points_by_class(self, project_id, week_id):
+        # Query ke model logbook.label.analytics
+        records = request.env['logbook.label.analytics'].sudo().read_group(
+            domain=[
+                ('project_course_id', '=', project_id),
+                ('week_id', '=', week_id)
+            ],
+            fields=['label_id', 'class_id', 'total_point:sum'],
+            groupby=['label_id', 'class_id']
+        )
 
-#     @http.route('/jtk_logbook_analytic/jtk_logbook_analytic/objects', auth='public')
-#     def list(self, **kw):
-#         return http.request.render('jtk_logbook_analytic.listing', {
-#             'root': '/jtk_logbook_analytic/jtk_logbook_analytic',
-#             'objects': http.request.env['jtk_logbook_analytic.jtk_logbook_analytic'].search([]),
-#         })
+        result = {}
+        for rec in records:
+            label = rec['label_id'][1] if rec['label_id'] else 'Unknown'
+            kelas = rec['class_id'][1] if rec['class_id'] else 'Unknown'
+            point = rec['total_point']
 
-#     @http.route('/jtk_logbook_analytic/jtk_logbook_analytic/objects/<model("jtk_logbook_analytic.jtk_logbook_analytic"):obj>', auth='public')
-#     def object(self, obj, **kw):
-#         return http.request.render('jtk_logbook_analytic.object', {
-#             'object': obj
-#         })
+            if label not in result:
+                result[label] = {}
+            result[label][kelas] = point
+
+        return result
