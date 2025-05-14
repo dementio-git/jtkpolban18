@@ -68,3 +68,19 @@ canvas {
   border-radius: 8px;
 }
 
+
+.chart-row {
+  display: flex;
+  gap: 1rem;            /* jarak antar chart */
+}
+.chart-wrapper {
+  flex: 1;              /* masing-masing sama lebar */
+  min-width: 300px;     /* lebar minimal jika viewport sempit */
+  height: 400px;        /* tinggi tetap */
+  position: relative;   /* agar Chart.js menghitung dimensi dengan benar */
+}
+.chart-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}

@@ -4,3 +4,4 @@ access_logbook_extraction,access.logbook.extraction,model_logbook_extraction,bas
 access_logbook_label,access.logbook.label,model_logbook_label,base.group_user,1,1,1,1
 access_logbook_keyword,access.logbook.keyword,model_logbook_keyword,base.group_user,1,1,1,1
 access_logbook_label_level,access.logbook.label.level,model_logbook_label_level,base.group_user,1,1,1,1
+access_logbook_label_group,access.logbook.label.group,model_logbook_label_group,base.group_user,1,1,1,1

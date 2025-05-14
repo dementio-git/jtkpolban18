@@ -1,33 +1,40 @@
-from odoo import models, fields, tools, api
+# models/logbook_label_analytics.py
+from odoo import models, fields, tools
 
 class LogbookLabelAnalytics(models.Model):
     _name = 'logbook.label.analytics'
-    _description = 'Analisis Frekuensi Label Logbook'
     _auto = False
+    _description = 'Analisis Frekuensi Label Logbook'
 
-    label_id = fields.Many2one('logbook.label', string='Label')
-    week_id = fields.Many2one('week.line', string='Minggu')
-    project_course_id = fields.Many2one('project.course', string='Mata Kuliah')
-    class_id = fields.Many2one('class.class', string='Kelas')
-    count = fields.Integer(string='Jumlah')
-    total_point = fields.Float(string='Total Poin')
+    label_id        = fields.Many2one('logbook.label',        string='Label')
+    group_id        = fields.Many2one('logbook.label.group',  string='Label Group')
+    student_id      = fields.Many2one('student.student',      string='Mahasiswa')
+    student_nim   = fields.Char(string='NIM')
+    week_id         = fields.Many2one('week.line',            string='Minggu')
+    project_course_id = fields.Many2one('project.course',    string='Mata Kuliah')
+    class_id        = fields.Many2one('class.class',          string='Kelas')
+    count           = fields.Integer(string='Jumlah')
+    total_point     = fields.Float(  string='Total Poin')
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""
             CREATE OR REPLACE VIEW logbook_label_analytics AS (
                 SELECT
-                    row_number() OVER () AS id,
+                    row_number() OVER ()                          AS id,
                     e.label_id,
+                    lbl.group_id,
+                    l.student_id,
+                    s.nim AS student_nim,                         -- ⬅️ tambahkan ini
                     l.week_id,
                     l.project_course_id,
                     s.class_id,
-                    COUNT(e.id) AS count,
-                    SUM(e.point) AS total_point
-                FROM
-                    logbook_extraction e
-                JOIN logbook_logbook l ON e.logbook_id = l.id
-                JOIN student_student s ON l.student_id = s.id
+                    COUNT(e.id)           AS count,
+                    SUM(e.point)          AS total_point
+                FROM logbook_extraction e
+                JOIN logbook_logbook      l  ON e.logbook_id = l.id
+                JOIN logbook_label        lbl ON e.label_id   = lbl.id
+                JOIN student_student      s  ON l.student_id = s.id
                 WHERE
                     e.label_id IS NOT NULL
                     AND l.week_id IS NOT NULL
@@ -36,6 +43,9 @@ class LogbookLabelAnalytics(models.Model):
                     AND e.point IS NOT NULL
                 GROUP BY
                     e.label_id,
+                    lbl.group_id,
+                    l.student_id,
+                    s.nim,                                       -- ⬅️ tambahkan ke GROUP BY
                     l.week_id,
                     l.project_course_id,
                     s.class_id
