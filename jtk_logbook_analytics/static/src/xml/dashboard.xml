@@ -18,38 +18,6 @@
         </select>
       </div>
 
-      <!-- Pilih Minggu & Kelas (Horizontal) -->
-      <t t-if="state.selectedProjectId">
-        <div class="d-flex gap-4 flex-wrap align-items-end mb-4">
-          <div style="flex: 1 1 300px;">
-            <label class="form-label">📅 Pilih Minggu:</label>
-            <select class="form-select"
-                    t-att-value="state.selectedWeekId"
-                    t-on-change="onWeekChange">
-              <option value="">-- Pilih Minggu --</option>
-              <t t-foreach="state.weeks" t-as="w" t-key="w.id">
-                <option t-att-value="w.id">
-                  <t t-esc="w.name"/>
-                </option>
-              </t>
-            </select>
-          </div>
-          <div style="flex: 1 1 300px;">
-            <label class="form-label">👥 Pilih Kelas:</label>
-            <select class="form-select"
-                    t-att-value="state.selectedClassId"
-                    t-on-change="onClassChange">
-              <option value="">-- Pilih Kelas --</option>
-              <t t-foreach="state.classes" t-as="cls" t-key="cls.id">
-                <option t-att-value="cls.id">
-                  <t t-esc="cls.name"/>
-                </option>
-              </t>
-            </select>
-          </div>
-        </div>
-      </t>
-
       <!-- Pesan jika belum pilih -->
       <t t-if="!state.selectedProjectId">
         <p class="text-muted">Silakan pilih project terlebih dahulu.</p>
@@ -58,37 +26,126 @@
         <p class="text-muted">Silakan pilih minggu untuk melihat grafik.</p>
       </t>
 
-      <!-- Dua Grafik Horizontal -->
-      <div class="d-flex flex-row flex-wrap gap-3">
-        <!-- Grafik 1: Poin per Kelas -->
-        <div style="flex: 1 1 48%; min-width: 350px; height: 400px;">
-          <canvas t-ref="barChartRef"
-                  style="width:100%;height:100%;display:block;"/>
-          <t t-if="state.selectedWeekId and state.weekData.length === 0">
-            <p class="text-warning">Tidak ada data label untuk minggu ini.</p>
-          </t>
+      <t t-if="state.selectedProjectId">
+
+      <div class="chart-row">
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <label class="form-label">📅 Pilih Minggu:</label>
+            <select class="form-select" t-att-value="state.selectedWeekId" t-on-change="onWeekChange">
+              <option value="">-- Pilih Minggu --</option>
+              <t t-foreach="state.weeks" t-as="w" t-key="w.id">
+                <option t-att-value="w.id"><t t-esc="w.name"/></option>
+              </t>
+            </select>
+          </div>
+          <div class="chart-container">
+            <canvas t-ref="barChartRef"></canvas>
+          </div>
         </div>
-        <!-- Grafik 2: Poin per Label -->
-        <div style="flex: 1 1 48%; min-width: 350px; height: 400px;">
-          <canvas t-ref="classChartRef"
-                  style="width:100%;height:100%;display:block;"/>
-          <t t-if="state.selectedClassId and state.classData.length === 0">
-            <p class="text-warning">Tidak ada data untuk kelas ini.</p>
-          </t>
+
+        <div class="dashboard-panel">
+          <div class="panel-header">
+            <label class="form-label">👥 Pilih Kelas:</label>
+            <select class="form-select" t-att-value="state.selectedClassId" t-on-change="onClassChange">
+              <option value="">-- Pilih Kelas --</option>
+              <t t-foreach="state.classes" t-as="cls" t-key="cls.id">
+                <option t-att-value="cls.id"><t t-esc="cls.name"/></option>
+              </t>
+            </select>
+          </div>
+          <div class="chart-container">
+            <canvas t-ref="classChartRef"></canvas>
+          </div>
         </div>
       </div>
 
-      <!-- ── Grafik #3: Total Poin per Mahasiswa by Label Group ── -->
-      <t t-if="state.selectedWeekId">
-        <h3 class="mt-5">👥 Total Poin per Mahasiswa by Label Group</h3>
-        <div style="height: 300px; margin-top: 1rem;">
-          <canvas t-ref="studentChartRef"
-                  style="width:100%;height:100%;display:block;"/>
-        </div>
-        <t t-if="state.studentData.length === 0">
-          <p class="text-warning">Tidak ada data untuk minggu terpilih.</p>
+
+
+
+
+        <!-- ── Grafik #3: Total Poin per Mahasiswa by Label Group ── -->
+        <t t-if="state.selectedWeekId">
+          <h3 class="mt-5">👥 Total Poin per Mahasiswa by Label Group</h3>
+          <div style="height: 300px; margin-top: 1rem;">
+            <canvas t-ref="studentChartRef"
+                    style="width:100%;height:100%;display:block;"/>
+          </div>
+          <t t-if="state.studentData.length === 0">
+            <p class="text-warning">Tidak ada data untuk minggu terpilih.</p>
+          </t>
         </t>
+
+        <!-- ── Grafik #4: Total Poin per Label Group by Mahasiswa ── -->
+
+        <div class="mb-3">
+          <label class="form-label">🎯 Pilih Label Group:</label>
+          <select class="form-select"
+                  t-on-change="onLabelGroupChange">
+            <option value="">-- Semua --</option>
+            <t t-foreach="state.labelGroups" t-as="lg" t-key="lg.id">
+              <option t-att-value="lg.id">
+                <t t-esc="lg.name"/>
+              </option>
+            </t>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">🏷️ Pilih Kelas (Filter Mahasiswa):</label>
+          <select class="form-select"
+                  t-att-value="state.selectedStudentClassId"
+                  t-on-change="onStudentClassChange">
+            <option value="">-- Semua Kelas --</option>
+            <t t-foreach="state.classes" t-as="cls" t-key="cls.id">
+              <option t-att-value="cls.id">
+                <t t-esc="cls.name"/>
+              </option>
+            </t>
+          </select>
+        </div>
+        <div class="d-flex align-items-center mb-2">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary me-2"
+            t-on-click="clearStudentSelection">
+            ❌ Batal Semua
+          </button>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">👤 Pilih Mahasiswa:</label>
+          <div class="form-control" style="min-height: 38px;">
+            <t t-foreach="state.students" t-as="s" t-key="s.id">
+              <span class="badge me-1"
+                    t-attf-class="{{ state.selectedStudentIds.includes(s.id) 
+                                    ? 'bg-primary' 
+                                    : 'bg-light text-dark' }}"
+                    t-on-click="() => this.toggleStudent(s.id)">
+                <t t-esc="s.name"/> (<t t-esc="s.nim"/>)
+              </span>
+            </t>
+          </div>
+        </div>
+
+        <!-- … wrapper grafik #4 … -->
+        <h3 class="mt-4">📈 Perkembangan Poin Mahasiswa dari Waktu ke Waktu</h3>
+        <div style="height:700px; margin-top:1rem;">
+          <!-- canvas SELALU ADA, tanpa t-if atau t-att-style -->
+          <canvas t-ref="lineChartRef" style="width:100%;height:100%;display:block;"/>
+        </div>
+        <!-- Pesan instruksi sebelum filter dipilih -->
+        <p t-if="!state.selectedLabelGroupId || !state.selectedStudentIds.length" class="text-muted">
+          Silakan pilih Label Group dan Mahasiswa terlebih dahulu.
+        </p>
+        <!-- Pesan 'no data' setelah filter dipilih tapi kosong -->
+        <p t-if="state.selectedLabelGroupId and state.selectedStudentIds.length and state.lineChartData.length===0" class="text-warning">
+          Tidak ada data untuk pilihan ini.
+        </p>
+
       </t>
+
+
     </div>
   </t>
 </templates>
