@@ -8,24 +8,24 @@
             action="action_logbook_label_analytics"
             sequence="10"/>
 
-    <menuitem id="menu_logbook_student_progress"
-        name="Grafik Perkembangan Mahasiswa"
-        parent="menu_logbook_dashboard_root"
-        action="action_student_progress_graph"
-        sequence="15"/>
-
-
-    <record id="action_logbook_owl_dashboard" model="ir.actions.client">
-        <field name="name">Dashboard Logbook (OWL)</field>
-        <field name="tag">jtk_logbook_analytics.logbook_dashboard</field>
-    </record>
-
-    <menuitem id="menu_logbook_owl_dashboard" name="Dashboard Logbook (OWL)"
+            
+            
+            <record id="action_logbook_owl_dashboard" model="ir.actions.client">
+                <field name="name">Dashboard Logbook (OWL)</field>
+                <field name="tag">jtk_logbook_analytics.logbook_dashboard</field>
+            </record>
+            
+            <menuitem id="menu_logbook_owl_dashboard" name="Dashboard Logbook (OWL)"
             parent="menu_logbook_dashboard_root"
             action="action_logbook_owl_dashboard"/>
-
-
-
+            
+            
+            
+            <!-- <menuitem id="menu_logbook_student_progress"
+                name="Grafik Perkembangan Mahasiswa"
+                parent="menu_logbook_dashboard_root"
+                action="action_student_progress_graph"
+                sequence="15"/> -->
 
 
     <!-- <menuitem id="menu_logbook_stats_dashboard" name="Dashboard Frekuensi Label" parent="menu_logbook_dashboard_root" action="action_logbook_label_stats"/>
