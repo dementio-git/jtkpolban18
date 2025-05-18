@@ -27,11 +27,10 @@
     
     'assets': {
         'web.assets_backend': [
-            'jtk_logbook_analytics/static/src/js/lib/chart.js',
-            # 'jtk_logbook_analytics/static/src/js/lib/chartjs-adapter-date-fns.js',
-            'jtk_logbook_analytics/static/src/js/dashboard.js',
-            'jtk_logbook_analytics/static/src/css/dashboard.css',
-            'jtk_logbook_analytics/static/src/xml/dashboard.xml',
+            'jtk_logbook_analytics/static/src/js/lib/*.js',
+            'jtk_logbook_analytics/static/src/js/*.js',
+            'jtk_logbook_analytics/static/src/css/*.css',
+            'jtk_logbook_analytics/static/src/xml/*.xml',
         ],
     },
 
@@ -39,7 +38,6 @@
     # always loaded
     'data': [
         'security/ir.model.access.csv',
-        'views/label_analytics_views.xml',
         'views/menuitems.xml',
         # 'views/dashboard_action.xml',
     ],

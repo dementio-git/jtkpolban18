@@ -1,0 +1,141 @@
+<templates xml:space="preserve">
+  <t t-name="jtk_logbook_analytics.LogbookStudentDashboard" owl="1">
+    <div class="o_logbook_dashboard d-flex">
+        <!-- Sidebar -->
+        <div class="sidebar bg-light border rounded p-3"
+        style="width: 280px; flex-shrink: 0; height: 100vh; position: sticky; top: 0; overflow-y: auto;">
+
+
+            <!-- Pilih Project -->
+            <div class="mb-3">
+                <h3 class="mb-3">📘 Pilih Project:</h3>
+                <select class="form-select"
+                        t-att-value="state.selectedProjectId"
+                        t-on-change="onProjectChange">
+                <option value="">-- Pilih Project --</option>
+                <t t-foreach="state.projects" t-as="proj" t-key="proj.id">
+                    <option t-att-value="proj.id">
+                    <t t-esc="proj.name"/>
+                    </option>
+                </t>
+                </select>
+            </div>
+
+            <t t-if="state.selectedProjectId">
+                <h5 class="mb-3">👥 Pilih Mahasiswa</h5>
+
+                <!-- Tombol Overall -->
+                <button class="btn btn-sm btn-secondary mb-2 w-100"
+                        t-on-click="() => this.onStudentClassChange({ target: { value: '' } })">
+                    📊 Overall
+                </button>
+
+                <!-- Daftar Kelas -->
+                <div class="mb-3">
+                    <t t-foreach="state.classes" t-as="cls" t-key="cls.id">
+                    <button class="btn btn-sm btn-outline-primary mb-1 w-100"
+                            t-att-class="{'active': state.selectedStudentClassId === cls.id}"
+                            t-on-click="() => this.onStudentClassChange({ target: { value: cls.id } })">
+                        🏷️ <t t-esc="cls.name"/>
+                    </button>
+                    </t>
+                </div>
+
+                <hr class="my-2"/>
+
+                <!-- Checkbox Mahasiswa -->
+                <div style="max-height: 450px; overflow-y: auto;">
+                    <t t-foreach="state.students" t-as="stu" t-key="stu.id">
+                    <div class="form-check mb-1">
+                        <input class="form-check-input"
+                            type="checkbox"
+                            t-att-checked="state.selectedStudentIds.includes(stu.id)"
+                            t-on-click="() => this.toggleStudent(stu.id)"/>
+                        <label class="form-check-label small">
+                        <t t-esc="stu.name"/> (<t t-esc="stu.nim"/>)
+                        </label>
+                    </div>
+                    </t>
+                </div>
+
+                <!-- Tombol Batal -->
+                <button class="btn btn-sm btn-outline-danger mt-3 w-100"
+                        t-on-click="clearStudentSelection">
+                    ❌ Batal Semua
+                </button>
+                
+            </t>
+            
+        </div>
+
+
+        <div class="flex-grow-1">
+            <div class="logbook-dashboard-wrapper p-3 bg-light ">
+                <t t-if="!state.selectedProjectId">
+                    <p class="text-muted">Silakan pilih project terlebih dahulu.</p>
+                </t>
+
+                <t t-if="state.selectedProjectId">
+
+
+                    <!-- Grafik #4: Perkembangan Poin Mahasiswa dari Waktu ke Waktu -->
+                    <div class="dashboard-panel mt-4" style="height: 1000px;">
+                        <h3 class="fw-bold mb-3">📈 Perkembangan Poin Mahasiswa dari Waktu ke Waktu</h3>
+
+                        <!-- 🔹 Filter Label Group dan Kelas dalam 1 baris -->
+                        <div class="d-flex gap-4 flex-wrap align-items-end mb-3">
+                            <!-- 🎯 Label Group -->
+                            <div style="flex: 1 1 300px;">
+                                <label class="form-label">🎯 Pilih Label Group:</label>
+                                <select class="form-select" t-on-change="onLabelGroupChange">
+                                <option value="">-- Semua --</option>
+                                <t t-foreach="state.labelGroups" t-as="lg" t-key="lg.id">
+                                    <option t-att-value="lg.id"><t t-esc="lg.name"/></option>
+                                </t>
+                                </select>
+                            </div>
+
+                            <!-- 📊 Rata-rata -->
+                            <div style="flex: 1 1 300px;">
+                                <label class="form-label">📈 Tampilkan Rata-rata:</label>
+                                <select class="form-select"
+                                        t-att-value="state.selectedAverageClassId"
+                                        t-on-change="onAverageClassChange">
+                                <option value="">-- Tidak Ditampilkan --</option>
+                                <option value="__all__">📊 Semua Kelas</option>
+                                <t t-foreach="state.classes" t-as="cls" t-key="cls.id">
+                                    <option t-att-value="cls.id">📊 <t t-esc="cls.name"/></option>
+                                </t>
+                                </select>
+                            </div>
+                        </div>
+
+
+
+
+                        <!-- 🔹 Grafik Line -->
+                        <div class="chart-container" style="height: 920px;">
+                            <canvas t-ref="lineChartRef"/>
+                        </div>
+
+                        <!-- 🔹 Pesan jika belum memilih -->
+                        <p t-if="!state.selectedLabelGroupId || !state.selectedStudentIds.length" class="text-muted mt-2">
+                            Silakan pilih Label Group dan Mahasiswa terlebih dahulu.
+                        </p>
+                        <p t-if="state.selectedLabelGroupId and state.selectedStudentIds.length and state.lineChartData.length===0" class="text-warning mt-2">
+                            Tidak ada data untuk pilihan ini.
+                        </p>
+                    </div>
+                </t>
+            </div>
+
+
+        </div>
+
+
+    
+
+    
+    </div>
+  </t>
+</templates>

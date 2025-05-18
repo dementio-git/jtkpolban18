@@ -1,0 +1,106 @@
+<templates xml:space="preserve">
+  <t t-name="jtk_logbook_analytics.LogbookClassDashboard" owl="1">
+    <div class="logbook-dashboard-wrapper p-3">
+      <h2>📊 Dashboard Analitik Logbook Kelas </h2>
+
+      <!-- Pilih Project -->
+      <div class="mb-3">
+        <label class="form-label">📘 Pilih Project:</label>
+        <select class="form-select"
+                t-att-value="state.selectedProjectId"
+                t-on-change="onProjectChange">
+          <option value="">-- Pilih Project --</option>
+          <t t-foreach="state.projects" t-as="proj" t-key="proj.id">
+            <option t-att-value="proj.id">
+              <t t-esc="proj.name"/>
+            </option>
+          </t>
+        </select>
+      </div>
+
+      <!-- Pesan jika belum pilih -->
+      <t t-if="!state.selectedProjectId">
+        <p class="text-muted">Silakan pilih project terlebih dahulu.</p>
+      </t>
+      <t t-if="state.selectedProjectId and !state.selectedWeekId">
+        <p class="text-muted">Silakan pilih minggu untuk melihat grafik.</p>
+      </t>
+
+      <t t-if="state.selectedProjectId">
+
+        <div class="chart-row">
+          <div class="dashboard-panel">
+            <h3 class="fw-bold mb-3">📊 Total Poin per Kelas berdasarkan Minggu</h3>           
+            <div class="panel-header">
+              <label class="form-label">📅 Pilih Minggu:</label>
+              <select class="form-select" t-att-value="state.selectedWeekId" t-on-change="onWeekChange">
+                <option value="">-- Pilih Minggu --</option>
+                <t t-foreach="state.weeks" t-as="w" t-key="w.id">
+                  <option t-att-value="w.id"><t t-esc="w.name"/></option>
+                </t>
+              </select>
+            </div>
+            <div class="chart-container">
+              <canvas t-ref="barChartRef"></canvas>
+            </div>
+          </div>
+
+        <div class="dashboard-panel">
+          <h3 class="fw-bold mb-3">📊 Total Poin per Minggu berdasarkan Kelas</h3>           
+
+          <div class="panel-header">
+            <label class="form-label">👥 Pilih Kelas:</label>
+            <select class="form-select" t-att-value="state.selectedClassId" t-on-change="onClassChange">
+              <option value="">-- Pilih Kelas --</option>
+              <t t-foreach="state.classes" t-as="cls" t-key="cls.id">
+                <option t-att-value="cls.id"><t t-esc="cls.name"/></option>
+              </t>
+            </select>
+          </div>
+          <div class="chart-container">
+            <canvas t-ref="classChartRef"></canvas>
+          </div>
+        </div>
+      </div>
+
+
+        <!-- Grafik #3: Total Poin per Mahasiswa by Label Group -->
+        <div class="dashboard-panel p-3 mt-4" style="height: 800px;">
+          <h3 class="fw-bold mb-3">📊 Total Poin per Mahasiswa by Label Group</h3>            <!-- Pilih Minggu -->
+          <div class="d-flex gap-4 flex-wrap align-items-end mb-3">
+            <div style="flex: 1 1 300px;">
+              <label class="form-label">📅 Pilih Minggu (Chart 3):</label>
+              <select class="form-select"
+                      t-att-value="state.selectedWeekIdChart3"
+                      t-on-change="onWeekChart3Change">
+                <option value="">-- Pilih Minggu --</option>
+                <t t-foreach="state.weeks" t-as="w" t-key="w.id">
+                  <option t-att-value="w.id"><t t-esc="w.name"/></option>
+                </t>
+              </select>
+            </div>
+                    <!-- Pilih Kelas -->
+            <div style="flex: 1 1 300px;">
+              <label class="form-label">👥 Pilih Kelas (Chart 3):</label>
+              <select class="form-select"
+                      t-att-value="state.selectedClassIdChart3"
+                      t-on-change="onClassChart3Change">
+                <option value="">-- Pilih Kelas --</option>
+                <t t-foreach="state.classes" t-as="cls" t-key="cls.id">
+                  <option t-att-value="cls.id"><t t-esc="cls.name"/></option>
+                </t>
+              </select>
+            </div>
+          </div>
+
+            <div class="chart-container">  <!-- Ini penting -->
+              <canvas t-ref="studentChartRef" />
+            </div>
+        </div>
+
+      </t>
+
+
+    </div>
+  </t>
+</templates>

@@ -58,3 +58,35 @@ class LogbookLabelAnalytics(models.Model):
                     w.start_date
             )
         """)
+
+class LogbookLabelWeeklyAvg(models.Model):
+    _name = 'logbook.label.weekly.avg'
+    _description = 'Rata-Rata Mingguan per Label Group'
+    _auto = False
+
+    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
+    group_id          = fields.Many2one('logbook.label.group', string='Label Group', readonly=True)
+    week_id           = fields.Many2one('week.line', string='Minggu', readonly=True)
+    class_id       = fields.Many2one('class.class', string='Kelas', readonly=True)
+    week_date         = fields.Date(string='Tanggal Minggu', readonly=True)
+    avg_point         = fields.Float(string='Rata-Rata Poin', readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+            CREATE OR REPLACE VIEW logbook_label_weekly_avg AS (
+                SELECT
+                    MIN(lla.id) AS id,
+                    lla.project_course_id,
+                    lla.group_id,
+                    lla.class_id,
+                    lla.week_id,
+                    MIN(lla.week_date) AS week_date,
+                    AVG(lla.total_point) AS avg_point
+                FROM logbook_label_analytics lla
+                WHERE lla.total_point IS NOT NULL
+                GROUP BY lla.project_course_id, lla.group_id, lla.class_id, lla.week_id
+            )
+
+        """)
+

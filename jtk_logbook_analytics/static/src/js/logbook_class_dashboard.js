@@ -3,7 +3,7 @@ import { Component, useRef, useState, onWillStart } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 
-export class LogbookDashboard extends Component {
+export class LogbookClassDashboard extends Component {
   setup() {
     this.orm = useService("orm");
     this.state = useState({
@@ -16,23 +16,15 @@ export class LogbookDashboard extends Component {
       weekData: [],
       classData: [],
       studentData: [],
-      labelGroups: [],
-      students: [],
-      selectedLabelGroupId: null,
-      selectedStudentClassId: null,
-      selectedStudentIds: [],
-      lineChartData: [],
     });
 
     this.barChartRef = useRef("barChartRef");
     this.classChartRef = useRef("classChartRef");
     this.studentChartRef = useRef("studentChartRef");
-    this.lineChartRef = useRef("lineChartRef");
 
     this.chart1 = null;
     this.chart2 = null;
     this.chart3 = null;
-    this.chart4 = null;
 
     onWillStart(async () => {
       this.state.projects = await this.orm.searchRead(
@@ -110,40 +102,6 @@ export class LogbookDashboard extends Component {
     } else {
       this.state.labelGroups = [];
     }
-
-    await this._loadAllStudents();
-  }
-
-  clearStudentSelection = async () => {
-    // kosongkan semua mahasiswa yang terpilih
-    this.state.selectedStudentIds = [];
-    // render ulang grafik
-    await this._loadLineChartData();
-  };
-
-  async _loadAllStudents() {
-    // bila ada filter kelas, gunakan itu
-    const domain = [];
-    if (this.state.selectedStudentClassId) {
-      domain.push(["class_id", "=", this.state.selectedStudentClassId]);
-    }
-    const students = await this.orm.searchRead("student.student", domain, [
-      "name",
-      "nim",
-    ]);
-    this.state.students = students;
-  }
-
-  // baru: handler untuk pilih Kelas di filter Mahasiswa
-  async onStudentClassChange(ev) {
-    const cid = parseInt(ev.target.value) || null;
-    this.state.selectedStudentClassId = cid;
-    // 1) Reload daftar students sesuai kelas terpilih
-    await this._loadAllStudents();
-    // 2) Auto-select semua student di kelas itu
-    this.state.selectedStudentIds = this.state.students.map((s) => s.id);
-    // 3) Render ulang chart
-    await this._loadLineChartData();
   }
 
   async onWeekChange(ev) {
@@ -165,9 +123,6 @@ export class LogbookDashboard extends Component {
       ["label_id", "class_id", "total_point"]
     );
     this._renderWeekChart();
-
-    // Chart #3 (student group chart)
-    await this._loadStudentData();
   }
 
   async onWeekChart3Change(ev) {
@@ -199,11 +154,6 @@ export class LogbookDashboard extends Component {
       );
 
       this._renderClassChart();
-    }
-
-    // Refresh Chart #3 (student group chart)
-    if (this.state.selectedWeekId) {
-      await this._loadStudentData();
     }
   }
 
@@ -261,38 +211,6 @@ export class LogbookDashboard extends Component {
     this._renderStudentChart();
   }
 
-  async onLabelGroupChange(ev) {
-    const gid = parseInt(ev.target.value) || null;
-    this.state.selectedLabelGroupId = gid;
-    await this._loadLineChartData();
-  }
-
-  toggleStudent(id) {
-    const idx = this.state.selectedStudentIds.indexOf(id);
-    if (idx >= 0) this.state.selectedStudentIds.splice(idx, 1);
-    else this.state.selectedStudentIds.push(id);
-    this._loadLineChartData();
-  }
-
-  async _loadLineChartData() {
-    const domain = [
-      ["project_course_id", "=", this.state.selectedProjectId],
-      ["group_id", "=", this.state.selectedLabelGroupId],
-      ["student_id", "in", this.state.selectedStudentIds],
-    ].filter((d) => d[2] != null);
-
-    const data = await this.orm.searchRead("logbook.label.analytics", domain, [
-      "student_id",
-      "student_nim",
-      "week_date",
-      "total_point",
-      "week_id",
-    ]);
-    this.state.lineChartData = data;
-    // langsung render, karena canvas selalu ada
-    this._renderLineChart();
-  }
-
   _renderWeekChart() {
     const canvas = this.barChartRef.el;
     const ctx = canvas.getContext("2d");
@@ -341,60 +259,65 @@ export class LogbookDashboard extends Component {
     const ctx = canvas.getContext("2d");
     this._destroyChart(this.chart2);
 
-    const byWeek = {};
-    const weekDateMap = new Map(); // untuk menyimpan wk → week_date
-    const labels = [];
+    const byLabel = {}; // { label: { week: total } }
+    const weekDateMap = new Map(); // Untuk urutan week berdasarkan tanggal
+    const weekLabels = new Set(); // Untuk sumbu X
 
     for (const r of this.state.classData) {
-      const wk = r.week_id?.[1];
-      const lbl = r.label_id?.[1];
-      const date = r.week_date;
+      const weekName = r.week_id?.[1];
+      const label = r.label_id?.[1];
+      const weekDate = r.week_date;
 
-      if (!wk || !lbl) continue;
+      if (!weekName || !label) continue;
 
-      // Pemetaan week name → date (untuk sorting)
-      if (date && !weekDateMap.has(wk)) {
-        weekDateMap.set(wk, date);
+      if (weekDate && !weekDateMap.has(weekName)) {
+        weekDateMap.set(weekName, weekDate);
       }
 
-      // Agregasi total point per label per week
-      byWeek[wk] = byWeek[wk] || {};
-      byWeek[wk][lbl] = (byWeek[wk][lbl] || 0) + (r.total_point || 0);
-
-      // Tambahkan ke label unik
-      if (!labels.includes(lbl)) labels.push(lbl);
+      byLabel[label] = byLabel[label] || {};
+      byLabel[label][weekName] =
+        (byLabel[label][weekName] || 0) + (r.total_point || 0);
+      weekLabels.add(weekName);
     }
 
-    // Urutkan nama minggu berdasarkan tanggalnya
+    // Urutkan minggu berdasarkan tanggal (X axis)
     const sortedWeeks = [...weekDateMap.entries()]
       .sort((a, b) => new Date(a[1]) - new Date(b[1]))
-      .map(([wk]) => wk);
+      .map(([week]) => week);
 
-    // Bangun datasets dengan urutan minggu terurut
-    const datasets = sortedWeeks.map((wk, i) => ({
-      label: wk,
-      data: labels.map((l) => byWeek[wk]?.[l] || 0),
-      backgroundColor: `hsl(${(i * 60) % 360}, 70%, 60%)`,
+    // Bangun datasets (tiap label = 1 garis)
+    const datasets = Object.entries(byLabel).map(([label, weekData], i) => ({
+      label,
+      data: sortedWeeks.map((week) => weekData[week] || 0),
+      borderColor: `hsl(${(i * 60) % 360}, 70%, 50%)`,
+      fill: false,
+      tension: 0.3,
     }));
 
     this.chart2 = new window.Chart(ctx, {
-      type: "bar",
-      data: { labels, datasets },
+      type: "line",
+      data: {
+        labels: sortedWeeks,
+        datasets,
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
           legend: { position: "top" },
-          title: { display: true, text: "Poin per Label (Kelas terpilih)" },
+          title: {
+            display: true,
+            text: "Perkembangan Poin per Label (Kelas terpilih)",
+          },
         },
         scales: {
           x: {
-            stacked: false,
-            ticks: { autoSkip: true, maxRotation: 45 },
-            barThickness: "flex",
+            title: { display: true, text: "Minggu" },
+            ticks: { autoSkip: false, maxRotation: 45 },
           },
           y: {
             beginAtZero: true,
+            title: { display: true, text: "Total Poin" },
           },
         },
       },
@@ -458,82 +381,12 @@ export class LogbookDashboard extends Component {
     });
   }
 
-  _renderLineChart() {
-    const canvas = this.lineChartRef.el;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (this.chart4) this.chart4.destroy();
-
-    // 1) Cari semua tanggal unik & week label
-    const uniqDates = Array.from(
-      new Set(this.state.lineChartData.map((r) => r.week_date).filter(Boolean))
-    ).sort();
-    const weekByDate = {};
-    this.state.lineChartData.forEach((r) => {
-      if (r.week_date && r.week_id) {
-        weekByDate[r.week_date] = r.week_id[1];
-      }
-    });
-    const labels = uniqDates.map((d) => `${weekByDate[d] || "?"} (${d})`);
-
-    // 2) Kumpulkan poin per mahasiswa per tanggal
-    const byStu = {};
-    this.state.lineChartData.forEach((r) => {
-      const nim = r.student_nim,
-        name = r.student_id?.[1] || "Unknown",
-        date = r.week_date;
-      if (!nim || !date) return;
-      if (!byStu[nim]) byStu[nim] = { label: `${name} (${nim})`, data: {} };
-      byStu[nim].data[date] = (byStu[nim].data[date] || 0) + r.total_point;
-    });
-
-    // 3) Bangun datasets untuk Chart.js
-    const datasets = Object.values(byStu).map((stu, i) => ({
-      label: stu.label,
-      data: labels.map((lbl) => {
-        const d = lbl.match(/\(([^)]+)\)$/)[1];
-        return stu.data[d] || 0;
-      }),
-      borderColor: `hsl(${(i * 60) % 360},70%,50%)`,
-      fill: false,
-      tension: 0.3,
-    }));
-
-    // 4) Render dengan category axis
-    this.chart4 = new Chart(ctx, {
-      type: "line",
-      data: { labels, datasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "top" },
-          title: {
-            display: true,
-            text: "Perkembangan Poin Mahasiswa per Tanggal",
-          },
-        },
-        scales: {
-          x: {
-            type: "category",
-            ticks: { autoSkip: false, maxRotation: 45 },
-            title: { display: true, text: "Minggu (Tanggal)" },
-          },
-          y: {
-            beginAtZero: true,
-            title: { display: true, text: "Total Poin" },
-          },
-        },
-      },
-    });
-  }
-
   _destroyChart(chart) {
     if (chart) chart.destroy();
   }
 }
 
-LogbookDashboard.template = "jtk_logbook_analytics.LogbookDashboard";
+LogbookClassDashboard.template = "jtk_logbook_analytics.LogbookClassDashboard";
 registry
   .category("actions")
-  .add("jtk_logbook_analytics.logbook_dashboard", LogbookDashboard);
+  .add("jtk_logbook_analytics.logbook_class_dashboard", LogbookClassDashboard);

@@ -118,3 +118,15 @@ canvas {
   height: 100% !important;
   display: block;
 }
+
+.student-badge-wrapper {
+  max-height: 120px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  padding: 8px;
+  border-radius: 6px;
+  gap: 2px;
+}
