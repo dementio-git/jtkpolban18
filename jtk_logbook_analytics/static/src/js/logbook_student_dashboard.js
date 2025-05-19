@@ -1,32 +1,63 @@
 /** @odoo-module **/
-import { Component, useRef, useState, onWillStart } from "@odoo/owl";
+import { Component, useRef, useState, onWillStart, useEffect } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+
+async function nextTick () {
+    await new Promise(r => requestAnimationFrame(r));
+}
+
+function getColor(index) {
+    const vibrant = [
+        "#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231",
+        "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#fabebe",
+        "#008080", "#e6beff", "#9a6324", "#fffac8", "#800000",
+        "#aaffc3", "#808000", "#ffd8b1", "#000075", "#808080"
+    ];
+    if (index < vibrant.length) return vibrant[index];
+    // fallback ke HSL jika sudah lebih dari 20
+    const hue = (index * 123) % 360;
+    return `hsl(${hue}, 90%, 45%)`;
+}
 
 export class LogbookStudentDashboard extends Component {
   setup() {
     this.orm = useService("orm");
+    this.charts = {};
     this.state = useState({
-      projects: [],
-      classes: [],
-      labelGroups: [],
-      students: [],
-      selectedProjectId: null,
-      selectedLabelGroupId: null,
-      selectedStudentClassId: null,
-      selectedStudentIds: [],
-      lineChartData: [],
-      selectedAverageClassId: null,
-      averageLineData: [],
+        projects: [],
+        classes: [],
+        labelGroups: [],
+        students: [],
+        selectedProjectId: null,
+        selectedLabelGroupId: null,
+        selectedStudentClassId: null,
+        selectedStudentIds: [],
+        lineChartData: [],
+        selectedAverageClassId: null,
+        multiChartData: {}, 
+        labelGroupMap: {}
     });
 
     this.lineChartRef = useRef("lineChartRef");
-    this.chart = null;
+
 
     onWillStart(async () => {
-      this.state.projects = await this.orm.searchRead("project.course", [], ["name"]);
+        this.state.projects = await this.orm.searchRead("project.course", [], ["name"]);
     });
+
+    useEffect(() => {
+        if (Object.keys(this.state.multiChartData).length > 0) {
+            this._renderAllCharts();
+        }
+    }, () => [JSON.stringify(this.state.multiChartData)]);
   }
+
+  setDynamicRef(gid, el) {
+    if (el)       this.dynamicRefs[gid] = el;   // mount
+    else          delete this.dynamicRefs[gid]; // un-mount (opsional)
+  }
+
 
   async onProjectChange(ev) {
     const pid = parseInt(ev.target.value) || null;
@@ -102,151 +133,139 @@ export class LogbookStudentDashboard extends Component {
   async _loadLineChartData() {
     const domain = [
         ["project_course_id", "=", this.state.selectedProjectId],
-        ["group_id", "=", this.state.selectedLabelGroupId],
-        ["student_id", "in", this.state.selectedStudentIds],
-    ].filter((d) => d[2] != null);
-
-    const data = await this.orm.searchRead("logbook.label.analytics", domain, [
-        "student_id",
-        "student_nim",
-        "week_date",
-        "total_point",
-        "week_id",
-        "class_id",
-    ]);
-    this.state.lineChartData = data;
-
-    const avgClass = this.state.selectedAverageClassId;
-    const avgDomain = [
-      ["project_course_id", "=", this.state.selectedProjectId],
-      ["group_id", "=", this.state.selectedLabelGroupId],
     ];
-
-    if (avgClass && avgClass !== "__all__") {
-      avgDomain.push(["class_id", "=", parseInt(avgClass)]);
+    
+    if (this.state.selectedStudentIds.length) {
+        domain.push(["student_id", "in", this.state.selectedStudentIds]);
     }
 
-    const rawAvgData = await this.orm.searchRead("logbook.label.weekly.avg", avgDomain, [
-      "week_date", "avg_point",
-    ]);
+    console.log("Loading data with domain:", domain);
 
-    if (!avgClass || avgClass === "__all__") {
-      const grouped = {};
-      for (const row of rawAvgData) {
-        const date = row.week_date;
-        if (!grouped[date]) grouped[date] = [];
-        grouped[date].push(row.avg_point);
+    try {
+        const data = await this.orm.searchRead(
+            "logbook.label.analytics",
+            domain,
+            ["student_id", "student_nim", "week_date", "total_point", "week_id", "group_id"]
+        );
+
+        const byGroup = {};
+        const mapName = {};
+        
+        for (const r of data) {
+            if (!r.group_id) continue;
+            const [gid, gname] = r.group_id;
+            
+            byGroup[gid] = byGroup[gid] || [];
+            byGroup[gid].push(r);
+            mapName[gid] = gname;
+        }
+
+        console.log("Processed chart data:", {byGroup, mapName});
+        
+        this.state.multiChartData = byGroup;
+        this.state.labelGroupMap = mapName;
+
+    } catch (error) {
+        console.error("Error loading chart data:", error);
+        this.state.multiChartData = {};
+        this.state.labelGroupMap = {};
+    }
+}
+
+
+  async _renderAllCharts() {
+    await nextTick();
+    
+    // Safely destroy existing charts
+    if (this.charts) {
+        Object.values(this.charts).forEach(chart => chart?.destroy());
+        this.charts = {};
+    }
+
+    console.log("MultiChartData:", this.state.multiChartData);
+    
+    for (const [gid, records] of Object.entries(this.state.multiChartData)) {
+        if (!records?.length) continue;
+
+        const canvas = document.getElementById(`chart_${gid}`);
+        if (!canvas) {
+            console.warn(`Canvas not found for group ${gid}`);
+            continue;
+        }
+
+        try {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) continue;
+
+            const chartData = this._prepareChartData(records);
+            
+            this.charts[gid] = new Chart(ctx, {
+                type: "line",
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    plugins: {
+                        legend: { 
+                            position: "top",
+                            labels: { 
+                              font: {
+                                size: 9 // ← kecilkan font label
+                              },
+                              boxWidth: 10, 
+                              padding: 6 }
+                        },
+                        title: {
+                            display: true,
+                            text: this.state.labelGroupMap[gid] || "Chart"
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error(`Error creating chart ${gid}:`, error);
+        }
+    }
+}
+
+  // Tambahkan lifecycle hook untuk cleanup
+  willUnmount() {
+      // Destroy all charts when component unmounts
+      for (const chart of Object.values(this.charts)) {
+          if (chart) chart.destroy();
       }
-
-      this.state.averageLineData = Object.entries(grouped).map(([date, values]) => ({
-        week_date: date,
-        avg_point: values.reduce((a, b) => a + b, 0) / values.length,
-      }));
-    } else {
-      this.state.averageLineData = rawAvgData;
-    }
-
-
-
-    this._renderChart();
-   }
-
-
-
-  async onAverageClassChange(ev) {
-    const val = ev.target.value;
-    this.state.selectedAverageClassId = val === "" ? null : val;
-    await this._loadLineChartData();
+      this.charts = {};
   }
 
-
- _renderChart() {
-    const canvas = this.lineChartRef.el;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (this.chart) this.chart.destroy();
-
-    // Ambil tanggal minggu unik dan label minggu dari lineChartData
-    const uniqDates = Array.from(
-        new Set(this.state.lineChartData.map((r) => r.week_date).filter(Boolean))
-    ).sort();
-
-    const weekByDate = {};
-    this.state.lineChartData.forEach((r) => {
-        if (r.week_date && r.week_id) {
-            weekByDate[r.week_date] = r.week_id[1];
-        }
-    });
-
-    const labels = uniqDates.map((d) => `${weekByDate[d] || "?"} (${d})`);
-
-    // Kelompokkan data mahasiswa
-    const byStu = {};
-    this.state.lineChartData.forEach((r) => {
+_prepareChartData(records) {
+    // Helper untuk menyiapkan data chart
+    const uniqDates = [...new Set(records.map(r => r.week_date))].sort();
+    const byStudent = {};
+    
+    records.forEach(r => {
         const nim = r.student_nim;
         const name = r.student_id?.[1] || "Unknown";
-        const date = r.week_date;
-        if (!nim || !date) return;
-        if (!byStu[nim]) {
-            byStu[nim] = { label: `${name} (${nim})`, data: {} };
+        if (!byStudent[nim]) {
+            byStudent[nim] = {
+                label: `${name} (${nim})`,
+                data: {},
+                borderColor: getColor(nim),
+                fill: false,
+                tension: 0.3
+            };
         }
-        byStu[nim].data[date] = (byStu[nim].data[date] || 0) + r.total_point;
+        byStudent[nim].data[r.week_date] = r.total_point;
     });
 
-    const datasets = Object.values(byStu).map((stu, i) => ({
-        label: stu.label,
-        data: uniqDates.map((d) => stu.data[d] || 0),
-        borderColor: `hsl(${(i * 60) % 360},70%,50%)`,
-        fill: false,
-        tension: 0.3,
-    }));
-
-    // ➕ Tambahkan garis rata-rata dari SQL View
-    if (this.state.averageLineData.length) {
-        const avgMap = {};
-        this.state.averageLineData.forEach((r) => {
-            avgMap[r.week_date] = r.avg_point;
-        });
-
-        datasets.push({
-            label: "Rata-rata",
-            data: uniqDates.map((d) => avgMap[d] || null),
-            borderColor: "#000000",
-            borderDash: [6, 6],
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            fill: false,
-        });
-    }
-
-    // 🔧 Render Chart
-    this.chart = new Chart(ctx, {
-        type: "line",
-        data: { labels, datasets },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: "top" },
-                title: {
-                    display: true,
-                    text: "Perkembangan Poin Mahasiswa per Tanggal",
-                },
-            },
-            scales: {
-                x: {
-                    type: "category",
-                    ticks: { autoSkip: false, maxRotation: 45 },
-                    title: { display: true, text: "Minggu (Tanggal)" },
-                },
-                y: {
-                    beginAtZero: true,
-                    title: { display: true, text: "Total Poin" },
-                },
-            },
-        },
-    });
-    }
+    return {
+        labels: uniqDates,
+        datasets: Object.values(byStudent).map(student => ({
+            ...student,
+            data: uniqDates.map(date => student.data[date] || 0)
+        }))
+    };
+}
 
 
   _destroyChart(chart) {

@@ -44,7 +44,7 @@
                 <hr class="my-2"/>
 
                 <!-- Checkbox Mahasiswa -->
-                <div style="max-height: 450px; overflow-y: auto;">
+                <div style="max-height: 520px; overflow-y: auto;">
                     <t t-foreach="state.students" t-as="stu" t-key="stu.id">
                     <div class="form-check mb-1">
                         <input class="form-check-input"
@@ -69,68 +69,30 @@
         </div>
 
 
-        <div class="flex-grow-1">
-            <div class="logbook-dashboard-wrapper p-3 bg-light ">
-                <t t-if="!state.selectedProjectId">
-                    <p class="text-muted">Silakan pilih project terlebih dahulu.</p>
-                </t>
-
-                <t t-if="state.selectedProjectId">
-
-
-                    <!-- Grafik #4: Perkembangan Poin Mahasiswa dari Waktu ke Waktu -->
-                    <div class="dashboard-panel mt-4" style="height: 1000px;">
-                        <h3 class="fw-bold mb-3">📈 Perkembangan Poin Mahasiswa dari Waktu ke Waktu</h3>
-
-                        <!-- 🔹 Filter Label Group dan Kelas dalam 1 baris -->
-                        <div class="d-flex gap-4 flex-wrap align-items-end mb-3">
-                            <!-- 🎯 Label Group -->
-                            <div style="flex: 1 1 300px;">
-                                <label class="form-label">🎯 Pilih Label Group:</label>
-                                <select class="form-select" t-on-change="onLabelGroupChange">
-                                <option value="">-- Semua --</option>
-                                <t t-foreach="state.labelGroups" t-as="lg" t-key="lg.id">
-                                    <option t-att-value="lg.id"><t t-esc="lg.name"/></option>
-                                </t>
-                                </select>
-                            </div>
-
-                            <!-- 📊 Rata-rata -->
-                            <div style="flex: 1 1 300px;">
-                                <label class="form-label">📈 Tampilkan Rata-rata:</label>
-                                <select class="form-select"
-                                        t-att-value="state.selectedAverageClassId"
-                                        t-on-change="onAverageClassChange">
-                                <option value="">-- Tidak Ditampilkan --</option>
-                                <option value="__all__">📊 Semua Kelas</option>
-                                <t t-foreach="state.classes" t-as="cls" t-key="cls.id">
-                                    <option t-att-value="cls.id">📊 <t t-esc="cls.name"/></option>
-                                </t>
-                                </select>
-                            </div>
+        <div class="flex-grow-1 p-4">
+            <t t-if="!state.selectedProjectId">
+                <p class="text-muted">Pilih project dulu.</p>
+            </t>
+            <t t-if="state.selectedProjectId">
+                 <div class="row g-3">
+                    <t t-foreach="Object.keys(state.multiChartData)" t-as="gid" t-key="gid">
+                    <div class="col-md-6">
+                        <div class="dashboard-panel p-3 bg-white rounded shadow-sm" style="height: 550px;">
+                        <h4 class="fw-bold mb-3">
+                            📊 Perkembangan Poin – <t t-esc="state.labelGroupMap[gid]"/>
+                        </h4>
+                        <div class="chart-container" style="position:relative; height:100%;">
+                            <canvas t-att-id="'chart_' + gid" style="width:100%; height:100%;"/>
                         </div>
-
-
-
-
-                        <!-- 🔹 Grafik Line -->
-                        <div class="chart-container" style="height: 920px;">
-                            <canvas t-ref="lineChartRef"/>
+                        <p t-if="!state.multiChartData[gid].length" class="text-warning mt-2">
+                            Tidak ada data di grup ini.
+                        </p>
                         </div>
-
-                        <!-- 🔹 Pesan jika belum memilih -->
-                        <p t-if="!state.selectedLabelGroupId || !state.selectedStudentIds.length" class="text-muted mt-2">
-                            Silakan pilih Label Group dan Mahasiswa terlebih dahulu.
-                        </p>
-                        <p t-if="state.selectedLabelGroupId and state.selectedStudentIds.length and state.lineChartData.length===0" class="text-warning mt-2">
-                            Tidak ada data untuk pilihan ini.
-                        </p>
                     </div>
-                </t>
-            </div>
-
-
-        </div>
+                    </t>
+                </div>
+            </t>
+      </div>
 
 
     
