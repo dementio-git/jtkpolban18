@@ -41,7 +41,7 @@
               </select>
             </div>
             <div class="chart-container">
-              <canvas t-ref="barChartRef"></canvas>
+              <div t-att-id="'chart1'" style="height: 400px;"></div>
             </div>
           </div>
 
@@ -58,7 +58,7 @@
             </select>
           </div>
           <div class="chart-container">
-            <canvas t-ref="classChartRef"></canvas>
+            <div t-att-id="'chart2'" style="height: 400px;"></div>
           </div>
         </div>
       </div>
@@ -85,16 +85,17 @@
               <select class="form-select"
                       t-att-value="state.selectedClassIdChart3"
                       t-on-change="onClassChart3Change">
-                <option value="">-- Pilih Kelas --</option>
+                <option value="">-- Semua Kelas --</option> <!-- Tambahan ini -->
                 <t t-foreach="state.classes" t-as="cls" t-key="cls.id">
                   <option t-att-value="cls.id"><t t-esc="cls.name"/></option>
                 </t>
               </select>
+
             </div>
           </div>
 
             <div class="chart-container">  <!-- Ini penting -->
-              <canvas t-ref="studentChartRef" />
+              <div t-att-id="'chart3'" style="height: 400px;"></div>
             </div>
         </div>
 

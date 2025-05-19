@@ -203,9 +203,6 @@ export class LogbookStudentDashboard extends Component {
       return; // langsung keluar, tidak lanjut ambil data
     }
 
-    /* ----------------------------------------------------------
-     * 1) Ambil SEMUA field yang kita perlukan
-     * ---------------------------------------------------------- */
     const data = await this.orm.searchRead("logbook.label.analytics", domain, [
       "student_id",
       "student_nim",
@@ -215,9 +212,6 @@ export class LogbookStudentDashboard extends Component {
       "group_id",
     ]);
 
-    /* ----------------------------------------------------------
-     * 2) SUSUN urutan minggu berdasarkan tanggal sekali saja
-     * ---------------------------------------------------------- */
     const weekMap = new Map(); // { "W1" => 2024-02-05, … }
     data.forEach((rec) => {
       const name = rec.week_id?.[1];
@@ -228,9 +222,6 @@ export class LogbookStudentDashboard extends Component {
       .sort((a, b) => new Date(a[1]) - new Date(b[1]))
       .map(([name]) => name); // ["W1","W2", …]
 
-    /* ----------------------------------------------------------
-     * 3) Bangun struktur byGroup seperti biasa
-     * ---------------------------------------------------------- */
     const byGroup = {};
     const mapName = {};
     data.forEach((rec) => {

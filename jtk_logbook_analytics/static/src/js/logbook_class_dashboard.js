@@ -16,15 +16,10 @@ export class LogbookClassDashboard extends Component {
       weekData: [],
       classData: [],
       studentData: [],
+      students: [],
     });
 
-    this.barChartRef = useRef("barChartRef");
-    this.classChartRef = useRef("classChartRef");
-    this.studentChartRef = useRef("studentChartRef");
-
-    this.chart1 = null;
-    this.chart2 = null;
-    this.chart3 = null;
+    this.echarts = { chart1: null, chart2: null, chart3: null };
 
     onWillStart(async () => {
       this.state.projects = await this.orm.searchRead(
@@ -47,9 +42,9 @@ export class LogbookClassDashboard extends Component {
     this.state.weekData = [];
     this.state.classData = [];
     this.state.studentData = [];
-    this._destroyChart(this.chart1);
-    this._destroyChart(this.chart2);
-    this._destroyChart(this.chart3);
+    this._destroyChartInstance(this.chart1);
+    this._destroyChartInstance(this.chart2);
+    this._destroyChartInstance(this.chart3);
 
     if (!pid) return;
 
@@ -108,8 +103,8 @@ export class LogbookClassDashboard extends Component {
     const wid = parseInt(ev.target.value) || null;
     this.state.selectedWeekId = wid;
     this.state.weekData = [];
-    this._destroyChart(this.chart1);
-    this._destroyChart(this.chart3);
+    this._destroyChartInstance(this.chart1);
+    this._destroyChartInstance(this.chart3);
 
     if (!this.state.selectedProjectId || !wid) return;
 
@@ -139,8 +134,8 @@ export class LogbookClassDashboard extends Component {
     const cid = parseInt(ev.target.value) || null;
     this.state.selectedClassId = cid;
     this.state.classData = [];
-    this._destroyChart(this.chart2);
-    this._destroyChart(this.chart3);
+    this._destroyChartInstance(this.chart2);
+    this._destroyChartInstance(this.chart3);
 
     // Chart #2
     if (this.state.selectedProjectId && cid) {
@@ -164,7 +159,7 @@ export class LogbookClassDashboard extends Component {
 
     if (!pid || !wid) {
       this.state.studentData = [];
-      this._destroyChart(this.chart3);
+      this._destroyChartInstance(this.chart3);
       return;
     }
 
@@ -191,7 +186,8 @@ export class LogbookClassDashboard extends Component {
 
     if (!pid || !wid) {
       this.state.studentData = [];
-      this._destroyChart(this.chart3);
+      this.state.students = [];
+      this._destroyChartInstance(this.chart3);
       return;
     }
 
@@ -201,6 +197,21 @@ export class LogbookClassDashboard extends Component {
     ];
     if (cid) {
       domain.push(["class_id", "=", cid]);
+      this.state.students = await this.orm.searchRead(
+        "student.student",
+        [["class_id", "=", cid]],
+        ["name", "nim"]
+      );
+    } else {
+      // ⬅️ ambil semua mahasiswa dari project jika class tidak dipilih
+      const class_ids = (
+        await this.orm.read("project.course", [pid], ["class_ids"])
+      )[0].class_ids;
+      this.state.students = await this.orm.searchRead(
+        "student.student",
+        [["class_id", "in", class_ids]],
+        ["name", "nim"]
+      );
     }
 
     this.state.studentData = await this.orm.searchRead(
@@ -208,13 +219,12 @@ export class LogbookClassDashboard extends Component {
       domain,
       ["student_id", "student_nim", "group_id", "total_point"]
     );
+
     this._renderStudentChart();
   }
 
   _renderWeekChart() {
-    const canvas = this.barChartRef.el;
-    const ctx = canvas.getContext("2d");
-    this._destroyChart(this.chart1);
+    this._destroyChartInstance(this.chart1);
 
     const byClass = {},
       labels = [];
@@ -232,32 +242,38 @@ export class LogbookClassDashboard extends Component {
       backgroundColor: `hsl(${(i * 60) % 360}, 70%, 60%)`,
     }));
 
-    this.chart1 = new window.Chart(ctx, {
-      type: "bar",
-      data: { labels, datasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "top" },
-          title: { display: true, text: "Poin per Kelas (Minggu terpilih)" },
-        },
-        scales: {
-          x: {
-            stacked: false,
-            ticks: { autoSkip: true, maxRotation: 45 },
-            barThickness: "flex",
-          },
-          y: { beginAtZero: true },
+    const dom = document.getElementById("chart1");
+    if (!dom) return;
+    this.echarts.chart1?.dispose?.();
+    this.echarts.chart1 = echarts.init(dom);
+
+    this.echarts.chart1.setOption({
+      tooltip: { trigger: "axis" },
+      legend: {
+        top: 10,
+        data: datasets.map((ds) => ds.label),
+      },
+      xAxis: {
+        type: "category",
+        data: labels,
+        axisLabel: {
+          interval: 0,
+          rotate: 30,
+          fontSize: 11,
         },
       },
+      yAxis: { type: "value" },
+      series: datasets.map((ds) => ({
+        name: ds.label, // ⬅️ penting untuk muncul di legend
+        type: "bar",
+        data: ds.data,
+        itemStyle: { color: ds.backgroundColor },
+      })),
     });
   }
 
   _renderClassChart() {
-    const canvas = this.classChartRef.el;
-    const ctx = canvas.getContext("2d");
-    this._destroyChart(this.chart2);
+    this._destroyChartInstance(this.chart2);
 
     const byLabel = {}; // { label: { week: total } }
     const weekDateMap = new Map(); // Untuk urutan week berdasarkan tanggal
@@ -286,103 +302,138 @@ export class LogbookClassDashboard extends Component {
       .map(([week]) => week);
 
     // Bangun datasets (tiap label = 1 garis)
-    const datasets = Object.entries(byLabel).map(([label, weekData], i) => ({
-      label,
-      data: sortedWeeks.map((week) => weekData[week] || 0),
-      borderColor: `hsl(${(i * 60) % 360}, 70%, 50%)`,
-      fill: false,
-      tension: 0.3,
-    }));
+    const datasets = Object.entries(byLabel).map(
+      ([labelName, weekData], i) => ({
+        name: labelName, // ⬅️ ini penting untuk legend di ECharts
+        type: "line",
+        smooth: true,
+        data: sortedWeeks.map((week) => weekData[week] || 0),
+        lineStyle: {
+          color: `hsl(${(i * 60) % 360}, 70%, 50%)`,
+        },
+        itemStyle: {
+          color: `hsl(${(i * 60) % 360}, 70%, 50%)`,
+        },
+      })
+    );
 
-    this.chart2 = new window.Chart(ctx, {
-      type: "line",
-      data: {
-        labels: sortedWeeks,
-        datasets,
+    const dom = document.getElementById("chart2");
+    if (!dom) return;
+    this.echarts.chart2?.dispose?.();
+    this.echarts.chart2 = echarts.init(dom);
+
+    this.echarts.chart2.setOption({
+      tooltip: { trigger: "axis", confine: true },
+      legend: {
+        type: "scroll",
+        top: 10,
+        orient: "horizontal",
+        itemWidth: 14,
+        itemHeight: 10,
+        textStyle: { fontSize: 10 },
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "top" },
-          title: {
-            display: true,
-            text: "Perkembangan Poin per Label (Kelas terpilih)",
-          },
-        },
-        scales: {
-          x: {
-            title: { display: true, text: "Minggu" },
-            ticks: { autoSkip: false, maxRotation: 45 },
-          },
-          y: {
-            beginAtZero: true,
-            title: { display: true, text: "Total Poin" },
-          },
+      xAxis: {
+        type: "category",
+        data: sortedWeeks,
+        axisLabel: {
+          rotate: 30,
+          interval: 0,
         },
       },
+      yAxis: {
+        type: "value",
+      },
+      series: datasets,
     });
   }
 
   _renderStudentChart() {
-    const canvas = this.studentChartRef.el;
-    const ctx = canvas.getContext("2d");
-    this._destroyChart(this.chart3);
+    this._destroyChartInstance("chart3");
 
     const byGroup = {};
     const studentMap = new Map();
 
-    // Step 1: kumpulkan data dan mapping berdasarkan NIM
-    for (const r of this.state.studentData) {
-      const student = r.student_id;
-      if (!student || student.length < 2) continue;
+    // ✅ Validasi tambahan: pastikan students terisi array
+    if (!Array.isArray(this.state.students)) {
+      console.warn("state.students belum tersedia.");
+      this.state.students = []; // fallback agar tidak error
+    }
 
-      const [id, name] = student;
-      const nim = r.student_nim || "000000"; // fallback jika tidak tersedia
+    // Langkah 1: kumpulkan semua mahasiswa dari kelas, walau tidak ada datanya
+    const allNIMs = [];
+    for (const student of this.state.students) {
+      if (student?.nim && student?.name) {
+        allNIMs.push(student.nim);
+        studentMap.set(student.nim, student.name);
+      }
+    }
 
+    // Langkah 2: petakan nilai berdasarkan group
+    for (const r of this.state.studentData || []) {
+      const nim = r.student_nim;
+      const name = r.student_id?.[1] || "Unknown";
       const group = r.group_id?.[1] || "No Group";
 
-      // simpan mapping nim → nama
-      studentMap.set(nim, { name, nim });
-
+      // tetap tambahkan ke map jika belum
+      studentMap.set(nim, name);
       if (!byGroup[group]) byGroup[group] = {};
       byGroup[group][nim] = (byGroup[group][nim] || 0) + (r.total_point || 0);
     }
 
-    // Step 2: urutkan berdasarkan NIM
-    const sortedNIMs = Array.from(studentMap.keys()).sort();
+    // Langkah 3: urutkan berdasarkan NIM
+    const sortedNIMs = allNIMs.sort();
+    const studentLabels = sortedNIMs.map((nim) => studentMap.get(nim) || nim);
 
-    // Step 3: buat label nama (dari NIM) dan datasets
-    const studentLabels = sortedNIMs.map((nim) => studentMap.get(nim).name);
-    const datasets = Object.keys(byGroup).map((group, idx) => ({
-      label: group,
-      data: sortedNIMs.map((nim) => byGroup[group][nim] || 0),
-      backgroundColor: `hsl(${(idx * 72) % 360}, 70%, 60%)`,
+    // Langkah 4: buat dataset per group
+    const datasets = Object.entries(byGroup).map(([group, values], idx) => ({
+      name: group,
+      type: "bar",
+      stack: "total",
+      data: sortedNIMs.map((nim) => values[nim] || 0),
+      color: `hsl(${(idx * 72) % 360}, 70%, 60%)`,
     }));
 
-    this.chart3 = new window.Chart(ctx, {
-      type: "bar",
-      data: { labels: studentLabels, datasets },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "top" },
-          title: {
-            display: true,
-            text: "Total Poin per Student by Label Group (sorted by NIM)",
-          },
-        },
-        scales: {
-          x: { stacked: false, ticks: { autoSkip: false, maxRotation: 45 } },
-          y: { stacked: false, beginAtZero: true },
+    // Render chart
+    const dom = document.getElementById("chart3");
+    if (!dom) return;
+
+    this.echarts.chart3?.dispose?.();
+    this.echarts.chart3 = echarts.init(dom);
+
+    this.echarts.chart3.setOption({
+      tooltip: { trigger: "axis", confine: true },
+      legend: {
+        type: "scroll",
+        top: 10,
+        textStyle: { fontSize: 11 },
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "15%",
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category",
+        data: studentLabels,
+        axisLabel: {
+          rotate: 30,
+          interval: 0,
+          fontSize: 10,
         },
       },
+      yAxis: {
+        type: "value",
+      },
+      series: datasets,
     });
   }
 
-  _destroyChart(chart) {
-    if (chart) chart.destroy();
+  _destroyChartInstance(chartKey) {
+    if (this.echarts[chartKey]) {
+      this.echarts[chartKey].dispose();
+      this.echarts[chartKey] = null;
+    }
   }
 }
 
