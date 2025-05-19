@@ -82,7 +82,7 @@
                             📊 Perkembangan Poin – <t t-esc="state.labelGroupMap[gid]"/>
                         </h4>
                         <div class="chart-container" style="position:relative; height:100%;">
-                            <canvas t-att-id="'chart_' + gid" style="width:100%; height:100%;"/>
+                            <div t-att-id="'chart_' + gid" style="width:100%; height:100%;"></div>
                         </div>
                         <p t-if="!state.multiChartData[gid].length" class="text-warning mt-2">
                             Tidak ada data di grup ini.
