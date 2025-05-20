@@ -38,13 +38,6 @@
               sequence="10"
               action = "action_subject"/>
     
-    <menuitem id="menu_academic_project_course"
-              name="Project Course"
-              parent="menu_academic_subject"
-              sequence="10"
-              action = "action_project_course"/>          
-
-    
 
     <!-- Child Menu: Study Program -->
     <menuitem id="menu_academic_study_program"

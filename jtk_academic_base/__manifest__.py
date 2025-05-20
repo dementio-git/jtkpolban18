@@ -24,7 +24,6 @@
         'views/student_view.xml',
         'views/study_program_view.xml',
         'views/subject_view.xml',
-        'views/project_course_view.xml',
         'views/menuitems.xml',
     ],
 }
