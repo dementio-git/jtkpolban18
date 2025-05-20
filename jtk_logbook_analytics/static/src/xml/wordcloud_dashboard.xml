@@ -14,16 +14,31 @@
       </div>
 
       <t t-if="state.selectedProjectId">
-        <div class="mb-4">
-          <label class="form-label">📅 Pilih Minggu:</label>
-          <select class="form-select" t-att-value="state.selectedWeekId" t-on-change="onWeekChange">
-            <option value="">-- Pilih Minggu --</option>
-            <t t-foreach="state.weeks" t-as="week" t-key="week.id">
-              <option t-att-value="week.id"><t t-esc="week.name" /></option>
-            </t>
-          </select>
+        <div class="mb-4 d-flex align-items-end gap-3">
+
+            <div class="flex-fill">
+            <label class="form-label">📅 Pilih Minggu:</label>
+            <select class="form-select" t-att-value="state.selectedWeekId" t-on-change="onWeekChange">
+                <option value="">-- Pilih Minggu --</option>
+                <t t-foreach="state.weeks" t-as="week" t-key="week.id">
+                <option t-att-value="week.id"><t t-esc="week.name" /></option>
+                </t>
+            </select>
+            </div>
+
+            <div class="flex-fill">
+            <label class="form-label">👥 Pilih Kelas:</label>
+            <select class="form-select" t-att-value="state.selectedClassId" t-on-change="onClassChange">
+                <option value="">-- Semua Kelas --</option>
+                <t t-foreach="state.classes" t-as="cls" t-key="cls.id">
+                <option t-att-value="cls.id"><t t-esc="cls.name" /></option>
+                </t>
+            </select>
+            </div>
+
         </div>
-      </t>
+        </t>
+
 
       <div id="wordcloud_chart" style="height: 600px;"></div>
     </div>

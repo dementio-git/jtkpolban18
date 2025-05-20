@@ -10,11 +10,12 @@ export class WordCloudDashboard extends Component {
         this.state = useState({
             projects: [],
             weeks: [],
+            classes: [],
             selectedProjectId: null,
             selectedWeekId: null,
+            selectedClassId: null,
             data: [],
         });
-
         onWillStart(async () => {
             this.state.projects = await this.orm.searchRead("project.course", [], ["name"]);
         });
@@ -26,7 +27,9 @@ export class WordCloudDashboard extends Component {
         const projectId = parseInt(ev.target.value) || null;
         this.state.selectedProjectId = projectId;
         this.state.selectedWeekId = null;
+        this.state.selectedClassId = null;
         this.state.weeks = [];
+        this.state.classes = [];
         this.state.data = [];
 
         if (!projectId) return;
@@ -36,6 +39,19 @@ export class WordCloudDashboard extends Component {
             [["course_id", "=", projectId]],
             ["name"]
         );
+
+        const [project] = await this.orm.read("project.course", [projectId], ["class_ids"]);
+        if (project.class_ids.length) {
+            const classRecs = await this.orm.read("class.class", project.class_ids, ["name"]);
+            this.state.classes = classRecs.map((cls) => ({ id: cls.id, name: cls.name }));
+        }
+    }
+    onClassChange(ev) {
+        this.state.selectedClassId = parseInt(ev.target.value) || null;
+        // Langsung refresh data jika minggu sudah dipilih
+        if (this.state.selectedWeekId) {
+            this.onWeekChange({ target: { value: this.state.selectedWeekId } });
+        }
     }
 
     async onWeekChange(ev) {
