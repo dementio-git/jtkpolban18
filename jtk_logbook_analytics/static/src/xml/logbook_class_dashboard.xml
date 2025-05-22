@@ -1,27 +1,6 @@
 <templates xml:space="preserve">
   <t t-name="jtk_logbook_analytics.LogbookClassDashboard" owl="1">
     <div class="logbook-dashboard-wrapper p-3">
-      <h2>📊 Dashboard Analitik Logbook Kelas </h2>
-
-      <!-- Pilih Project -->
-      <div class="mb-3">
-        <label class="form-label">📘 Pilih Project:</label>
-        <select class="form-select"
-                t-att-value="state.selectedProjectId"
-                t-on-change="onProjectChange">
-          <option value="">-- Pilih Project --</option>
-          <t t-foreach="state.projects" t-as="proj" t-key="proj.id">
-            <option t-att-value="proj.id">
-              <t t-esc="proj.name"/>
-            </option>
-          </t>
-        </select>
-      </div>
-
-      <!-- Pesan jika belum pilih -->
-      <t t-if="!state.selectedProjectId">
-        <p class="text-muted">Silakan pilih project terlebih dahulu.</p>
-      </t>
       <t t-if="state.selectedProjectId and !state.selectedWeekId">
         <p class="text-muted">Silakan pilih minggu untuk melihat grafik.</p>
       </t>

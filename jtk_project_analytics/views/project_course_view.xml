@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record model="ir.ui.view" id="project_course_form_inherit">
+            <field name="name">project.course.form.inherit</field>
+            <field name="model">project.course</field>
+            <field name="inherit_id" ref="jtk_project_course_base.view_project_course_kanban"/>
+            <field name="arch" type="xml">
+                <xpath expr="//button[@name='open_project_course']" position="before">
+                        <button class="btn btn-sm btn-primary"
+                                type="object"
+                                name="open_project_course_dashboard">
+                            Lihat Dashboard
+                        </button>
+                </xpath>
+            </field>
+        </record>
+
+        <record id="action_project_dashboard" model="ir.actions.client">
+            <field name="name">Project Course Dashboard</field>
+            <field name="path">project-course-dashboard</field>
+            <field name="tag">jtk_project_analytics.project_course_dashboard</field>
+            <field name="target">current</field> 
+        </record>
+    </data>
+</odoo>

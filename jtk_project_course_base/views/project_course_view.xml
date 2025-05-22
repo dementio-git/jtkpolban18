@@ -1,5 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+<data>
+    <record id="view_project_course_kanban" model="ir.ui.view">
+        <field name="name">project.course.kanban</field>
+        <field name="model">project.course</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <!-- declare field yang digunakan -->
+                <field name="name"/>
+                <field name="student_ids"/>
+                <field name="active"/>
+                <field name="study_program_id"/>
+                <field name="semester"/>
+
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="o_kanban_record position-relative">
+                            <!-- Badge status di pojok atas -->
+                            <span t-if="record.active.raw_value"
+                                class="badge position-absolute"
+                                style="top: 4px; right: 4px; background-color:#28a745; color: white; font-size: 0.75rem;">Aktif</span>
+                            <span t-if="!record.active.raw_value"
+                                class="badge position-absolute"
+                                style="top: 4px; right: 4px; background-color:#6c757d; color: white; font-size: 0.75rem;">Nonaktif</span>
+
+                            <div class="o_kanban_content">
+                                <strong><t t-esc="record.name.value"/></strong>
+
+                                
+                                
+                                <div class="mt-2" style="display: grid; grid-template-columns: auto 1fr; row-gap: 4px;">
+                                    <div class="fw-bold">Semester</div>
+                                    <div>: <t t-esc="record.semester.value"/></div>
+                                    
+                                    <div class="fw-bold">Program Studi</div>
+                                    <div>: <t t-esc="record.study_program_id.value"/></div>
+                                    
+                                    <div class="fw-bold">Jumlah Mahasiswa</div>
+                                    <div>: <t t-esc="record.student_ids.raw_value.length"/></div>
+                                </div>
+                                
+                                <div class="mt-2 mb-2 d-flex gap-2">
+                                    <button class="btn btn-sm btn-primary"
+                                            type="object"
+                                            name="open_project_course">
+                                        Konfigurasi Proyek
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+
+
     <!-- Form View -->
     <record id="view_project_course_form" model="ir.ui.view">
         <field name="name">project.course.form</field>
@@ -10,6 +68,9 @@
                     <group>
                         <group>
                             <field name="name"/>
+                            <field name="semester"/>
+                            
+                            <field name="study_program_id"/> 
                             <field name="code"/>
                             <field name="class_ids" widget="many2many_tags" options="{'no_create': True}"/>
                         </group>
@@ -26,9 +87,31 @@
                             </list>
                         </field>
                     </group>
+
+
                     <notebook>
+                        <page string="Kelompok">
                         
+                            <field name="student_group_ids">
+                                <list context="{'default_project_course_id': id}">
+                                    <field name="name"/>
+                                    <field name="student_group_line_ids" widget="one2many_list">
+                                        <list editable="bottom">
+                                            <field name="student_id"/>
+                                            <field name="is_leader"/>
+                                        </list>
+                                    </field>
+                                    <field name="manager_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Manager">
+                        
+                            
+                        </page>                        
                     </notebook>
+
+
                 </sheet>
             </form>
         </field>
@@ -47,12 +130,17 @@
             </list>
         </field>
     </record>
-
     <!-- Action -->
     <record id="action_project_course" model="ir.actions.act_window">
         <field name="name">Project Course</field>
+        <field name="path">project-course</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">project.course</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('active','in',[True, False])]</field> 
     </record>
+
+
+
+</data>
 </odoo>

@@ -1,10 +1,15 @@
 <?xml version='1.0' encoding='utf-8'?>
 <odoo>
         
+    <menuitem id="menu_project_course_root"
+                name="Project Course"
+                sequence="30"/>
+
     <menuitem id="menu_academic_project_course"
               name="Project Course"
-              parent="jtk_academic_base.menu_academic_subject"
-              sequence="20"
-              action = "action_project_course"/>          
+              parent="menu_project_course_root"
+              sequence="10"
+              action = "action_project_course"/>
+              
 
 </odoo>

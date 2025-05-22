@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record model="ir.ui.view" id="student_group_view_form_inherit">
+            <field name="name">student.group.view.form_inherit</field>
+            <field name="model">student.group</field>
+            <field name="inherit_id" ref="jtk_academic_base.student_group_view_form" />
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='name']" position="after">
+                    <field name="manager_id" />
+                </xpath>
+                <xpath expr="//field[@name='class_id']" position="after">
+                    <field name="project_course_id" />
+                </xpath>
+
+                <xpath expr="//field[@name='student_group_line_ids']//field[@name='student_id']" position="attributes">
+                    <attribute name="domain">[('class_id', '=', parent.class_id)]</attribute>
+                </xpath>
+
+
+
+            </field>
+        </record>
+    </data>
+</odoo>

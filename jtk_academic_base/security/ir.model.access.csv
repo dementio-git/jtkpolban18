@@ -4,3 +4,6 @@ access_lecturer_lecturer,access.lecturer.lecturer,model_lecturer_lecturer,base.g
 access_study_program,access.study.program,model_study_program,base.group_user,1,1,1,1
 access_class_class,access.class.class,model_class_class,base.group_user,1,1,1,1
 access_subject_subject,access.subject.subject,model_subject_subject,base.group_user,1,1,1,1
+access_student_group,access.student.group,model_student_group,base.group_user,1,1,1,1
+access_student_group_line,access.student.group.line,model_student_group_line,base.group_user,1,1,1,1
+access_student_group_role,access.student.group.role,model_student_group_role,base.group_user,1,1,1,1

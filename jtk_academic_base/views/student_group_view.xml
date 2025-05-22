@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    <data>
+
+        <record id="student_group_view_form" model="ir.ui.view">
+            <field name="name">student.group.view.form</field>
+            <field name="model">student.group</field>
+            <field name="arch" type="xml">
+                <form string="">
+                   <sheet>
+                        <group>
+                            <group>
+                                <field name="name"/>
+                            </group>
+                            <group>
+                                <field name="class_id"/>
+                            </group>
+                        </group>
+                        <group>
+                            <field name="student_group_line_ids">
+                                <list>
+                                    <field name="student_id"/>
+                                    <field name="is_leader"/>
+                                    <field name="role"/>
+                                </list>
+                            </field>
+                        </group>
+                   </sheet> 
+                </form>
+            </field>
+        </record>
+    </data>
+</odoo>

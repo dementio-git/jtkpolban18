@@ -1,23 +1,17 @@
 # -*- coding: utf-8 -*-
 {
-    'name': "jtk_project_course_base",
-
+    'name': "JTK Project Course Base",
     'summary': """
-        Short (1 phrase/line) summary of the module's purpose, used as
-        subtitle on modules listing or apps.openerp.com""",
-
+        JTK Project Course Base""",
     'description': """
-        Long description of module's purpose
+        JTK Project Course Base
     """,
 
-    'author': "My Company",
-    'website': "https://www.yourcompany.com",
+    'author': "KoTA 407 - S.Tr. 2021",
+    'website': "https://dementio.id",
 
-    # Categories can be used to filter modules in modules listing
-    # Check https://github.com/odoo/odoo/blob/16.0/odoo/addons/base/data/ir_module_category_data.xml
-    # for the full list
-    'category': 'Uncategorized',
-    'version': '0.1',
+    'category': 'JTK',
+    'version': '18.0.0.1',
 
     # any module necessary for this one to work correctly
     'depends': ['base'],
@@ -26,8 +20,17 @@
     'data': [
         'security/ir.model.access.csv',
         'views/project_course_view.xml',
+        'views/student_group_view.xml',
         'views/menuitems.xml',
 
     ],
+    
+    # 'assets': {
+    #     'web.assets_backend': [
+    #         'jtk_project_course_base/static/src/js/*.js',
+    #         # 'jtk_project_course_base/static/src/css/*.css',
+    #         'jtk_project_course_base/static/src/xml/*.xml',
+    #     ],
+    # },
 
 }

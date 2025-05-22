@@ -3,6 +3,7 @@
                 
     <record id="action_logbook_dashboard_class_analytics" model="ir.actions.client">
         <field name="name">Class Analytics</field>
+        <field name="path">project-analytics</field>
         <field name="tag">jtk_logbook_analytics.logbook_class_dashboard</field>
     </record>
 

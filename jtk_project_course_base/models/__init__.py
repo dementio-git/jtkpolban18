@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from . import project_course, week_line
+from . import project_course, week_line, student_group

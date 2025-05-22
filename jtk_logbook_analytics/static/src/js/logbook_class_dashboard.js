@@ -1,11 +1,24 @@
 /** @odoo-module **/
-import { Component, useRef, useState, onWillStart } from "@odoo/owl";
+import { Component, useRef, useState, onWillStart, useEnv, onMounted } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+
+function getRecordIdFromPath() {
+  // Match URL pattern: /odoo/project-course/1/... or /project-course/1/...
+  let m = window.location.pathname.match(
+    /\/(?:odoo\/)?project-course\/(\d+)(\/|$)/
+  );
+  if (m) return parseInt(m[1], 10);
+
+  // Fallback: find any standalone number (likely the ID) in legacy URL
+  m = window.location.pathname.split("/").find((seg) => /^\d+$/.test(seg));
+  return m ? parseInt(m, 10) : null;
+}
 
 export class LogbookClassDashboard extends Component {
   setup() {
     this.orm = useService("orm");
+    this.env = useEnv();
     this.state = useState({
       projects: [],
       weeks: [],
@@ -27,6 +40,19 @@ export class LogbookClassDashboard extends Component {
         [],
         ["name"]
       );
+    });
+
+    onMounted(async () => {
+      const ctxId = this.props?.action?.context?.default_project_course_id;
+      const urlId = getRecordIdFromPath();
+
+      const projectId = ctxId || urlId;
+      console.log("🆔 Resolved project_id:", projectId);
+
+      if (projectId) {
+        this.state.selectedProjectId = projectId;
+        await this.onProjectChange({ target: { value: projectId } });
+      }
     });
   }
 
