@@ -1,6 +1,9 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_assessment_assessment,access.assessment.assessment,model_assessment_assessment,base.group_user,1,1,1,1
 access_assessment_question,access.assessment.question,model_assessment_question,base.group_user,1,1,1,1
-access_assessment_question_label,access.assessment.question.label,model_assessment_question_label,base.group_user,1,1,1,1
+access_assessment_question_subcategory,access.assessment.question.subcategory,model_assessment_question_subcategory,base.group_user,1,1,1,1
 access_assessment_question_category,access.assessment.question.category,model_assessment_question_category,base.group_user,1,1,1,1
 access_assessment_choice,access.assessment.choice,model_assessment_choice,base.group_user,1,1,1,1
+access_assessment_question_label,access.assessment.question.label,model_assessment_question_label,base.group_user,1,1,1,1
+access_assessment_answer,access.assessment.answer,model_assessment_answer,base.group_user,1,1,1,1
+access_assessment_answer_line,access.assessment.answer.line,model_assessment_answer_line,base.group_user,1,1,1,1

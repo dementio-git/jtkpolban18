@@ -33,35 +33,14 @@
                         </page>
                         <page string="Pertanyaan" name="questions">
                             <field name="question_ids" context="{'default_assessment_id': id}">
-                                <form>
-                                    <sheet>
-                                        <group>
-                                            <group>
-                                                <field name="name"/>
-                                                <field name="type"/>
-                                                <field name="label_id"/>
-                                                <field name="category_id"/>
-                                            </group>
-                                        </group>
-                                        <notebook>
-                                            <page string="Pilihan" name="choices" invisible="type not in ['multiple_choice','true_false']">
-                                                <field name="choice_ids">
-                                                    <list editable="bottom">
-                                                        <field name="name"/>
-                                                        <field name="label"/>
-                                                        <field name="is_correct"/>
-                                                        <field name="point"/>
-                                                    </list>
-                                                </field>
-                                            </page>
-                                        </notebook>
-                                    </sheet>
-                                </form>
                                 <list>
+                                    <field name="sequence" widget="handle"/>
                                     <field name="name"/>
                                     <field name="type"/>
-                                    <field name="label_id"/>
                                     <field name="category_id"/>
+                                    <field name="subcategory_id"/>
+                                    <field name="label_id"/>
+                                    <field name="choice_ids" widget="many2many_tags"/>
                                 </list>
                             </field>
                         </page>
@@ -82,16 +61,18 @@
                         <group>
                             <field name="name"/>
                             <field name="type"/>
-                            <field name="label_id"/>
+                            <field name="subcategory_id"/>
                             <field name="category_id"/>
+                            <field name="label_id"/>
                         </group>
                     </group>
                     <notebook>
-                        <page string="Pilihan" name="choices" invisible="type not in ['multiple_choice','true_false']">
+                        <page string="Pilihan" name="choices" invisible="type in ['text','true_false','essay','file_upload']">
                             <field name="choice_ids">
                                 <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
                                     <field name="name"/>
-                                    <field name="label"/>
+                                    <field name="identifier"/>
                                     <field name="is_correct"/>
                                     <field name="point"/>
                                 </list>
@@ -100,6 +81,22 @@
                     </notebook>
                 </sheet>
             </form>
+        </field>
+    </record>
+
+    <!-- Question Tree/List View -->
+    <record id="view_assessment_question_list" model="ir.ui.view">
+        <field name="name">assessment.question.list</field>
+        <field name="model">assessment.question</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="type"/>
+                <field name="category_id"/>
+                <field name="subcategory_id"/>
+                <field name="label_id"/>
+            </list>
         </field>
     </record>
 
@@ -120,9 +117,9 @@
     </record>
 
     <!-- Question Label Views -->
-    <record id="view_question_label_tree" model="ir.ui.view">
-        <field name="name">assessment.question.label.list</field>
-        <field name="model">assessment.question.label</field>
+    <record id="view_question_subcategory_tree" model="ir.ui.view">
+        <field name="name">assessment.question.subcategory.list</field>
+        <field name="model">assessment.question.subcategory</field>
         <field name="arch" type="xml">
             <list editable="bottom">
                 <field name="name"/>
@@ -147,9 +144,10 @@
         <field name="model">assessment.choice</field>
         <field name="arch" type="xml">
             <list editable="bottom">
+                <field name="id"/>
                 <field name="name"/>
                 <field name="question_id"/>
-                <field name="label"/>
+                <field name="identifier"/>
                 <field name="is_correct"/>
                 <field name="point"/>
             </list>
@@ -163,9 +161,9 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    <record id="action_question_label" model="ir.actions.act_window">
+    <record id="action_question_subcategory" model="ir.actions.act_window">
         <field name="name">Question Labels</field>
-        <field name="res_model">assessment.question.label</field>
+        <field name="res_model">assessment.question.subcategory</field>
         <field name="view_mode">list</field>
     </record>
 
@@ -204,9 +202,9 @@
               parent="menu_assessment_root"
               sequence="100"/>
 
-    <menuitem id="menu_question_label"
+    <menuitem id="menu_question_subcategory"
               name="Question Labels"
-              action="action_question_label"
+              action="action_question_subcategory"
               parent="menu_assessment_config"
               sequence="10"/>
 

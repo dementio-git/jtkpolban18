@@ -20,4 +20,5 @@ class Assessment(models.Model):
         ('other', 'Other'),
     ], string='Tipe Asesmen')
     question_ids = fields.One2many('assessment.question', 'assessment_id', string='Questions')
+    answer_ids = fields.One2many('assessment.answer', 'assessment_id', string='Answers')
 
