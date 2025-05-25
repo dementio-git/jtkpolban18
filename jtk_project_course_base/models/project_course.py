@@ -19,7 +19,10 @@ class ProjectCourse(models.Model):
         ('8', 'Semester 8')
     ], string='Semester')
     subject_id = fields.Many2one('subject.subject', string='Subject')
-    week_line_ids = fields.One2many('week.line', 'course_id', string='Week Lines')
+    activity_ids = fields.One2many('course.activity', 'course_id', string='Calendar Events')
+    milestone_ids = fields.One2many('course.activity', 'course_id', domain=[('type', '=', 'milestone')], string='Milestones')
+    week_ids = fields.One2many('course.activity', 'course_id', domain=[('type', '=', 'week')], string='Weeks')
+    other_activity_ids = fields.One2many('course.activity', 'course_id', domain=[('type', 'not in', ['milestone', 'week'])], string='Other Activities')
     class_ids = fields.Many2many('class.class', string='Kelas')
     lecturer_ids = fields.Many2many('lecturer.lecturer', string='Dosen Pengampu')
     student_group_ids = fields.One2many('student.group', 'project_course_id', string='Kelompok Mahasiswa')
@@ -32,10 +35,9 @@ class ProjectCourse(models.Model):
             for class_id in course.class_ids:
                 student_ids |= class_id.student_ids
             course.student_ids = student_ids
-            
-            
+    
     def open_project_course(self):
-        self.ensure_one()  # pastikan hanya satu record yang aktif
+        self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
             'res_model': 'project.course',
@@ -43,7 +45,7 @@ class ProjectCourse(models.Model):
             'view_mode': 'form',
             'target': 'current',
         }
-        
+    
     def open_project_course_dashboard(self):
         self.ensure_one()
         return {

@@ -86,11 +86,23 @@
         <field name="name">Ekstrak Logbook</field>
         <field name="model_id" ref="model_logbook_logbook"/>
         <field name="binding_model_id" ref="model_logbook_logbook"/>
-        <field name="binding_type">action</field> <!-- agar muncul di tree view atas -->
+        <field name="binding_type">action</field> <!-- agar muncul di list view atas -->
         <field name="state">code</field>
         <field name="code">
             for rec in env['logbook.logbook'].browse(env.context.get('active_ids', [])):
                 rec.extract_logbook()
+        </field>
+    </record>
+
+     <record id="action_automate_week" model="ir.actions.server">
+        <field name="name">Automate Week</field>
+        <field name="model_id" ref="model_logbook_logbook"/>
+        <field name="binding_model_id" ref="model_logbook_logbook"/>
+        <field name="binding_type">action</field> <!-- agar muncul di list view atas -->
+        <field name="state">code</field>
+        <field name="code">
+            for rec in env['logbook.logbook'].browse(env.context.get('active_ids', [])):
+                rec._compute_week()
         </field>
     </record>
 

@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree/List View -->
+    <record id="view_assessment_list" model="ir.ui.view">
+        <field name="name">assessment.assessment.list</field>
+        <field name="model">assessment.assessment</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="type"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_assessment_form" model="ir.ui.view">
+        <field name="name">assessment.assessment.form</field>
+        <field name="model">assessment.assessment</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="type"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Deskripsi" name="description">
+                            <field name="description" placeholder="Tambahkan deskripsi assessment..."/>
+                        </page>
+                        <page string="Pertanyaan" name="questions">
+                            <field name="question_ids" context="{'default_assessment_id': id}">
+                                <form>
+                                    <sheet>
+                                        <group>
+                                            <group>
+                                                <field name="name"/>
+                                                <field name="type"/>
+                                                <field name="label_id"/>
+                                                <field name="category_id"/>
+                                            </group>
+                                        </group>
+                                        <notebook>
+                                            <page string="Pilihan" name="choices" invisible="type not in ['multiple_choice','true_false']">
+                                                <field name="choice_ids">
+                                                    <list editable="bottom">
+                                                        <field name="name"/>
+                                                        <field name="label"/>
+                                                        <field name="is_correct"/>
+                                                        <field name="point"/>
+                                                    </list>
+                                                </field>
+                                            </page>
+                                        </notebook>
+                                    </sheet>
+                                </form>
+                                <list>
+                                    <field name="name"/>
+                                    <field name="type"/>
+                                    <field name="label_id"/>
+                                    <field name="category_id"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Question Form View -->
+    <record id="view_assessment_question_form" model="ir.ui.view">
+        <field name="name">assessment.question.form</field>
+        <field name="model">assessment.question</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="type"/>
+                            <field name="label_id"/>
+                            <field name="category_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Pilihan" name="choices" invisible="type not in ['multiple_choice','true_false']">
+                            <field name="choice_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="label"/>
+                                    <field name="is_correct"/>
+                                    <field name="point"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_assessment_search" model="ir.ui.view">
+        <field name="name">assessment.assessment.search</field>
+        <field name="model">assessment.assessment</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="type"/>
+                <group expand="0" string="Group By">
+                    <filter string="Tipe" name="groupby_type" context="{'group_by': 'type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Question Label Views -->
+    <record id="view_question_label_tree" model="ir.ui.view">
+        <field name="name">assessment.question.label.list</field>
+        <field name="model">assessment.question.label</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="name"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Question Category Views -->
+    <record id="view_question_category_tree" model="ir.ui.view">
+        <field name="name">assessment.question.category.list</field>
+        <field name="model">assessment.question.category</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="name"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Question Choice Views -->
+    <record id="view_question_choice_tree" model="ir.ui.view">
+        <field name="name">assessment.choice.list</field>
+        <field name="model">assessment.choice</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="name"/>
+                <field name="question_id"/>
+                <field name="label"/>
+                <field name="is_correct"/>
+                <field name="point"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_assessment" model="ir.actions.act_window">
+        <field name="name">Assessment</field>
+        <field name="res_model">assessment.assessment</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_question_label" model="ir.actions.act_window">
+        <field name="name">Question Labels</field>
+        <field name="res_model">assessment.question.label</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <record id="action_question_category" model="ir.actions.act_window">
+        <field name="name">Question Categories</field>
+        <field name="res_model">assessment.question.category</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <!-- Question Action -->
+    <record id="action_assessment_question" model="ir.actions.act_window">
+        <field name="name">Questions</field>
+        <field name="res_model">assessment.question</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_question_choice" model="ir.actions.act_window">
+        <field name="name">Choices</field>
+        <field name="res_model">assessment.choice</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <!-- Menu Items -->
+    <menuitem id="menu_assessment_root" 
+              name="Assessment"
+              parent="jtk_project_course_base.menu_project_course_root"
+              sequence="20"/>
+
+    <menuitem id="menu_assessment"
+              name="Assessment"
+              action="action_assessment"
+              parent="menu_assessment_root"
+              sequence="10"/>
+
+    <menuitem id="menu_assessment_config" 
+              name="Configuration"
+              parent="menu_assessment_root"
+              sequence="100"/>
+
+    <menuitem id="menu_question_label"
+              name="Question Labels"
+              action="action_question_label"
+              parent="menu_assessment_config"
+              sequence="10"/>
+
+    <menuitem id="menu_question_category"
+              name="Question Categories"
+              action="action_question_category"
+              parent="menu_assessment_config"
+              sequence="20"/>
+
+    <menuitem id="menu_assessment_questions"
+              name="Questions"
+              action="action_assessment_question"
+              parent="menu_assessment_config"
+              sequence="30"/>
+    
+    <menuitem id="menu_assessment_choice"
+              name="Choices"
+              action="action_question_choice"
+              parent="menu_assessment_config"
+              sequence="40"/>
+</odoo>

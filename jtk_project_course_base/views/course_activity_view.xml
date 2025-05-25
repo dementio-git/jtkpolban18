@@ -1,0 +1,166 @@
+<?xml version='1.0' encoding='utf-8'?>
+<odoo>
+    
+    <!-- Course Calendar View -->
+    <record id="view_course_activity_calendar" model="ir.ui.view">
+        <field name="name">course.activity.calendar</field>
+        <field name="model">course.activity</field>
+        <field name="arch" type="xml">
+            <calendar string="Project Course Calendar" 
+                     date_start="start_date" 
+                     date_stop="end_date" 
+                     color="type" 
+                     mode="month">
+                <field name="name"/>
+                <field name="type"/>
+                <field name="course_id"/>
+                <field name="parent_id"/>
+            </calendar>
+        </field>
+    </record>    
+
+    <!-- Course Calendar Form View -->
+    <record id="view_course_activity_form" model="ir.ui.view">
+        <field name="name">course.activity.form</field>
+        <field name="model">course.activity</field>
+        <field name="arch" type="xml">
+            <form string="Calendar Event">
+                <sheet>
+                    <group>
+                       <group>
+                            <field name="name"/>
+                            <field name="type"/>
+                            <field name="assessment_id" invisible="type in ['milestone', 'week']"/>
+                            <field name="deadline" invisible="type in ['milestone', 'week']"/>
+                        </group>
+                        <group>
+                            <field name="course_id" 
+                                options="{
+                                    'no_create': True,
+                                    'no_quick_create': True
+                                }"
+                                domain="[('active', '=', True)]"/>
+                            <field name="parent_id" 
+                                invisible="type == 'milestone'"
+                                required="type not in ['milestone','week']"
+                                options="{
+                                    'no_create': True,
+                                    'no_quick_create': True
+                                }"
+                                domain="parent_id_domain"/>
+                            <field name="start_date" widget="daterange" options="{'end_date_field': 'end_date'}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Deskripsi" name="description">
+                            <field name="description" 
+                                   placeholder="Tambahkan deskripsi event di sini..."/>
+                        </page>
+                        <page string="Sub Events" name="child_events" invisible="type not in ['milestone', 'week']">
+                            <separator string="Weeks" invisible="type != 'milestone'"/>
+                            <field name="week_ids"
+                                context="{
+                                    'default_course_id': course_id,
+                                    'default_type': 'week',
+                                    'default_parent_id': id
+                                }"
+                                invisible="type != 'milestone'">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="type"/>
+                                    <field name="start_date" widget="daterange" options="{'end_date_field': 'end_date'}"/>
+                                    <field name="course_id" column_invisible="1" />
+                                    <field name="parent_id"  column_invisible="1"/>
+                                </list>
+                            </field>
+
+                            <separator string="Sub Activity"/>
+                            <field name="subactivity_ids"
+                                context="{
+                                    'default_course_id': course_id,
+                                    'default_type': 'assignment',
+                                    'default_parent_id': id
+                                }">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="type"/>
+                                    <field name="start_date" widget="daterange" options="{'end_date_field': 'end_date'}"/>
+                                    <field name="course_id"  column_invisible="1"/>
+                                    <field name="parent_id"  column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Course Calendar List View -->
+    <record id="view_course_activity_list" model="ir.ui.view">
+        <field name="name">course.activity.list</field>
+        <field name="model">course.activity</field>
+        <field name="arch" type="xml">
+            <list string="Calendar Events">
+                <field name="name"/>
+                <field name="type"/>
+                <field name="parent_id"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="course_id" 
+                       options="{'no_create': True}"
+                       domain="[('active', '=', True)]"/>
+            </list>
+        </field>
+    </record>    
+
+    <!-- Course Calendar Search -->
+    <record id="view_course_activity_search" model="ir.ui.view">
+        <field name="name">course.activity.search</field>
+        <field name="model">course.activity</field>
+        <field name="arch" type="xml">
+            <search string="Search Calendar Events">
+                <field name="name"/>
+                <field name="type"/>
+                <field name="course_id"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <separator/>
+                <filter string="Milestones" name="milestone" domain="[('type', '=', 'milestone')]"/>
+                <filter string="Weeks" name="week" domain="[('type', '=', 'week')]"/>
+                <filter string="Events" name="events" domain="[('type', 'not in', ['milestone','week'])]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Type" name="group_type" domain="[]" context="{'group_by': 'type'}"/>
+                    <filter string="Course" name="group_course" domain="[]" context="{'group_by': 'course_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+   
+    <!-- Combined Calendar View Action -->    
+    <record id="action_project_course_activity" model="ir.actions.act_window">
+        <field name="name">Project Course Calendar</field>
+        <field name="path">course-calendar</field>
+        <field name="res_model">course.activity</field>
+        <field name="view_mode">calendar,list,form</field>
+        <field name="domain">[('course_id', '=', active_id)]</field>
+        <field name="context">{
+            'default_course_id': active_id,
+            'hide_course_id': True,
+            'search_default_group_type': 1
+        }</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Buat milestone pertama Anda!
+            </p>
+            <p>
+                Milestone dapat berisi beberapa minggu dan event-event seperti pengumpulan tugas, 
+                presentasi, dan lainnya dalam struktur hierarkis:
+                - Milestone (Level teratas)
+                - Week (Container di bawah milestone)
+                - Events (Tugas/Presentasi/dll di bawah week)
+            </p>
+        </field>
+    </record>
+
+</odoo>

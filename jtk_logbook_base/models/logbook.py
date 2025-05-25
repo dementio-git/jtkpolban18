@@ -13,7 +13,9 @@ class Logbook(models.Model):
     name = fields.Char(string='Kode Logbook', compute='_compute_name',store=True)
     student_id = fields.Many2one('student.student', string='Nama Mahasiswa')
     project_course_id = fields.Many2one('project.course', string='Mata Kuliah')
-    week_id = fields.Many2one('week.line', string='Minggu Ke-', compute='_compute_week', store=True)
+    week_id = fields.Many2one('course.activity', string='Minggu Ke-', 
+                             domain="[('course_id', '=', project_course_id), ('type', '=', 'week')]",
+                             compute='_compute_week', store=True)
     logbook_date = fields.Date(string='Tanggal Logbook')
     logbook_content = fields.Text(string='Isi Logbook')
     logbook_summary = fields.Text(string='Ringkasan Logbook')
@@ -21,12 +23,13 @@ class Logbook(models.Model):
     logbook_extraction_ids = fields.One2many('logbook.extraction', 'logbook_id', string='Logbook Extraction')
     skill_extraction_ids = fields.One2many('skill.extraction', 'logbook_id', string='Skill Extraction')
     is_extracted = fields.Boolean(string='Sudah diekstrak', default=False)
+            
     
     @api.depends('week_id', 'student_id')
     def _compute_name(self):
         for record in self:
             if record.week_id and record.student_id.name:
-                record.name = f"{record.week_id}-{record.student_id.name}"
+                record.name = f"{record.week_id.name}-{record.student_id.name}"
             else:
                 record.name = False
                 
@@ -34,12 +37,13 @@ class Logbook(models.Model):
     def _compute_week(self):
         for record in self:
             if record.logbook_date and record.project_course_id:
-                week_line = self.env['week.line'].search([
+                week = self.env['course.activity'].search([
                     ('start_date', '<=', record.logbook_date),
                     ('end_date', '>=', record.logbook_date),
-                    ('course_id', '=', record.project_course_id.id)
+                    ('course_id', '=', record.project_course_id.id),
+                    ('type', '=', 'week')
                 ], limit=1)
-                record.week_id = week_line.id if week_line else False
+                record.week_id = week.id if week else False
             else:
                 record.week_id = False
 

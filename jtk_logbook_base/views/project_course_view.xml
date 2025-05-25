@@ -6,8 +6,12 @@
             <field name="model">project.course</field>
             <field name="inherit_id" ref="jtk_project_course_base.view_project_course_form"/>
             <field name="arch" type="xml">
-                <xpath expr="//field[@name='code']" position="after">
-                    <field name="logbook_label_ids" widget="many2many_tags"/>
+                <xpath expr="//page[@name='group']" position="after">
+                    <page string="Logbook" name="logbook">
+                        <group >
+                            <field name="logbook_label_ids" widget="many2many_tags"/>
+                        </group>
+                    </page>
                 </xpath>
             </field>
         </record>

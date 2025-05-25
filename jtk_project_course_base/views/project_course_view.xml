@@ -1,33 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 <data>
+    <!-- Kanban View -->
     <record id="view_project_course_kanban" model="ir.ui.view">
         <field name="name">project.course.kanban</field>
         <field name="model">project.course</field>
         <field name="arch" type="xml">
             <kanban>
-                <!-- declare field yang digunakan -->
                 <field name="name"/>
                 <field name="student_ids"/>
                 <field name="active"/>
                 <field name="study_program_id"/>
                 <field name="semester"/>
-
+                
                 <templates>
                     <t t-name="kanban-box">
                         <div class="o_kanban_record position-relative">
                             <!-- Badge status di pojok atas -->
                             <span t-if="record.active.raw_value"
-                                class="badge position-absolute"
-                                style="top: 4px; right: 4px; background-color:#28a745; color: white; font-size: 0.75rem;">Aktif</span>
+                                  class="badge position-absolute"
+                                  style="top: 4px; right: 4px; background-color:#28a745; color: white; font-size: 0.75rem;">Aktif</span>
                             <span t-if="!record.active.raw_value"
-                                class="badge position-absolute"
-                                style="top: 4px; right: 4px; background-color:#6c757d; color: white; font-size: 0.75rem;">Nonaktif</span>
+                                  class="badge position-absolute"
+                                  style="top: 4px; right: 4px; background-color:#6c757d; color: white; font-size: 0.75rem;">Nonaktif</span>
 
                             <div class="o_kanban_content">
                                 <strong><t t-esc="record.name.value"/></strong>
-
-                                
                                 
                                 <div class="mt-2" style="display: grid; grid-template-columns: auto 1fr; row-gap: 4px;">
                                     <div class="fw-bold">Semester</div>
@@ -39,15 +37,19 @@
                                     <div class="fw-bold">Jumlah Mahasiswa</div>
                                     <div>: <t t-esc="record.student_ids.raw_value.length"/></div>
                                 </div>
-                                
+
                                 <div class="mt-2 mb-2 d-flex gap-2">
                                     <button class="btn btn-sm btn-primary"
                                             type="object"
                                             name="open_project_course">
                                         Konfigurasi Proyek
                                     </button>
+                                    <button class="btn btn-sm btn-info"
+                                            name="%(action_project_course_activity)d"
+                                            type="action">
+                                        Kalender
+                                    </button>
                                 </div>
-
                             </div>
                         </div>
                     </t>
@@ -56,68 +58,112 @@
         </field>
     </record>
 
-
-
     <!-- Form View -->
     <record id="view_project_course_form" model="ir.ui.view">
         <field name="name">project.course.form</field>
         <field name="model">project.course</field>
-        <field name="arch" type="xml">
+        <field name="arch" type="xml">            
             <form string="Project Course">
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(action_project_course_activity)d" 
+                                type="action" 
+                                class="oe_stat_button" 
+                                icon="fa-calendar"
+                                string="Calendar"/>
+                    </div>
                     <group>
                         <group>
                             <field name="name"/>
-                            <field name="semester"/>
-                            
-                            <field name="study_program_id"/> 
                             <field name="code"/>
-                            <field name="class_ids" widget="many2many_tags" options="{'no_create': True}"/>
-                        </group>
-                        <group>
-                            <field name="subject_id"/>
+                            <field name="semester"/>
+                            <field name="study_program_id" 
+                                   options="{'no_create': True}"
+                                   domain="[('active', '=', True)]"/>
+                            <field name="class_ids" 
+                                   widget="many2many_tags" 
+                                   options="{'no_create': True}"
+                                   domain="[('study_program_id', '=', study_program_id), ('active', '=', True)]"/>
+                            <field name="subject_id"
+                                   options="{'no_create': True}"
+                                   domain="[('study_program_id', '=', study_program_id), ('active', '=', True)]"/>
                             <field name="active" widget="boolean_toggle"/>
                         </group>
                     </group>
-                    <group>
-                        <field name="week_line_ids" context="{'default_course_id': id}">
-                            <list editable="bottom">
-                                <field name="name"/>
-                                <field name="start_date" widget="daterange" options="{'end_date_field': 'end_date'}"/>
-                            </list>
-                        </field>
-                    </group>
-
-
-                    <notebook>
-                        <page string="Kelompok">
-                        
-                            <field name="student_group_ids">
-                                <list context="{'default_project_course_id': id}">
+                    <notebook>                        
+                        <page string="Kelompok" name="group">
+                            <!-- <field name="student_group_ids" 
+                                   context="{'default_project_course_id': id}">
+                                <list>
                                     <field name="name"/>
                                     <field name="student_group_line_ids" widget="one2many_list">
                                         <list editable="bottom">
-                                            <field name="student_id"/>
+                                            <field name="student_id" 
+                                                   domain="[('class_id', 'in', parent.class_ids)]"
+                                                   options="{'no_create': True}"/>
                                             <field name="is_leader"/>
                                         </list>
                                     </field>
-                                    <field name="manager_id"/>
+                                    <field name="manager_id" 
+                                           domain="[('active', '=', True)]"
+                                           options="{'no_create': True}"/>
                                 </list>
-                            </field>
+                            </field> -->
                         </page>
-                        <page string="Manager">
-                        
-                            
-                        </page>                        
+                        <page string="Calendar" name="calendar">
+                            <group>
+                                <group>
+                                    <button name="%(action_project_course_activity)d" 
+                                            type="action" 
+                                            string="Lihat Calendar"
+                                            class="btn btn-primary"/>
+                                </group>
+                            </group>
+
+                            <separator string="Milestones"/>
+                                <field name="milestone_ids" 
+                                        context="{'default_course_id': id, 
+                                                  'default_type': 'milestone'}">
+                                    <list editable="bottom">
+                                        <field name="name"/>
+                                        <field name="type"/>
+                                        <field name="start_date" widget="daterange" options="{'end_date_field': 'end_date'}"/>
+                                        <field name="child_ids" widget="many2many_tags" context="{'default_course_id': course_id, 'default_parent_id': id, 'default_type': 'week'}"/>
+                                    </list>
+                                </field>
+
+                            <separator string="Weeks"/>
+                                <field name="week_ids" 
+                                        context="{'default_course_id': id, 
+                                                  'default_type': 'week'}">
+                                    <list editable="bottom">
+                                        <field name="name"/>
+                                        <field name="type"/>
+                                        <field name="start_date" widget="daterange" options="{'end_date_field': 'end_date'}"/>
+                                        <field name="parent_id"/>
+                                        <field name="child_ids" widget="many2many_tags" context="{'default_course_id': course_id, 'default_parent_id': id, 'default_type': 'assignment'}"/>
+                                    </list>
+                                </field>
+
+                            <separator string="Other Activities"/>
+                                <field name="other_activity_ids">
+                                    <list default_order='parent_id, type' editable="bottom">
+                                        <field name="name"/>
+                                        <field name="type"/>
+                                        <field name="start_date" widget="daterange" options="{'end_date_field': 'end_date'}"/>
+                                        <field name="parent_id"/>
+                                    </list>
+                                </field>
+
+                                
+                        </page>
                     </notebook>
-
-
                 </sheet>
             </form>
         </field>
     </record>
 
-    <!-- Tree View -->
+    <!-- List View -->
     <record id="view_project_course_list" model="ir.ui.view">
         <field name="name">project.course.list</field>
         <field name="model">project.course</field>
@@ -125,22 +171,20 @@
             <list>
                 <field name="name"/>
                 <field name="code"/>
+                <field name="study_program_id"/>
                 <field name="subject_id"/>
                 <field name="active"/>
             </list>
         </field>
-    </record>
+    </record>    
+
     <!-- Action -->
     <record id="action_project_course" model="ir.actions.act_window">
         <field name="name">Project Course</field>
-        <field name="path">project-course</field>
-        <field name="type">ir.actions.act_window</field>
         <field name="res_model">project.course</field>
         <field name="view_mode">kanban,list,form</field>
-        <field name="domain">[('active','in',[True, False])]</field> 
+        <field name="domain">[('active','in',[True, False])]</field>
     </record>
-
-
 
 </data>
 </odoo>

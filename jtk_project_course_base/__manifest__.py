@@ -14,11 +14,12 @@
     'version': '18.0.0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base'],
+    'depends': ['base', 'jtk_academic_base', 'jtk_assessment_base'],
 
     # always loaded
     'data': [
         'security/ir.model.access.csv',
+        'views/course_activity_view.xml',
         'views/project_course_view.xml',
         'views/student_group_view.xml',
         'views/menuitems.xml',
