@@ -1,0 +1,5 @@
+<templates xml:space="preserve">
+    <t t-name="jtk_logbook_analytics.LogbookClassAnalytics" owl="1">
+        LogbookClassAnalytics
+    </t>
+</templates>

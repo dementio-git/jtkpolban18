@@ -1,0 +1,61 @@
+<templates xml:space="preserve">
+    <t t-name="jtk_logbook_analytics.LogbookProjectAnalytics" owl="1">
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Statistik Deskriptif Logbook</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Total Mahasiswa</th>
+                                        <th>Rata-rata Mahasiswa Aktif/Minggu</th>
+                                        <th>Std Dev Mahasiswa Aktif/Minggu</th>
+                                        <th>Total Logbook</th>
+                                        <th>Rata-rata Logbook/Minggu</th>
+                                        <th>Std Dev Logbook/Minggu</th>
+                                        <th>Rata-rata Logbook/Mahasiswa/Minggu</th>
+                                        <th>Std Dev Logbook/Mahasiswa/Minggu</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="state.stats" t-as="stat" t-key="stat.id">
+                                        <td><t t-esc="stat.total_students"/></td>
+                                        <td><t t-esc="stat.avg_active_students_per_week"/></td>
+                                        <td><t t-esc="stat.std_dev_active_students_per_week"/></td>
+                                        <td><t t-esc="stat.total_logbooks"/></td>
+                                        <td><t t-esc="stat.avg_logbooks_per_week"/></td>
+                                        <td><t t-esc="stat.std_dev_logbooks"/></td>
+                                        <td><t t-esc="stat.avg_logbooks_per_student_week"/></td>
+                                        <td><t t-esc="stat.std_dev_logbooks_per_student_week"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Grafik Tren Waktu</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="height: 400px;">
+                            <div id="chart1" style="height: 400px;"></div>
+                        </div>
+                        <div class="chart-container" style="height: 400px;">
+                            <div id="chart2" style="height: 400px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>
