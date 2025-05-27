@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree View untuk Assessment Answer -->
+    <record id="view_assessment_answer_tree" model="ir.ui.view">
+        <field name="name">assessment.answer.list</field>
+        <field name="model">assessment.answer</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="assessment_id"/>
+                <field name="student_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View untuk Assessment Answer -->
+    <record id="view_assessment_answer_form" model="ir.ui.view">
+        <field name="name">assessment.answer.form</field>
+        <field name="model">assessment.answer</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="assessment_id"/>
+                            <field name="student_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Jawaban" name="answer_lines">
+                            <field name="answer_line_ids">
+                                <list editable="bottom">
+                                    <field name="question_id" readonly="1"/>
+                                    <field name="choice_id" options="{'no_create': True}"/>
+                                    <field name="category_id"/>
+                                    <field name="subcategory_id"/>
+                                    <field name="label_id"/>
+                                    <field name="is_correct"/>
+                                    <field name="point"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View untuk Assessment Answer -->
+    <record id="view_assessment_answer_search" model="ir.ui.view">
+        <field name="name">assessment.answer.search</field>
+        <field name="model">assessment.answer</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="assessment_id"/>
+                <field name="student_id"/>
+                <group expand="0" string="Group By">
+                    <filter string="Assessment" name="groupby_assessment" context="{'group_by': 'assessment_id'}"/>
+                    <filter string="Student" name="groupby_student" context="{'group_by': 'student_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+
+    <!-- List View Assessment Answer Line -->
+    <record id="view_assessment_answer_line_list" model="ir.ui.view">
+        <field name="name">assessment.answer.line.list</field>
+        <field name="model">assessment.answer.line</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="assessment_id"/>
+                <field name="student_id"/>
+                <field name="question_id"/>
+                <field name="choice_id"/>
+                <field name="is_correct"/>
+                <field name="point"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Action Window -->
+    <record id="action_assessment_answer" model="ir.actions.act_window">
+        <field name="name">Assessment Answers</field>
+        <field name="res_model">assessment.answer</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Action Window for Assessment Answer Line -->
+    <record id="action_assessment_answer_line" model="ir.actions.act_window">
+        <field name="name">Assessment Answer Lines</field>
+        <field name="res_model">assessment.answer.line</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menu Item -->
+    <menuitem id="menu_assessment_answer"
+              name="Assessment Answers"
+              action="action_assessment_answer"
+              parent="menu_assessment_root"
+              sequence="20"/>
+
+    <menuitem id="menu_assessment_answer_line"
+                name="Assessment Answer Lines"
+                action="action_assessment_answer_line"
+                parent="menu_assessment_root"
+                sequence="30"/>
+
+</odoo>

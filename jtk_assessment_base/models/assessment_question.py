@@ -23,6 +23,11 @@ class AssessmentQuestion(models.Model):
         'assessment.question.label', 
         string='Label',
     )
+    answer_line_ids = fields.One2many(
+        'assessment.answer.line', 
+        'question_id', 
+        string='Answer Lines',
+    )
     
     
 class AssessmentQuestionCategory(models.Model):

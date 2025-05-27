@@ -72,12 +72,11 @@ export class LogbookClassDashboard extends Component {
     this._destroyChartInstance(this.chart2);
     this._destroyChartInstance(this.chart3);
 
-    if (!pid) return;
-
-    this.state.weeks = await this.orm.searchRead(
-      "week.line",
-      [["course_id", "=", pid]],
-      ["name"]
+    if (!pid) return;    this.state.weeks = await this.orm.searchRead(
+      "course.activity",
+      [["course_id", "=", pid], ["type", "=", "week"]],
+      ["name", "start_date"],
+      { order: "start_date asc" }
     );
     const [project] = await this.orm.read(
       "project.course",

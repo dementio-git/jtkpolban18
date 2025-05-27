@@ -44,6 +44,13 @@
                                 </list>
                             </field>
                         </page>
+                        <page string="Jawaban" name="answers">
+                            <field name="answer_ids" options="{'no_create': True}" readonly="1">
+                                <list>
+                                    <field name="student_id"/>
+                                </list>
+                            </field>
+                        </page>
                     </notebook>
                 </sheet>
             </form>
@@ -73,6 +80,16 @@
                                     <field name="sequence" widget="handle"/>
                                     <field name="name"/>
                                     <field name="identifier"/>
+                                    <field name="is_correct"/>
+                                    <field name="point"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Jawaban" name="answers">
+                            <field name="answer_line_ids" options="{'no_create': True}" readonly="1">
+                                <list>
+                                    <field name="student_id"/>
+                                    <field name="choice_id" options="{'no_create': True}"/>
                                     <field name="is_correct"/>
                                     <field name="point"/>
                                 </list>

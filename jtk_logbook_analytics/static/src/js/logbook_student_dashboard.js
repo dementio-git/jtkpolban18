@@ -170,12 +170,12 @@ export class LogbookStudentDashboard extends Component {
     const domain = [["project_course_id", "=", this.state.selectedProjectId]];
     if (this.state.selectedStudentIds.length) {
       domain.push(["student_id", "in", this.state.selectedStudentIds]);
-    } else {
-      // Ambil data minggu saja, bukan data label
+    } else {      // Ambil data minggu saja, bukan data label
       const weeks = await this.orm.searchRead(
         "logbook.label.analytics",
         [["project_course_id", "=", this.state.selectedProjectId]],
-        ["week_id", "week_date", "group_id"]
+        ["week_id", "week_date", "group_id"],
+        { order: "week_date asc" }
       );
 
       const weekMap = new Map();

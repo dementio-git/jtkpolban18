@@ -10,3 +10,5 @@ class AssessmentChoice(models.Model):
     identifier = fields.Char(string='Identifier')
     is_correct = fields.Boolean(string='Is Correct')
     point = fields.Integer(string='Point')
+    
+    

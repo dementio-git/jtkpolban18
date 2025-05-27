@@ -20,5 +20,6 @@
     'data': [
         'security/ir.model.access.csv',
         'views/assessment_view.xml',
+        'views/assessment_answer_view.xml',
     ],
 }

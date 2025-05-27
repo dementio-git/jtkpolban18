@@ -1,3 +1,6 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_label_analytics,access_label_analytics,model_logbook_label_analytics,base.group_user,1,1,1,1
 logbook.label.weekly.avg,logbook.label.weekly.avg,model_logbook_label_weekly_avg,base.group_user,1,1,1,1
+access_logbook_count,access.logbook.count,model_logbook_count,base.group_user,1,1,1,1
+logbook.descriptive.stats,logbook.descriptive.stats,model_logbook_descriptive_stats,base.group_user,1,1,1,1
+access_logbook_weekly_stats,access.logbook.weekly.stats,model_logbook_weekly_stats,base.group_user,1,1,1,1
