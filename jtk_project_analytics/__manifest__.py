@@ -27,8 +27,6 @@
     
     'assets': {
         'web.assets_backend': [
-            'jtk_logbook_analytics/static/src/js/logbook_class_dashboard.js',
-            'jtk_logbook_analytics/static/src/xml/logbook_class_dashboard.xml',
             'jtk_project_analytics/static/src/js/*.js',
             # # 'jtk_project_analytics/static/src/css/*.css',
             'jtk_project_analytics/static/src/xml/*.xml',

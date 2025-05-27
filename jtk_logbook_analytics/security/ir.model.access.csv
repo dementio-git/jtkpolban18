@@ -4,3 +4,4 @@ logbook.label.weekly.avg,logbook.label.weekly.avg,model_logbook_label_weekly_avg
 access_logbook_count,access.logbook.count,model_logbook_count,base.group_user,1,1,1,1
 logbook.descriptive.stats,logbook.descriptive.stats,model_logbook_descriptive_stats,base.group_user,1,1,1,1
 access_logbook_weekly_stats,access.logbook.weekly.stats,model_logbook_weekly_stats,base.group_user,1,1,1,1
+access_logbook_weekly_stats_class,access.logbook.weekly.stats.class,model_logbook_weekly_stats_class,base.group_user,1,1,1,1

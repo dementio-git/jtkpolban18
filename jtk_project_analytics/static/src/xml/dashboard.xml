@@ -1,11 +1,49 @@
 <templates xml:space="preserve">
     <t t-name="jtk_project_analytics.ProjectCourseDashboard" owl="1">
+        <div class="p-4">
+            <h2><t t-esc="state.projectName"/></h2>
+            <div class="nav nav-tabs mt-3 mb-3">
+                <a t-att-class="'nav-link' + (state.activeTab === 'project' ? ' active' : '')"
+                t-on-click="() => navigate('project')">Dashboard Proyek</a>
+                <a t-att-class="'nav-link' + (state.activeTab === 'logbook' ? ' active' : '')"
+                t-on-click="function () { console.log('✅ Klik berhasil'); this.navigate('logbook'); }">Logbook Analytics</a>
+                <a t-att-class="'nav-link' + (state.activeTab === 'class' ? ' active' : '')"
+                t-on-click="function () { console.log('✅ Klik berhasil'); this.navigate('class'); }">Dashboard Per Kelas</a>
+                <a t-att-class="'nav-link' + (state.activeTab === 'student' ? ' active' : '')"
+                t-on-click="() => navigate('student')">Dashboard Per Mahasiswa</a>
+                <a t-att-class="'nav-link' + (state.activeTab === 'week' ? ' active' : '')"
+                t-on-click="() => navigate('week')">Kalender, Minggu, Materi, dan Milestone</a>
+                <a t-att-class="'nav-link' + (state.activeTab === 'group' ? ' active' : '')"
+                t-on-click="() => navigate('group')">Kelompok</a>
+                <a t-att-class="'nav-link' + (state.activeTab === 'profile' ? ' active' : '')"
+                t-on-click="() => navigate('profile')">Project Profile</a>
+            </div>
+
+        <div t-if="state.activeTab === 'project'">📊 Konten Dashboard Proyek</div>
+        <div t-if="state.activeTab === 'class'">
+            <t t-esc="'🟡 Memasuki tab CLASS'"/>
+            <LogbookClassDashboard projectId="state.projectId"/>
+        </div>
+
+        <div t-if="state.activeTab === 'logbook'" class="container-fluid">
+            <LogbookAnalytics projectId="state.projectId"/>
+        </div>
+        <div t-if="state.activeTab === 'student'">👩‍🎓 Konten Dashboard Per Mahasiswa</div>
+        <div t-if="state.activeTab === 'week'">🗓️ Konten Kalender dan Mingguan</div>
+        <div t-if="state.activeTab === 'group'">👥 Konten Kelompok</div>
+        <div t-if="state.activeTab === 'profile'">📄 Konten Profil Proyek</div>
+    </div>
+    </t>
+</templates>
+
+
+
+<!-- <templates xml:space="preserve">
+    <t t-name="jtk_project_analytics.ProjectCourseDashboard" owl="1">
         <div logbook="p-4">
         <div class="nav nav-tabs mt-3 mb-3">
             <a t-att-class="'nav-link' + (state.activeTab === 'evaluation' ? ' active' : '')"
             t-on-click="() => navigate('evaluation')">Evaluation</a>
-            <a t-att-class="'nav-link' + (state.activeTab === 'logbook' ? ' active' : '')"
-            t-on-click="function () { console.log('✅ Klik berhasil'); this.navigate('logbook'); }">Logbook Analytics</a>
             <a t-att-class="'nav-link' + (state.activeTab === 'student' ? ' active' : '')"
             t-on-click="() => navigate('student')">Dashboard Per Mahasiswa</a>
             <a t-att-class="'nav-link' + (state.activeTab === 'week' ? ' active' : '')"
@@ -17,13 +55,10 @@
             <a t-att-class="'nav-link' + (state.activeTab === 'profile' ? ' active' : '')"
             t-on-click="() => navigate('profile')">Project Profile</a>
         </div>        <div t-if="state.activeTab === 'evaluation'">📊 Evaluasi Proyek</div>
-        <div t-if="state.activeTab === 'logbook'" class="container-fluid">
-            <LogbookAnalytics projectId="state.projectId"/>
-        </div>
         <div t-if="state.activeTab === 'student'">👩‍🎓 Konten Dashboard Per Mahasiswa</div>
         <div t-if="state.activeTab === 'week'">🗓️ Konten Kalender dan Mingguan</div>
         <div t-if="state.activeTab === 'group'">👥 Konten Kelompok</div>
         <div t-if="state.activeTab === 'profile'">📄 Konten Profil Proyek</div>
     </div>
     </t>
-</templates>
+</templates> -->

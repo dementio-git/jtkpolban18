@@ -4,6 +4,7 @@ import { Component, useState, onMounted } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { registry } from "@web/core/registry";
 import { LogbookAnalytics } from "@jtk_logbook_analytics/js/logbook_analytics";
+import { LogbookClassDashboard } from "@jtk_project_analytics/js/logbook_class_dashboard";
 
 function getRecordIdFromPath() {
   // Match URL pattern: /odoo/project-course/1/... or /project-course/1/...
@@ -18,7 +19,7 @@ function getRecordIdFromPath() {
 }
 
 export class ProjectCourseDashboard extends Component {
-  static components = { LogbookAnalytics };
+  static components = { LogbookAnalytics, LogbookClassDashboard };
   setup() {
     console.log("📌 Received projectId:", this.props.projectId);
     this.orm = useService("orm");
