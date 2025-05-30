@@ -12,13 +12,13 @@
                                 <thead>
                                     <tr>
                                         <th>Total Mahasiswa</th>
-                                        <th>Rata-rata Mahasiswa Aktif/Minggu</th>
-                                        <th>Std Dev Mahasiswa Aktif/Minggu</th>
+                                        <th>Rata-rata Mahasiswa Aktif per Minggu</th>
+                                        <th>Std Dev Mahasiswa Aktif per Minggu</th>
                                         <th>Total Logbook</th>
-                                        <th>Rata-rata Logbook/Minggu</th>
-                                        <th>Std Dev Logbook/Minggu</th>
-                                        <th>Rata-rata Logbook/Mahasiswa/Minggu</th>
-                                        <th>Std Dev Logbook/Mahasiswa/Minggu</th>
+                                        <th>Rata-rata Logbook per Minggu</th>
+                                        <th>Std Dev Logbook per Minggu</th>
+                                        <th>Rata-rata Produktivitas* Mahasiswa per Minggu</th>
+                                        <th>Std Dev Produktivitas* Mahasiswa per Minggu</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -34,7 +34,7 @@
                                     </tr>
                                 </tbody>
                             </table>
-
+                            <p style="margin-left: 10px; margin-top:10px">* Produktivitas Mahasiswa dihitung sebagai jumlah logbook per mahasiswa per minggu.</p>
                         </div>
                     </div>
                 </div>

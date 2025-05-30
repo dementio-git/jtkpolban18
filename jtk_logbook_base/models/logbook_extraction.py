@@ -10,7 +10,9 @@ class LogbookExtraction(models.Model):
     label_id = fields.Many2one('logbook.label', string='Label')
     content = fields.Text(string='Content')
     logbook_keyword_ids = fields.One2many('logbook.keyword', 'logbook_extraction_id', string='Keyword')
-    level_ids = fields.Many2many('logbook.label.level', string='Level')
+    level = fields.Char(string='Level')
+    label_category_id = fields.Many2one('logbook.label.category', related='label_id.category_id', string='Kategori Label')
+    label_sub_category_id = fields.Many2one('logbook.label.sub.category', related='label_id.sub_category_id', string='Sub Kategori Label')
     point = fields.Float(string='Poin')
     
     def _compute_name(self):

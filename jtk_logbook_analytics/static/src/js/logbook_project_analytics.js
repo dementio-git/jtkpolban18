@@ -148,7 +148,7 @@ export class LogbookProjectAnalytics extends Component {
     const overall = this.state.stats.length ? this.state.stats[0] : {};
 
     chart.setOption({
-      title: { text: "Tren Rata-rata Logbook / Mahasiswa" },
+      title: { text: "Tren Produktivitas Logbook per Mahasiswa" },
       tooltip: { trigger: "axis" },
       legend: { data: ["Rata-rata Logbook / Mahasiswa"], top: 0 },
       xAxis: {

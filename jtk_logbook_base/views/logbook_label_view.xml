@@ -5,13 +5,35 @@
         <field name="model">logbook.label</field>
         <field name="arch" type="xml">
             <list editable="bottom">
+                <field name="is_required"/>
                 <field name="name"/>
                 <field name="description"/>
+                <field name="category_id"/>
+                <field name="sub_category_id"/>
                 <field name="group_id"/>
                 <field name="has_point"/>
                 <field name="points_rule"/>
                 <field name="level_ids" widget="many2many_tags"/>
             </list>
+        </field>
+    </record>
+
+    <record id="view_logbook_label_category_form" model="ir.ui.view">
+        <field name="name">view.logbook.label.category.form</field>
+        <field name="model">logbook.label.category</field>
+        <field name="arch" type="xml">
+            <form string="">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="sub_category_ids" widget="many2many_tags"/>
+                    </group>
+                </sheet>
+            </form>
         </field>
     </record>
 

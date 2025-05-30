@@ -5,3 +5,5 @@ access_logbook_label,access.logbook.label,model_logbook_label,base.group_user,1,
 access_logbook_keyword,access.logbook.keyword,model_logbook_keyword,base.group_user,1,1,1,1
 access_logbook_label_level,access.logbook.label.level,model_logbook_label_level,base.group_user,1,1,1,1
 access_logbook_label_group,access.logbook.label.group,model_logbook_label_group,base.group_user,1,1,1,1
+access_logbook_label_category,access.logbook.label.category,model_logbook_label_category,base.group_user,1,1,1,1
+access_logbook_label_sub_category,access.logbook.label.sub_category,model_logbook_label_sub_category,base.group_user,1,1,1,1

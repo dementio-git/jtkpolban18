@@ -53,8 +53,8 @@ class Logbook(models.Model):
             if not record.logbook_content:
                 continue
 
-            genai.configure(api_key="AIzaSyBZ1pYWJmkTYx1vR4RoPi9jUcd9wat25-w")
-            model = genai.GenerativeModel("gemini-2.5-pro-exp-03-25")
+            genai.configure(api_key="AIzaSyBfwRw6VIr1nKHPqFzDo556OySn0UebmF0")
+            model = genai.GenerativeModel("gemini-2.0-flash")
 
             label_objs = record.project_course_id.logbook_label_ids
             label_names = [f'"{label.name}"' for label in label_objs if label.name]
@@ -62,15 +62,23 @@ class Logbook(models.Model):
 
             label_rules = []
             for label in label_objs:
-                if not label.description:
-                    continue
-                rule_line = f'- {label.name}: {label.description.strip()}'
-                if label.has_point and label.points_rule:
-                    rule_line += f' (Aturan Poin: {label.points_rule.strip()})'
-                if label.level_ids:
-                    level_names = label.level_ids.mapped("name")
-                    rule_line += f'\n  Level yang diperbolehkan: {", ".join(level_names)}'
+                # Check if label is required first
+                rule_line = f'- {label.name}'
+                if label.is_required:
+                    rule_line += ' (Wajib digunakan)'
+                    
+                # Only proceed with description and other fields if they exist
+                if label.description:
+                    rule_line += f': {label.description.strip()}'
+                    if label.category_id:
+                        rule_line += f' (Kategori: {label.category_id.name})'
+                    if label.sub_category_id:
+                        rule_line += f' (Sub Kategori: {label.sub_category_id.name})'
+                    if label.points_rule:
+                        rule_line += f' (Aturan Poin: {label.points_rule.strip()})'
+                
                 label_rules.append(rule_line)
+            
             point_rules_str = "\n".join(label_rules)
 
             allowed_skill_groups = self.env['skill.group'].search([]).mapped("name")
@@ -89,13 +97,16 @@ Tugas Anda:
 
 {point_rules_str}
 
-4. Identifikasi keterampilan (skill) yang digunakan/dilatih mahasiswa berdasarkan isi logbook. Gunakan format:
+4. Jika suatu bagian atau suatu kalimat dapat diklasifikasikan ke lebih dari satu label, bisa gunakan lebih dari satu label, dengan catatan:
+- Label yang digunakan harus sesuai dengan deskripsi dan aturan poin yang diberikan.
+
+5. Identifikasi keterampilan (skill) yang digunakan/dilatih mahasiswa berdasarkan isi logbook. Gunakan format:
 - name: nama skill (misal: 'API Integration')
 - type: 'hard' atau 'soft'
 - group: salah satu dari: {skill_group_str}
 - point: 1 s.d. 6 sesuai taksonomi Bloom (Remember=1 s.d. Create=6)
 
-5. Ambil keyword penting dari isi logbook mahasiswa. Gunakan aturan berikut:
+6. Ambil keyword penting dari isi logbook mahasiswa. Gunakan aturan berikut:
 - Pilih hanya 1 kata atau 1 frase utama yang mewakili konsep penting dalam logbook.
 - Gunakan kata benda atau kata kerja utama, bukan frasa naratif atau kalimat lengkap.
 - Hindari penggunaan kata bantu atau kata kerja abstrak di awal seperti: "mencoba", "belajar", "tahu", "sedang", "akan", "lesson", "proses", "melakukan", "menyadari", "mengetahui", dll.
@@ -119,8 +130,8 @@ Format JSON:
     "label": "...",
     "isi": "...",
     "keywords": ["...", "..."],
-    "level": "...",
-    "poin": ...
+    "poin": ...,
+    "deskriptor_poin": "...", (yang ada di sebelah kanan poin, contoh "-2 = 'Sangat Kecewa'. Nah kata 'Sangat Kecewa' deskriptor poinnya)
     }}
 ],
 "skills": [
@@ -162,15 +173,13 @@ Berikan hanya JSON valid. Jangan sertakan markdown, komentar, atau penjelasan ta
 
             for aspect in parsed.get("extracted_aspects", []):
                 label = self.env['logbook.label'].search([('name', '=', aspect.get("label"))], limit=1)
-                level_name = aspect.get("level")
-                level_ids = self.env['logbook.label.level'].search([('name', '=', level_name)]).ids if level_name else []
 
                 extraction = self.env['logbook.extraction'].create({
                     'logbook_id': record.id,
                     'label_id': label.id if label else False,
                     'content': aspect.get("isi"),
+                    'level': aspect.get("deskriptor_poin") or "",
                     'point': aspect.get("poin") or 0.0,
-                    'level_ids': [(6, 0, level_ids)],
                 })
 
                 for kw in aspect.get("keywords", []):
