@@ -187,3 +187,295 @@ class LogbookWeeklyStats(models.Model):
                 GROUP BY l.project_course_id, l.week_id, w.start_date, w.end_date
             )
         """)
+
+class LogbookExtractionWeekly(models.Model):
+    _name = 'logbook.extraction.weekly'
+    _auto = False
+    _description = 'Tren Ekstraksi Logbook per Proyek per Minggu'
+
+    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
+    week_id           = fields.Many2one('course.activity', string='Minggu', readonly=True)
+    week_start_date   = fields.Date(string='Tanggal Mulai Minggu', readonly=True)
+    week_end_date     = fields.Date(string='Tanggal Akhir Minggu', readonly=True)
+    week_label        = fields.Char(string='Label Minggu', readonly=True)
+    extraction_count  = fields.Integer(string='Jumlah Ekstraksi (poin ≠ 0)', readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+            CREATE OR REPLACE VIEW logbook_extraction_weekly AS (
+                SELECT
+                    MIN(e.id)                                             AS id,
+                    lb.project_course_id                                 AS project_course_id,
+                    lb.week_id                                           AS week_id,
+                    w.start_date                                         AS week_start_date,
+                    w.end_date                                           AS week_end_date,
+                    to_char(w.start_date, 'DD Mon YYYY')                 AS week_label,
+                    COUNT(e.id)                                          AS extraction_count
+                FROM logbook_extraction e
+                JOIN logbook_logbook lb ON e.logbook_id = lb.id
+                JOIN course_activity w ON lb.week_id = w.id AND w.type = 'week'
+                WHERE
+                    lb.project_course_id IS NOT NULL
+                    AND e.content IS NOT NULL
+                    AND e.content != ''
+                GROUP BY
+                    lb.project_course_id,
+                    lb.week_id,
+                    w.start_date,
+                    w.end_date
+            )
+        """)
+        
+class LogbookExtractionDescriptiveStats(models.Model):
+    _name = 'logbook.extraction.descriptive.stats'
+    _auto = False
+    _description = 'Statistik Deskriptif Ekstraksi Logbook'
+
+    avg_extraction_per_logbook      = fields.Float(string='Rata-rata Ekstraksi per Logbook', readonly=True)
+    std_extraction_per_logbook      = fields.Float(string='Std Dev Ekstraksi per Logbook', readonly=True)
+    avg_extraction_per_student      = fields.Float(string='Rata-rata Ekstraksi per Mahasiswa', readonly=True)
+    std_extraction_per_student      = fields.Float(string='Std Dev Ekstraksi per Mahasiswa', readonly=True)
+    avg_extraction_per_student_week = fields.Float(string='Rata-rata Ekstraksi per Mahasiswa per Minggu', readonly=True)
+    std_extraction_per_student_week = fields.Float(string='Std Dev Ekstraksi per Mahasiswa per Minggu', readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+        CREATE OR REPLACE VIEW logbook_extraction_descriptive_stats AS (
+            WITH 
+            per_logbook AS (
+                SELECT
+                  COUNT(e.id) AS count_logbook
+                FROM logbook_logbook lb
+                LEFT JOIN logbook_extraction e 
+                  ON e.logbook_id = lb.id
+                 AND e.content IS NOT NULL
+                 AND e.content != ''
+                GROUP BY lb.id
+            ),
+            per_student AS (
+                SELECT
+                  COUNT(e.id) AS count_student
+                FROM logbook_logbook lb
+                LEFT JOIN logbook_extraction e 
+                  ON e.logbook_id = lb.id
+                 AND e.content IS NOT NULL
+                 AND e.content != ''
+                GROUP BY lb.student_id
+            ),
+            per_student_week AS (
+                SELECT
+                  COUNT(e.id) AS count_student_week
+                FROM logbook_logbook lb
+                LEFT JOIN logbook_extraction e 
+                  ON e.logbook_id = lb.id
+                 AND e.content IS NOT NULL
+                 AND e.content != ''
+                WHERE lb.week_id IS NOT NULL
+                GROUP BY lb.student_id, lb.week_id
+            )
+            SELECT
+              1 AS id,
+              -- Agregasi CTE per_logbook
+              (SELECT ROUND(AVG(count_logbook)::numeric, 2) 
+               FROM per_logbook)             AS avg_extraction_per_logbook,
+              (SELECT ROUND(STDDEV(count_logbook)::numeric, 2) 
+               FROM per_logbook)             AS std_extraction_per_logbook,
+              -- Agregasi CTE per_student
+              (SELECT ROUND(AVG(count_student)::numeric, 2) 
+               FROM per_student)             AS avg_extraction_per_student,
+              (SELECT ROUND(STDDEV(count_student)::numeric, 2) 
+               FROM per_student)             AS std_extraction_per_student,
+              -- Agregasi CTE per_student_week
+              (SELECT ROUND(AVG(count_student_week)::numeric, 2) 
+               FROM per_student_week)        AS avg_extraction_per_student_week,
+              (SELECT ROUND(STDDEV(count_student_week)::numeric, 2) 
+               FROM per_student_week)        AS std_extraction_per_student_week
+        );
+        """)
+
+
+
+
+class LogbookExtractionWeeklyByCategory(models.Model):
+    _name = 'logbook.extraction.weekly.category'
+    _auto = False
+    _description = 'Tren Ekstraksi per Proyek per Minggu berdasarkan Kategori Label'
+
+    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
+    week_id           = fields.Many2one('course.activity', string='Minggu', readonly=True) 
+    week_start_date   = fields.Date(string='Tanggal Mulai Minggu', readonly=True)
+    week_end_date     = fields.Date(string='Tanggal Akhir Minggu', readonly=True)
+    week_label        = fields.Char(string='Label Minggu', readonly=True)
+    category_id       = fields.Many2one('logbook.label.category', string='Kategori Label', readonly=True)
+    extraction_count  = fields.Integer(string='Jumlah Ekstraksi (poin ≠ 0)', readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+            CREATE OR REPLACE VIEW logbook_extraction_weekly_category AS (
+                SELECT
+                    MIN(e.id)                                          AS id,
+                    lb.project_course_id                              AS project_course_id,
+                    lb.week_id                                        AS week_id,
+                    w.start_date                                      AS week_start_date,
+                    w.end_date                                        AS week_end_date,
+                    to_char(w.start_date, 'DD Mon YYYY')              AS week_label,
+                    e.label_category_id                                AS category_id,
+                    COUNT(e.id)                                       AS extraction_count
+                FROM logbook_extraction e
+                JOIN logbook_logbook lb ON e.logbook_id = lb.id
+                JOIN course_activity w ON lb.week_id = w.id AND w.type = 'week'
+                WHERE
+                    lb.project_course_id IS NOT NULL
+                    AND e.content IS NOT NULL
+                    AND e.content != ''
+                    AND e.label_category_id IS NOT NULL
+                GROUP BY
+                    lb.project_course_id,
+                    lb.week_id,
+                    w.start_date,
+                    w.end_date,
+                    e.label_category_id
+            )
+        """)
+
+
+class LogbookExtractionWeeklyBySubcategory(models.Model):
+    _name = 'logbook.extraction.weekly.subcategory'
+    _auto = False
+    _description = 'Tren Ekstraksi per Proyek per Minggu berdasarkan Subkategori Label'
+
+    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
+    week_id           = fields.Many2one('course.activity', string='Minggu', readonly=True)
+    week_start_date   = fields.Date(string='Tanggal Mulai Minggu', readonly=True)
+    week_end_date     = fields.Date(string='Tanggal Akhir Minggu', readonly=True)
+    week_label        = fields.Char(string='Label Minggu', readonly=True)
+    subcategory_id    = fields.Many2one('logbook.label.sub.category', string='Subkategori Label', readonly=True)
+    extraction_count  = fields.Integer(string='Jumlah Ekstraksi (poin ≠ 0)', readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+            CREATE OR REPLACE VIEW logbook_extraction_weekly_subcategory AS (
+                SELECT
+                    MIN(e.id)                                            AS id,
+                    lb.project_course_id                                AS project_course_id,
+                    lb.week_id                                          AS week_id,
+                    w.start_date                                        AS week_start_date,
+                    w.end_date                                          AS week_end_date,
+                    to_char(w.start_date, 'DD Mon YYYY')                AS week_label,
+                    e.label_sub_category_id                             AS subcategory_id,
+                    COUNT(e.id)                                         AS extraction_count
+                FROM logbook_extraction e
+                JOIN logbook_logbook lb ON e.logbook_id = lb.id
+                JOIN course_activity w ON lb.week_id = w.id AND w.type = 'week'
+                WHERE
+                    lb.project_course_id IS NOT NULL
+                    AND e.point IS NOT NULL
+                    AND e.point <> 0
+                    AND e.label_sub_category_id IS NOT NULL
+                GROUP BY
+                    lb.project_course_id,
+                    lb.week_id,
+                    w.start_date,
+                    w.end_date,
+                    e.label_sub_category_id
+            )
+        """)
+
+
+class LogbookExtractionWeeklyBySubcategory(models.Model):
+    _name = 'logbook.extraction.weekly.subcategory'
+    _auto = False
+    _description = 'Tren Ekstraksi per Minggu berdasarkan Label (Kategori > Subkategori)'
+
+    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
+    week_id           = fields.Many2one('course.activity', string='Minggu', readonly=True)
+    week_start_date   = fields.Date(string='Tanggal Mulai Minggu', readonly=True)
+    week_end_date     = fields.Date(string='Tanggal Akhir Minggu', readonly=True)
+    week_label        = fields.Char(string='Label Minggu', readonly=True)
+
+    # Kolom kategori & subkategori:
+    category_id       = fields.Many2one('logbook.label.category', string='Kategori Label', readonly=True)
+    subcategory_id    = fields.Many2one('logbook.label.sub.category', string='Subkategori Label', readonly=True)
+
+    extraction_count  = fields.Integer(string='Jumlah Ekstraksi (poin ≠ 0)', readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        # CREATE VIEW: satu baris per (project, week, category, subcategory)
+        self.env.cr.execute("""
+            CREATE OR REPLACE VIEW logbook_extraction_weekly_subcategory AS (
+                SELECT
+                    row_number() OVER ()                                AS id,
+                    lb.project_course_id                                AS project_course_id,
+                    lb.week_id                                          AS week_id,
+                    w.start_date                                        AS week_start_date,
+                    w.end_date                                          AS week_end_date,
+                    to_char(w.start_date, 'DD Mon YYYY')                AS week_label,
+
+                    e.label_category_id                                 AS category_id,
+                    e.label_sub_category_id                             AS subcategory_id,
+                    COUNT(e.id)                                         AS extraction_count
+
+                FROM logbook_extraction e
+                JOIN logbook_logbook lb ON lb.id = e.logbook_id
+                JOIN course_activity w  ON w.id = lb.week_id AND w.type = 'week'
+                WHERE lb.project_course_id      IS NOT NULL
+                  AND e.label_category_id       IS NOT NULL
+                  AND e.label_sub_category_id   IS NOT NULL
+                  AND e.point        IS NOT NULL AND e.point <> 0
+                GROUP BY
+                    lb.project_course_id,
+                    lb.week_id,
+                    w.start_date, w.end_date,
+                    e.label_category_id,
+                    e.label_sub_category_id
+            );
+        """)
+
+
+class LogbookExtractionWeeklyByLabel(models.Model):
+    _name = 'logbook.extraction.weekly.label'
+    _auto = False
+    _description = 'Tren Ekstraksi per Minggu berdasarkan Label'
+
+    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
+    week_id           = fields.Many2one('course.activity', string='Minggu', readonly=True)
+    week_start_date   = fields.Date(string='Tanggal Mulai Minggu', readonly=True)
+    week_end_date     = fields.Date(string='Tanggal Akhir Minggu', readonly=True)
+    week_label        = fields.Char(string='Label Minggu', readonly=True)
+    label_id          = fields.Many2one('logbook.label', string='Label', readonly=True) # Asumsi ada model 'logbook.label'
+    extraction_count  = fields.Integer(string='Jumlah Ekstraksi (poin ≠ 0)', readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+            CREATE OR REPLACE VIEW logbook_extraction_weekly_label AS (
+                SELECT
+                    MIN(e.id) AS id,
+                    lb.project_course_id AS project_course_id,
+                    lb.week_id AS week_id,
+                    w.start_date AS week_start_date,
+                    w.end_date AS week_end_date,
+                    to_char(w.start_date, 'DD Mon YYYY') AS week_label,
+                    e.label_id AS label_id,
+                    COUNT(e.id) AS extraction_count
+                FROM logbook_extraction e
+                JOIN logbook_logbook lb ON e.logbook_id = lb.id
+                JOIN course_activity w ON lb.week_id = w.id AND w.type = 'week'
+                WHERE
+                    lb.project_course_id IS NOT NULL
+                    AND e.point IS NOT NULL
+                    AND e.point <> 0
+                    AND e.label_id IS NOT NULL
+                GROUP BY
+                    lb.project_course_id,
+                    lb.week_id,
+                    w.start_date,
+                    w.end_date,
+                    e.label_id
+            )
+        """)

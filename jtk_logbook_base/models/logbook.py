@@ -60,24 +60,31 @@ class Logbook(models.Model):
             label_names = [f'"{label.name}"' for label in label_objs if label.name]
             label_list_str = ", ".join(label_names)
 
-            label_rules = []
+            # Group labels by category
+            labels_by_category = {}
             for label in label_objs:
-                # Check if label is required first
-                rule_line = f'- {label.name}'
-                if label.is_required:
-                    rule_line += ' (Wajib digunakan)'
+                category_name = label.category_id.name if label.category_id else 'Uncategorized'
+                if category_name not in labels_by_category:
+                    labels_by_category[category_name] = []
+                labels_by_category[category_name].append(label)
+
+            # Build rules string by category
+            label_rules = []
+            for category, labels in labels_by_category.items():
+                label_rules.append(f"\nKategori: {category}")
+                for label in labels:
+                    rule_line = f'- {label.name}'
+                    if label.is_required:
+                        rule_line += ' (Wajib dimasukkan)'
+                        
+                    if label.description:
+                        rule_line += f': {label.description.strip()}'
+                        if label.sub_category_id:
+                            rule_line += f' (Sub Kategori: {label.sub_category_id.name})'
+                        if label.points_rule:
+                            rule_line += f' (Aturan Poin: {label.points_rule.strip()})'
                     
-                # Only proceed with description and other fields if they exist
-                if label.description:
-                    rule_line += f': {label.description.strip()}'
-                    if label.category_id:
-                        rule_line += f' (Kategori: {label.category_id.name})'
-                    if label.sub_category_id:
-                        rule_line += f' (Sub Kategori: {label.sub_category_id.name})'
-                    if label.points_rule:
-                        rule_line += f' (Aturan Poin: {label.points_rule.strip()})'
-                
-                label_rules.append(rule_line)
+                    label_rules.append(rule_line)
             
             point_rules_str = "\n".join(label_rules)
 
@@ -97,24 +104,24 @@ Tugas Anda:
 
 {point_rules_str}
 
-4. Jika suatu bagian atau suatu kalimat dapat diklasifikasikan ke lebih dari satu label, bisa gunakan lebih dari satu label, dengan catatan:
-- Label yang digunakan harus sesuai dengan deskripsi dan aturan poin yang diberikan.
+4. Label dengan aturan "Wajib dimasukkan" harus ada di dalam ekstraksi, jika tidak ada berikan poin 0.
 
-5. Identifikasi keterampilan (skill) yang digunakan/dilatih mahasiswa berdasarkan isi logbook. Gunakan format:
+5. Suatu bagian / kalimat bisa jadi memiliki lebih dari 1 label atau 1 kategori label. 
+
+6. Suatu label bisa memiliki lebih dari 1 bagian / kalimat yang relevan.
+
+7. Identifikasi keterampilan (skill) yang digunakan/dilatih mahasiswa berdasarkan isi logbook. Gunakan format:
 - name: nama skill (misal: 'API Integration')
 - type: 'hard' atau 'soft'
 - group: salah satu dari: {skill_group_str}
 - point: 1 s.d. 6 sesuai taksonomi Bloom (Remember=1 s.d. Create=6)
 
-6. Ambil keyword penting dari isi logbook mahasiswa. Gunakan aturan berikut:
-- Pilih hanya 1 kata atau 1 frase utama yang mewakili konsep penting dalam logbook.
-- Gunakan kata benda atau kata kerja utama, bukan frasa naratif atau kalimat lengkap.
-- Hindari penggunaan kata bantu atau kata kerja abstrak di awal seperti: "mencoba", "belajar", "tahu", "sedang", "akan", "lesson", "proses", "melakukan", "menyadari", "mengetahui", dll.
-- Hindari frasa seperti "tahu micro frontend", "lesson learned", "mencobakan MFE".
-- Gunakan hanya istilah utama seperti: "Micro Frontend", "MFE", "error running", "explorasi OpenEdX", "instalasi gagal", "sandbox", "integrasi WSL".
-- Keyword yang baik: "GitHub", "error 403", "XBlock", "eksplorasi internet", "OpenEdX", "modifikasi tampilan"
-- Keyword yang salah: "mencoba menginstall", "belajar micro frontend", "tahu docker", "lesson learned"
-- Gunakan maksimal 1 sampai 3 kata per keyword, hanya jika benar-benar merupakan satu konsep teknis.
+8. Ekstrak kata kunci teknis
+- Pilih 1 frase yang mewakili konsep inti.
+- Harus berupa kata benda atau kata kerja teknis, bukan narasi.
+- Abaikan kata bantu/abstrak (mis. “mencoba”, “belajar”, “akan”).
+- Contoh valid: “Micro Frontend”, “error 403”, “OpenEdX”.
+- Contoh tidak valid: “belajar micro frontend”, “lesson learned”.
 
 Format array JSON:
 "keywords": ["...", "...", "..."]
@@ -124,7 +131,6 @@ Format JSON:
 {{
 "summary": "...",
 "full_text": "...",
-"keywords": ["..."],
 "extracted_aspects": [
     {{
     "label": "...",
@@ -165,11 +171,6 @@ Berikan hanya JSON valid. Jangan sertakan markdown, komentar, atau penjelasan ta
             record.logbook_keyword_ids.unlink()
             record.skill_extraction_ids.unlink()
 
-            for kw in parsed.get("keywords", []):
-                self.env['logbook.keyword'].create({
-                    'name': kw.strip(),
-                    'logbook_id': record.id
-                })
 
             for aspect in parsed.get("extracted_aspects", []):
                 label = self.env['logbook.label'].search([('name', '=', aspect.get("label"))], limit=1)
@@ -187,6 +188,17 @@ Berikan hanya JSON valid. Jangan sertakan markdown, komentar, atau penjelasan ta
                         'name': kw.strip(),
                         'logbook_extraction_id': extraction.id
                     })
+                    
+            # === Simpan Keyword Ekstraksi hanya keyword yang unique
+            unique_keywords = set()
+            for aspect in parsed.get("extracted_aspects", []):
+                for kw in aspect.get("keywords", []):
+                    if kw.strip() not in unique_keywords:
+                        unique_keywords.add(kw.strip())
+                        self.env['logbook.keyword'].create({
+                            'name': kw.strip(),
+                            'logbook_id': record.id
+                        })
 
             # === Simpan Skill Extraction (jika skill group valid dan skill sudah ada)
             for skill in parsed.get("skills", []):

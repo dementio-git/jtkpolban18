@@ -13,7 +13,6 @@
                 <field name="group_id"/>
                 <field name="has_point"/>
                 <field name="points_rule"/>
-                <field name="level_ids" widget="many2many_tags"/>
             </list>
         </field>
     </record>
