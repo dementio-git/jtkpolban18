@@ -24,11 +24,11 @@ class LogbookLabel(models.Model):
     #             record.point_rule_ids = False
     
     
-class LogbookLabelLevel(models.Model):
-    _name = 'logbook.label.level'
-    _description = 'Logbook Label Level'
+# class LogbookLabelLevel(models.Model):
+#     _name = 'logbook.label.level'
+#     _description = 'Logbook Label Level'
     
-    name = fields.Char(string='Level', required=True)
+#     name = fields.Char(string='Level', required=True)
     
 class LogbookLabelPointRule(models.Model):
     _name = 'logbook.label.point.rule'
@@ -45,12 +45,12 @@ class LogbookLabelPointRule(models.Model):
             if record.point or record.description:
                 record.name = f"{record.point}: {record.description}"
         
-class LogbookLabelPointRuleTemplate(models.Model):
-    _name = 'logbook.label.point.rule.template'
-    _description = 'Logbook Label Point Rule Template'
+# class LogbookLabelPointRuleTemplate(models.Model):
+#     _name = 'logbook.label.point.rule.template'
+#     _description = 'Logbook Label Point Rule Template'
     
-    name = fields.Char(string='Nama Aturan', required=True)
-    point_rule_ids = fields.Many2many('logbook.label.point.rule', string='Aturan Poin')
+#     name = fields.Char(string='Nama Aturan', required=True)
+#     point_rule_ids = fields.Many2many('logbook.label.point.rule', string='Aturan Poin')
 
 class LogbookLabelGroup(models.Model):
     _name = 'logbook.label.group'

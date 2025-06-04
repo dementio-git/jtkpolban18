@@ -1,0 +1,523 @@
+@startuml jtk_logbook_analytics
+!define Model(name,desc) class name as "desc" << (M,#FFAAAA) >>
+!define TransientModel(name,desc) class name as "desc" << (T,magenta) >>
+!define AbstractModel(name,desc) class name as "desc" << (T,green) >>
+!define model(x) -<b>_<color:red>x</color></b>
+!define char(x) +<b><i>x</i> Char</b>
+!define m2o(x) +<b><color:magenta><i>x</i> Many2one</color></b>
+!define m2m(x) +<b><color:magenta><i>x</i> Many2many</color></b>
+!define o2m(x) +<b><color:darkorange><i>x</i> One2many</color></b>
+!define ref(x) +<b><color:magenta><i>x</i> Reference</color></b>
+!define text(x) +<b><i>x</i> Text</b>
+!define html(x) +<b><i>x</i> Html</b>
+!define int(x) +<b><color:blue><i>x</i> Integer</color></b>
+!define float(x) +<b><color:blue><i>x </i>Float</color></b>
+!define money(x) +<b><color:blue><i>x </i>Monetary</color></b>
+!define sel(x) +<b><color:green><i>x</i> Selection</color></b>
+!define bool(x) +<b><color:darkblue><i>x</i> Boolean</color></b>
+!define date(x) +<b><color:darkgreen><i>x</i> Date</color></b>
+!define dtime(x) +<b><color:darkgreen><i>x</i> Datetime</color></b>
+!define bin(x) +<b><color:purple><i>x</i> Binary</color></b>
+!define help(x) x
+!define cm(x) <color:magenta>->x</color>
+!define inv(x) <color:darkorange><-x</color>
+!define rtbl(x) <color:magenta>x</color>
+!define col1(x) <color:magenta>x</color>
+!define col2(x) <color:magenta>x</color>
+!define dom(x) <color:red>x</color>
+!define is(x) <color:red>x</color>
+!define not(x) <color:red><s>x</s></color>
+!define variants(x) <color:green>x</color>
+!define default(x) <color:red>default=x</color>
+!define related(x) <color:red><i>-->x</i></color>
+!define compute(x) <color:red>x()</color>
+hide methods
+hide stereotypes
+
+package "New" {
+
+Model(LogbookCount, "Statistik Jumlah Logbook") {
+model(name) logbook.count
+model(inherit) base
+==New or Modified==
+m2o(student_id) Mahasiswa
+cm(student.student)
+..
+m2o(class_id) Kelas
+cm(class.class)
+..
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+..
+m2o(week_id) Minggu
+cm(course.activity)
+..
+date(week_date) Tanggal Minggu
+..
+int(logbook_count) Jumlah Logbook
+..
+date(start_date) Tanggal Awal
+..
+date(end_date) Tanggal Akhir
+..
+}
+
+Model(LogbookDescriptiveStats, "Statistik Deskriptif Logbook") {
+model(name) logbook.descriptive.stats
+model(inherit) base
+==New or Modified==
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+is(readonly)
+..
+int(total_enrolled_students) Total Mahasiswa Terdaftar
+..
+int(total_active_students) Mahasiswa Aktif Logbook
+..
+int(total_logbooks) Total Logbook
+..
+float(avg_logbooks_per_week) Rata-rata Logbook/Minggu
+..
+float(avg_active_students_per_week) Rata-rata Mahasiswa Aktif/Minggu
+..
+float(std_dev_logbooks) Std Dev Logbook/Minggu
+..
+float(avg_logbooks_per_student_week) Rata-rata Logbook/Mahasiswa/Minggu
+is(readonly)
+..
+float(std_dev_logbooks_per_student_week) Std Dev Logbook/Mahasiswa/Minggu
+is(readonly)
+..
+int(total_students) Total Mahasiswa
+is(readonly)
+..
+float(std_dev_active_students_per_week) Std Dev Mahasiswa Aktif/Minggu
+is(readonly)
+..
+}
+
+Model(LogbookDescriptiveStatsClass, "Statistik Deskriptif Logbook per Kelas") {
+model(name) logbook.descriptive.stats.class
+model(inherit) base
+==New or Modified==
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+is(readonly)
+..
+m2o(class_id) Kelas
+cm(class.class)
+is(readonly)
+..
+char(class_name) Nama Kelas
+is(readonly)
+..
+int(total_students) Total Mahasiswa
+..
+int(total_logbooks) Total Logbook
+..
+float(avg_logbooks_per_week) Rata-rata Logbook/Minggu
+..
+float(std_dev_logbooks) Std Dev Logbook/Minggu
+..
+float(avg_active_students_per_week) Rata-rata Mahasiswa Aktif/Minggu
+..
+float(std_dev_active_students_per_week) Std Dev Mahasiswa Aktif/Minggu
+..
+float(avg_logbooks_per_student_week) Rata-rata Logbook/Mahasiswa/Minggu
+..
+float(std_dev_logbooks_per_student_week) Std Dev Logbook/Mahasiswa/Minggu
+..
+}
+
+Model(LogbookExtractionDescriptiveStats, "Statistik Deskriptif Ekstraksi Logbook") {
+model(name) logbook.extraction.descriptive.stats
+model(inherit) base
+==New or Modified==
+float(avg_extraction_per_logbook) Rata-rata Ekstraksi per Logbook
+is(readonly)
+..
+float(std_extraction_per_logbook) Std Dev Ekstraksi per Logbook
+is(readonly)
+..
+float(avg_extraction_per_student) Rata-rata Ekstraksi per Mahasiswa
+is(readonly)
+..
+float(std_extraction_per_student) Std Dev Ekstraksi per Mahasiswa
+is(readonly)
+..
+float(avg_extraction_per_student_week) Rata-rata Ekstraksi per Mahasiswa per Minggu
+is(readonly)
+..
+float(std_extraction_per_student_week) Std Dev Ekstraksi per Mahasiswa per Minggu
+is(readonly)
+..
+}
+
+Model(LogbookExtractionWeekly, "Tren Ekstraksi Logbook per Proyek per Minggu") {
+model(name) logbook.extraction.weekly
+model(inherit) base
+==New or Modified==
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+is(readonly)
+..
+m2o(week_id) Minggu
+cm(course.activity)
+is(readonly)
+..
+date(week_start_date) Tanggal Mulai Minggu
+is(readonly)
+..
+date(week_end_date) Tanggal Akhir Minggu
+is(readonly)
+..
+char(week_label) Label Minggu
+is(readonly)
+..
+int(extraction_count) Jumlah Ekstraksi (poin ≠ 0)
+is(readonly)
+..
+}
+
+Model(LogbookExtractionWeeklyCategory, "Tren Ekstraksi per Proyek per Minggu berdasarkan Kategori Label") {
+model(name) logbook.extraction.weekly.category
+model(inherit) base
+==New or Modified==
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+is(readonly)
+..
+m2o(week_id) Minggu
+cm(course.activity)
+is(readonly)
+..
+date(week_start_date) Tanggal Mulai Minggu
+is(readonly)
+..
+date(week_end_date) Tanggal Akhir Minggu
+is(readonly)
+..
+char(week_label) Label Minggu
+is(readonly)
+..
+m2o(category_id) Kategori Label
+cm(logbook.label.category)
+is(readonly)
+..
+int(extraction_count) Jumlah Ekstraksi (poin ≠ 0)
+is(readonly)
+..
+}
+
+Model(LogbookExtractionWeeklyLabel, "Tren Ekstraksi per Minggu berdasarkan Label (dengan Kategori dan Subkategori)") {
+model(name) logbook.extraction.weekly.label
+model(inherit) base
+==New or Modified==
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+is(readonly)
+..
+m2o(week_id) Minggu
+cm(course.activity)
+is(readonly)
+..
+date(week_start_date) Tanggal Mulai Minggu
+is(readonly)
+..
+date(week_end_date) Tanggal Akhir Minggu
+is(readonly)
+..
+char(week_label) Label Minggu
+is(readonly)
+..
+m2o(label_id) Label
+cm(logbook.label)
+is(readonly)
+..
+m2o(category_id) Kategori Label
+cm(logbook.label.category)
+is(readonly)
+..
+m2o(subcategory_id) Subkategori Label
+cm(logbook.label.sub.category)
+is(readonly)
+..
+int(extraction_count) Jumlah Ekstraksi (poin ≠ 0)
+is(readonly)
+..
+}
+
+Model(LogbookExtractionWeeklyLabelNorm, "Rata-Rata Point Ternormalisasi per Minggu & Label (filter content & range)") {
+model(name) logbook.extraction.weekly.label.norm
+model(inherit) base
+==New or Modified==
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+is(readonly)
+..
+m2o(week_id) Minggu
+cm(course.activity)
+is(readonly)
+..
+date(week_start_date) Tanggal Mulai Minggu
+is(readonly)
+..
+date(week_end_date) Tanggal Akhir Minggu
+is(readonly)
+..
+char(week_label) Label Minggu
+is(readonly)
+..
+m2o(label_id) Label
+cm(logbook.label)
+is(readonly)
+..
+m2o(category_id) Kategori Label
+cm(logbook.label.category)
+is(readonly)
+..
+m2o(subcategory_id) Subkategori Label
+cm(logbook.label.sub.category)
+is(readonly)
+..
+float(avg_norm_point) AVG Point Ternormalisasi
+is(readonly)
+..
+}
+
+Model(LogbookExtractionWeeklySubcategory, "Tren Ekstraksi per Minggu berdasarkan Label (Kategori > Subkategori)") {
+model(name) logbook.extraction.weekly.subcategory
+model(inherit) base
+==New or Modified==
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+is(readonly)
+..
+m2o(week_id) Minggu
+cm(course.activity)
+is(readonly)
+..
+date(week_start_date) Tanggal Mulai Minggu
+is(readonly)
+..
+date(week_end_date) Tanggal Akhir Minggu
+is(readonly)
+..
+char(week_label) Label Minggu
+is(readonly)
+..
+m2o(category_id) Kategori Label
+cm(logbook.label.category)
+is(readonly)
+..
+m2o(subcategory_id) Subkategori Label
+cm(logbook.label.sub.category)
+is(readonly)
+..
+int(extraction_count) Jumlah Ekstraksi (poin ≠ 0)
+is(readonly)
+..
+}
+
+Model(LogbookLabelAnalytics, "Analisis Frekuensi Label Logbook") {
+model(name) logbook.label.analytics
+model(inherit) base
+==New or Modified==
+m2o(label_id) Label
+cm(logbook.label)
+..
+m2o(group_id) Label Group
+cm(logbook.label.group)
+..
+m2o(student_id) Mahasiswa
+cm(student.student)
+..
+char(student_nim) NIM
+..
+date(entry_date) Tanggal Entri
+..
+m2o(week_id) Minggu
+cm(course.activity)
+..
+date(week_date) Tanggal Minggu
+..
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+..
+m2o(class_id) Kelas
+cm(class.class)
+..
+int(count) Jumlah
+..
+float(total_point) Total Poin
+..
+}
+
+Model(LogbookLabelWeeklyAvg, "Rata-Rata Mingguan per Label Group") {
+model(name) logbook.label.weekly.avg
+model(inherit) base
+==New or Modified==
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+is(readonly)
+..
+m2o(group_id) Label Group
+cm(logbook.label.group)
+is(readonly)
+..
+m2o(week_id) Minggu
+cm(course.activity)
+is(readonly)
+..
+m2o(class_id) Kelas
+cm(class.class)
+is(readonly)
+..
+date(week_date) Tanggal Minggu
+is(readonly)
+..
+float(avg_point) Rata-Rata Poin
+is(readonly)
+..
+}
+
+Model(LogbookWeeklyStats, "Statistik Per Minggu per Project Course") {
+model(name) logbook.weekly.stats
+model(inherit) base
+==New or Modified==
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+is(readonly)
+..
+m2o(week_id) Minggu
+cm(course.activity)
+is(readonly)
+..
+date(week_start_date) Tanggal Mulai Minggu
+is(readonly)
+..
+date(week_end_date) Tanggal Akhir Minggu
+is(readonly)
+..
+float(avg_logbooks_per_week) Rata-rata Logbook/Minggu
+is(readonly)
+..
+float(avg_active_students_per_week) Rata-rata Mahasiswa Aktif/Minggu
+is(readonly)
+..
+float(avg_logbooks_per_student_week) Rata-rata Logbook/Mahasiswa/Minggu
+is(readonly)
+..
+char(week_label) Label Minggu
+is(readonly)
+..
+}
+
+Model(LogbookWeeklyStatsClass, "Statistik Per Minggu per Kelas") {
+model(name) logbook.weekly.stats.class
+model(inherit) base
+==New or Modified==
+m2o(project_course_id) Mata Kuliah
+cm(project.course)
+is(readonly)
+..
+m2o(class_id) Kelas
+cm(class.class)
+is(readonly)
+..
+char(class_name) Nama Kelas
+is(readonly)
+..
+m2o(week_id) Minggu
+cm(course.activity)
+is(readonly)
+..
+date(week_start_date) Tanggal Mulai Minggu
+is(readonly)
+..
+date(week_end_date) Tanggal Akhir Minggu
+is(readonly)
+..
+float(avg_logbooks_per_week) Rata-rata Logbook/Minggu
+is(readonly)
+..
+float(avg_active_students_per_week) Rata-rata Mahasiswa Aktif/Minggu
+is(readonly)
+..
+float(avg_logbooks_per_student_week) Rata-rata Logbook/Mahasiswa/Minggu
+is(readonly)
+..
+char(week_label) Label Minggu
+is(readonly)
+..
+}
+
+}
+
+
+Model(ClassClass, "Class") {
+model(name) class.class
+}
+Model(CourseActivity, "Course Activity") {
+model(name) course.activity
+}
+Model(LogbookLabel, "Logbook Label") {
+model(name) logbook.label
+}
+Model(LogbookLabelCategory, "Logbook Label Category") {
+model(name) logbook.label.category
+}
+Model(LogbookLabelGroup, "Logbook Label Group") {
+model(name) logbook.label.group
+}
+Model(LogbookLabelSubCategory, "Logbook Label Sub Category") {
+model(name) logbook.label.sub.category
+}
+Model(ProjectCourse, "Project Course") {
+model(name) project.course
+}
+Model(StudentStudent, "Student") {
+model(name) student.student
+}
+LogbookCount --> "student_id" StudentStudent
+LogbookCount --> "class_id" ClassClass
+LogbookCount --> "project_course_id" ProjectCourse
+LogbookCount --> "week_id" CourseActivity
+LogbookDescriptiveStats --> "project_course_id" ProjectCourse
+LogbookDescriptiveStatsClass --> "project_course_id" ProjectCourse
+LogbookDescriptiveStatsClass --> "class_id" ClassClass
+LogbookExtractionWeekly --> "project_course_id" ProjectCourse
+LogbookExtractionWeekly --> "week_id" CourseActivity
+LogbookExtractionWeeklyCategory --> "project_course_id" ProjectCourse
+LogbookExtractionWeeklyCategory --> "week_id" CourseActivity
+LogbookExtractionWeeklyCategory --> "category_id" LogbookLabelCategory
+LogbookExtractionWeeklyLabel --> "project_course_id" ProjectCourse
+LogbookExtractionWeeklyLabel --> "week_id" CourseActivity
+LogbookExtractionWeeklyLabel --> "label_id" LogbookLabel
+LogbookExtractionWeeklyLabel --> "category_id" LogbookLabelCategory
+LogbookExtractionWeeklyLabel --> "subcategory_id" LogbookLabelSubCategory
+LogbookExtractionWeeklyLabelNorm --> "project_course_id" ProjectCourse
+LogbookExtractionWeeklyLabelNorm --> "week_id" CourseActivity
+LogbookExtractionWeeklyLabelNorm --> "label_id" LogbookLabel
+LogbookExtractionWeeklyLabelNorm --> "category_id" LogbookLabelCategory
+LogbookExtractionWeeklyLabelNorm --> "subcategory_id" LogbookLabelSubCategory
+LogbookExtractionWeeklySubcategory --> "project_course_id" ProjectCourse
+LogbookExtractionWeeklySubcategory --> "week_id" CourseActivity
+LogbookExtractionWeeklySubcategory --> "category_id" LogbookLabelCategory
+LogbookExtractionWeeklySubcategory --> "subcategory_id" LogbookLabelSubCategory
+LogbookLabelAnalytics --> "label_id" LogbookLabel
+LogbookLabelAnalytics --> "group_id" LogbookLabelGroup
+LogbookLabelAnalytics --> "student_id" StudentStudent
+LogbookLabelAnalytics --> "week_id" CourseActivity
+LogbookLabelAnalytics --> "project_course_id" ProjectCourse
+LogbookLabelAnalytics --> "class_id" ClassClass
+LogbookLabelWeeklyAvg --> "project_course_id" ProjectCourse
+LogbookLabelWeeklyAvg --> "group_id" LogbookLabelGroup
+LogbookLabelWeeklyAvg --> "week_id" CourseActivity
+LogbookLabelWeeklyAvg --> "class_id" ClassClass
+LogbookWeeklyStats --> "project_course_id" ProjectCourse
+LogbookWeeklyStats --> "week_id" CourseActivity
+LogbookWeeklyStatsClass --> "project_course_id" ProjectCourse
+LogbookWeeklyStatsClass --> "class_id" ClassClass
+LogbookWeeklyStatsClass --> "week_id" CourseActivity
+@enduml

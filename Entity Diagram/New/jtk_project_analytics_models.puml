@@ -1,0 +1,133 @@
+@startuml jtk_project_analytics
+!define Model(name,desc) class name as "desc" << (M,#FFAAAA) >>
+!define TransientModel(name,desc) class name as "desc" << (T,magenta) >>
+!define AbstractModel(name,desc) class name as "desc" << (T,green) >>
+!define model(x) -<b>_<color:red>x</color></b>
+!define char(x) +<b><i>x</i> Char</b>
+!define m2o(x) +<b><color:magenta><i>x</i> Many2one</color></b>
+!define m2m(x) +<b><color:magenta><i>x</i> Many2many</color></b>
+!define o2m(x) +<b><color:darkorange><i>x</i> One2many</color></b>
+!define ref(x) +<b><color:magenta><i>x</i> Reference</color></b>
+!define text(x) +<b><i>x</i> Text</b>
+!define html(x) +<b><i>x</i> Html</b>
+!define int(x) +<b><color:blue><i>x</i> Integer</color></b>
+!define float(x) +<b><color:blue><i>x </i>Float</color></b>
+!define money(x) +<b><color:blue><i>x </i>Monetary</color></b>
+!define sel(x) +<b><color:green><i>x</i> Selection</color></b>
+!define bool(x) +<b><color:darkblue><i>x</i> Boolean</color></b>
+!define date(x) +<b><color:darkgreen><i>x</i> Date</color></b>
+!define dtime(x) +<b><color:darkgreen><i>x</i> Datetime</color></b>
+!define bin(x) +<b><color:purple><i>x</i> Binary</color></b>
+!define help(x) x
+!define cm(x) <color:magenta>->x</color>
+!define inv(x) <color:darkorange><-x</color>
+!define rtbl(x) <color:magenta>x</color>
+!define col1(x) <color:magenta>x</color>
+!define col2(x) <color:magenta>x</color>
+!define dom(x) <color:red>x</color>
+!define is(x) <color:red>x</color>
+!define not(x) <color:red><s>x</s></color>
+!define variants(x) <color:green>x</color>
+!define default(x) <color:red>default=x</color>
+!define related(x) <color:red><i>-->x</i></color>
+!define compute(x) <color:red>x()</color>
+hide methods
+hide stereotypes
+
+
+package "Inherited" {
+
+Model(ProjectCourse, "Project Course") {
+model(inherit) project.course
+==Inherited==
+char(name) Nama
+..
+char(code) Kode
+..
+bool(active) Active
+default(lambda self: ...())
+..
+m2o(study_program_id) Program Studi
+cm(study.program)
+..
+sel(semester) Semester
+variants(1: Semester 1; 2: Semester 2; 3: Semester 3; 4: Semester 4; 5: Semester 5; 6: Semester 6; 7: Semester 7; 8: Semester 8)
+..
+m2o(subject_id) Subject
+cm(subject.subject)
+..
+o2m(milestone_ids) Milestones
+cm(course.activity) inv(course_id)
+not(copy)
+..
+o2m(week_ids) Weeks
+cm(course.activity) inv(course_id)
+not(copy)
+..
+o2m(other_activity_ids) Other Activities
+cm(course.activity) inv(course_id)
+not(copy)
+..
+m2m(class_ids) Kelas
+cm(class.class)
+rtbl(class_class_project_course_rel) col1(project_course_id) col2(class_class_id)
+..
+m2m(lecturer_ids) Dosen Pengampu
+cm(lecturer.lecturer)
+rtbl(lecturer_lecturer_project_course_rel) col1(project_course_id) col2(lecturer_lecturer_id)
+..
+o2m(student_group_ids) Kelompok Mahasiswa
+cm(student.group) inv(project_course_id)
+not(copy)
+..
+m2m(student_ids) Mahasiswa
+cm(student.student)
+rtbl(project_course_student_student_rel) col1(project_course_id) col2(student_student_id)
+is(computed) is(stored)
+is(readonly) not(copy)
+..
+m2m(logbook_label_ids) Logbook Labels
+cm(logbook.label)
+rtbl(logbook_label_project_course_rel) col1(project_course_id) col2(logbook_label_id)
+..
+}
+
+note "<b>class_class_project_course_rel</b>\nproject_course_id\nclass_class_id" as class_class_project_course_rel
+note "<b>lecturer_lecturer_project_course_rel</b>\nproject_course_id\nlecturer_lecturer_id" as lecturer_lecturer_project_course_rel
+note "<b>logbook_label_project_course_rel</b>\nproject_course_id\nlogbook_label_id" as logbook_label_project_course_rel
+}
+
+Model(ClassClass, "Class") {
+model(name) class.class
+}
+Model(CourseActivity, "Course Activity") {
+model(name) course.activity
+}
+Model(LecturerLecturer, "Lecturer") {
+model(name) lecturer.lecturer
+}
+Model(LogbookLabel, "Logbook Label") {
+model(name) logbook.label
+}
+Model(StudentGroup, "Student Group") {
+model(name) student.group
+}
+Model(StudyProgram, "Study Program") {
+model(name) study.program
+}
+Model(SubjectSubject, "Subject") {
+model(name) subject.subject
+}
+CourseActivity --> "course_id" ProjectCourse: "milestone_ids"
+CourseActivity --> "course_id" ProjectCourse: "week_ids"
+CourseActivity --> "course_id" ProjectCourse: "other_activity_ids"
+StudentGroup --> "project_course_id" ProjectCourse: "student_group_ids"
+ProjectCourse --> "study_program_id" StudyProgram
+ProjectCourse --> "subject_id" SubjectSubject
+ProjectCourse .. class_class_project_course_rel
+class_class_project_course_rel .. ClassClass
+ProjectCourse .. lecturer_lecturer_project_course_rel
+lecturer_lecturer_project_course_rel .. LecturerLecturer
+ProjectCourse .. logbook_label_project_course_rel
+logbook_label_project_course_rel .. LogbookLabel
+@enduml

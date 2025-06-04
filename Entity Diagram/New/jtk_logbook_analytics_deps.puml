@@ -1,0 +1,60 @@
+@startuml JTK Logbook Analytics
+!define Root(name,desc) class name as "desc" << (R,magenta) >>
+!define App(name,desc) class name as "desc" << (A,orange) >>
+!define Module(name,desc) class name as "desc" << (M,grey) >>
+!define tech_name(x) <b>x</b>
+!define installed(x) <color:green><i>x</i></color>
+!define not_installed(x) <color:red><i>x</i></color>
+!define free(x) <color:green><i>x</i></color>
+!define paid(x) <color:magenta><i>x - paid!</i></color>
+!define ee(x) <color:magenta><i>x</i></color>
+!define version(x) x
+!define author(x) x
+hide methods
+Root(jtk_logbook_analytics, "JTK Logbook Analytics") {
+    jtk_logbook_analytics
+    installed(installed)
+    version(18.0.0.1) free(LGPL-3)
+    KoTA 407 - S.Tr. 2021
+}
+App(jtk_logbook_base, "JTK Logbook Base") {
+    jtk_logbook_base
+    installed(installed)
+    version(18.0.0.1) free(LGPL-3)
+    KoTA 407 - S.Tr. 2021
+}
+Module(base, "Base") {
+    base
+    installed(installed), <i>auto</i>
+    version(18.0.1.3) free(LGPL-3)
+    Odoo S.A.
+}
+Module(jtk_academic_base, "JTK Academic Base") {
+    jtk_academic_base
+    installed(installed)
+    version(18.0.0.1) free(LGPL-3)
+    KoTA 407 - S.Tr. 2021
+}
+Module(jtk_student_skill, "JTK Student Skill") {
+    jtk_student_skill
+    installed(installed)
+    version(18.0.0.1) free(LGPL-3)
+    KoTA 407 - S.Tr. 2021
+}
+Module(web, "Web") {
+    web
+    installed(installed), <i>auto</i>
+    version(18.0.1.0) free(LGPL-3)
+    Odoo S.A.
+}
+jtk_logbook_base --> base
+jtk_academic_base --> base
+jtk_logbook_base --> jtk_academic_base
+jtk_student_skill --> base
+jtk_student_skill --> jtk_academic_base
+jtk_logbook_base --> jtk_student_skill
+jtk_logbook_analytics --> jtk_logbook_base
+jtk_logbook_analytics --> base
+web --> base
+jtk_logbook_analytics --> web
+@enduml
