@@ -380,9 +380,26 @@ export class LogbookProjectAnalytics extends Component {
       return;
     }
 
-    // 1. Kumpulkan semua label kategori unik
-    const categories = Array.from(new Set(data.map((r) => r.category_id[1])));
-    // 2. Kumpulkan semua minggu unik, urutkan berdasarkan tanggal
+    //
+    // 1) Kumpulkan pasangan [category_id, category_name] unik
+    //
+    //    Kita pakai Map agar kunci = category_id (angka), nilai = category_name.
+    const mapCat = new Map();
+    data.forEach((r) => {
+      const [catId, catName] = r.category_id; // misal [3, "Motivasi"]
+      mapCat.set(catId, catName);
+    });
+    // Sekarang convert Map ke array [[id, name], ...] lalu urutkan berdasarkan id
+    const categoryPairs = Array.from(mapCat.entries()).sort(
+      (a, b) => a[0] - b[0]
+    );
+    // Pisahkan kembali menjadi dua array: ids dan names dalam urutan yg sudah di-sort
+    const categoryIds = categoryPairs.map((pair) => pair[0]); // [2, 5, 7, ...]
+    const categories = categoryPairs.map((pair) => pair[1]); // ["Konten", "Motivasi", "Waktu", ...]
+
+    //
+    // 2) Kumpulkan semua minggu unik, urutkan berdasarkan tanggal
+    //
     const weekLabels = Array.from(new Set(data.map((r) => r.week_label))).sort(
       (a, b) => {
         // Parse format "DD Mon YYYY"
@@ -410,56 +427,66 @@ export class LogbookProjectAnalytics extends Component {
         return parse(a) - parse(b);
       }
     );
+    // Label sumbu X: W1, W2, W3, ...
+    const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
 
-    // 3. Bangun series: satu objek per kategori
-    const seriesData = categories.map((cat) => {
+    //
+    // 3) Bangun seriesData: satu objek per kategori (dalam urutan ascending ID)
+    //
+    const seriesData = categoryIds.map((catId, idx) => {
+      const catName = categories[idx];
       return {
-        name: cat,
+        name: catName,
         type: "line",
         smooth: true,
         data: weekLabels.map((wl) => {
+          // Cari record yang sama minggu + category_id
           const rec = data.find(
-            (r) => r.week_label === wl && r.category_id[1] === cat
+            (r) => r.week_label === wl && r.category_id[0] === catId
           );
           return rec ? rec.extraction_count : 0;
         }),
       };
     });
 
-    // 4. Set option ECharts
+    //
+    // 4) Set opsi ECharts
+    //
     chart.setOption({
       title: { text: "Tren Ekstraksi per Minggu per Kategori Label" },
       tooltip: {
         trigger: "axis",
         formatter: (params) => {
-          // Sort params by value in descending order
+          // Urutkan params berdasarkan nilai descending, agar tooltip tampilkan besar ke kecil
           params.sort((a, b) => b.value - a.value);
 
-          // Get the week data
+          // Cari data minggu berdasarkan dataIndex (indeks minggu ke berapa)
           const index = params[0].dataIndex;
           const weekData = data.find((d) => d.week_label === weekLabels[index]);
 
-          // Build tooltip header with date range
+          // Bangun header tooltip: "Minggu X (tanggal ... - tanggal ...)"
           let result = `Minggu ${index + 1} (${this.formatDate(
             weekData.week_start_date
           )} - ${this.formatDate(weekData.week_end_date)})<br/>`;
 
-          // Add each series sorted by value
+          // Tambahkan setiap seri (kategori) dengan nilai > 0
           params.forEach((param) => {
             if (param.value > 0) {
-              // Only show non-zero values
               result += `${param.marker} ${param.seriesName}: ${param.value}<br/>`;
             }
           });
-
           return result;
         },
       },
-      legend: { data: categories, top: 0 },
+      legend: {
+        data: categories, // urutan nama kategori sudah berdasarkan ascending ID
+        top: 0,
+        type: "scroll",
+      },
       xAxis: {
         type: "category",
         name: "Minggu",
-        data: weekly.map((_, i) => `W${i + 1}`),
+        data: weekIndexLabels,
         axisLabel: { interval: 0 },
       },
       yAxis: {
@@ -479,7 +506,6 @@ export class LogbookProjectAnalytics extends Component {
 
     const chart = echarts.init(chartDom);
     const allData = this.state.extractionBySubcategory;
-
     const weekly = this.state.extractionStats;
 
     if (!allData || allData.length === 0) {
@@ -487,12 +513,22 @@ export class LogbookProjectAnalytics extends Component {
       return;
     }
 
-    // Get all unique subcategory names directly
-    const subNames = Array.from(
-      new Set(allData.map((r) => r.subcategory_id[1]))
-    );
+    //
+    // 1) Kumpulkan pasangan [subcategory_id, subcategory_name] unik
+    //
+    const mapSub = new Map();
+    allData.forEach((r) => {
+      const [subId, subName] = r.subcategory_id; // misal [12, "Detail"]
+      mapSub.set(subId, subName);
+    });
+    // Ubah map ke array [[id, name], ...] lalu urutkan berdasarkan id ascending
+    const subPairs = Array.from(mapSub.entries()).sort((a, b) => a[0] - b[0]);
+    const subIds = subPairs.map((p) => p[0]); // [id1, id2, ...]
+    const subNames = subPairs.map((p) => p[1]); // ["SubA", "SubB", ...]
 
-    // Get unique week labels and sort them
+    //
+    // 2) Ambil semua week_label unik, urutkan kronologis
+    //
     const weekLabels = Array.from(
       new Set(allData.map((r) => r.week_label))
     ).sort((a, b) => {
@@ -516,20 +552,29 @@ export class LogbookProjectAnalytics extends Component {
       };
       return parse(a) - parse(b);
     });
+    const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
 
-    // Create series for each subcategory
-    const seriesData = subNames.map((subName) => ({
-      name: subName,
-      type: "line",
-      smooth: true,
-      data: weekLabels.map((wl) => {
-        const rec = allData.find(
-          (r) => r.week_label === wl && r.subcategory_id[1] === subName
-        );
-        return rec ? rec.extraction_count : 0;
-      }),
-    }));
+    //
+    // 3) Bangun series: satu objek per subkategori (urut by subIds)
+    //
+    const seriesData = subIds.map((subId, idx) => {
+      const subName = subNames[idx];
+      return {
+        name: subName,
+        type: "line",
+        smooth: true,
+        data: weekLabels.map((wl) => {
+          const rec = allData.find(
+            (r) => r.week_label === wl && r.subcategory_id[0] === subId
+          );
+          return rec ? rec.extraction_count : 0;
+        }),
+      };
+    });
 
+    //
+    // 4) Set opsi ECharts
+    //
     chart.setOption({
       title: {
         text: "Tren Ekstraksi per Subkategori",
@@ -537,40 +582,32 @@ export class LogbookProjectAnalytics extends Component {
       tooltip: {
         trigger: "axis",
         formatter: (params) => {
-          // Sort params by value in descending order
+          // Urutkan params berdasarkan value descending
           params.sort((a, b) => b.value - a.value);
-
-          // Get the week data
           const index = params[0].dataIndex;
           const weekData = allData.find(
             (d) => d.week_label === weekLabels[index]
           );
-
-          // Build tooltip header with date range
           let result = `Minggu ${index + 1} (${this.formatDate(
             weekData.week_start_date
           )} - ${this.formatDate(weekData.week_end_date)})<br/>`;
-
-          // Add each series sorted by value
           params.forEach((param) => {
             if (param.value > 0) {
-              // Only show non-zero values
               result += `${param.marker} ${param.seriesName}: ${param.value}<br/>`;
             }
           });
-
           return result;
         },
       },
       legend: {
-        data: subNames,
+        data: subNames, // sudah urut by subIds ascending
         top: 0,
         type: "scroll",
       },
       xAxis: {
         type: "category",
         name: "Minggu",
-        data: weekly.map((_, i) => `W${i + 1}`),
+        data: weekIndexLabels,
         axisLabel: { interval: 0 },
       },
       yAxis: {
@@ -595,7 +632,7 @@ export class LogbookProjectAnalytics extends Component {
       return;
     }
 
-    // 1) Daftar week_label unik, urutkan kronologis
+    // 1) Ambil daftar week_label unik dan urutkan kronologis
     const weekLabels = Array.from(
       new Set(allData.map((d) => d.week_label))
     ).sort((a, b) => {
@@ -621,35 +658,54 @@ export class LogbookProjectAnalytics extends Component {
     });
     const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
 
-    // 2) Daftar label unik → formatted, lalu urutkan
-    const labelMap = new Map();
+    // 2) Kumpulkan objek label unik dengan informasi ID, category ID, subcategory ID, dan formatted name
+    const labelInfoMap = new Map();
     allData.forEach((r) => {
-      const labelName = r.label_id?.[1] || "Tanpa Label";
-      const category = r.category_id?.[1] || "Tanpa Kategori";
-      const subcategory = r.subcategory_id?.[1];
-      const prefix = subcategory
-        ? `[${category}-${subcategory}]`
-        : `[${category}]`;
-      labelMap.set(labelName, `${prefix} ${labelName}`);
-    });
-    const sortedLabelNames = Array.from(labelMap.keys()).sort((a, b) =>
-      labelMap.get(a).localeCompare(labelMap.get(b))
-    );
-    const yLabels = sortedLabelNames.map((ln) => labelMap.get(ln));
+      const [labelId, labelName] = r.label_id;
+      const [categoryId, categoryName] = r.category_id;
+      const subcategoryName = r.subcategory_id?.[1] || "";
+      const prefix = subcategoryName
+        ? `[${categoryName}-${subcategoryName}]`
+        : `[${categoryName}]`;
+      const formatted = `${prefix} ${labelName}`;
 
-    // 3) Bangun data heatmap sebagai [xIndex, yIndex, value]
+      if (!labelInfoMap.has(labelId)) {
+        labelInfoMap.set(labelId, {
+          labelId,
+          labelName,
+          categoryId,
+          formatted,
+        });
+      }
+    });
+
+    // 3) Konversi Map ke array, lalu sort berdasarkan categoryId ascending, lalu labelId ascending
+    const labelInfos = Array.from(labelInfoMap.values()).sort((a, b) => {
+      if (a.categoryId !== b.categoryId) {
+        return b.categoryId - a.categoryId;
+      }
+      return b.labelId - a.labelId;
+    });
+
+    // 4) Buat array yLabels (formatted) dan peta labelId → index
+    const yLabels = labelInfos.map((info) => info.formatted);
+    const labelIndexMap = new Map(
+      labelInfos.map((info, idx) => [info.labelId, idx])
+    );
+
+    // 5) Bangun data heatmap sebagai [xIndex, yIndex, value]
     const heatmapData = [];
     allData.forEach((r) => {
       const wl = r.week_label;
-      const labelName = r.label_id?.[1];
+      const [labId] = r.label_id;
       const x = weekLabels.indexOf(wl);
-      const y = yLabels.indexOf(labelMap.get(labelName));
-      if (x !== -1 && y !== -1) {
+      const y = labelIndexMap.get(labId);
+      if (x !== -1 && y !== undefined) {
         heatmapData.push([x, y, r.extraction_count]);
       }
     });
 
-    // 4) Set opsi ECharts (styling sama dengan pointHeatmap, warna default = merah)
+    // 6) Set opsi ECharts
     chart.setOption({
       tooltip: {
         position: "top",
@@ -688,8 +744,7 @@ export class LogbookProjectAnalytics extends Component {
         textStyle: {
           fontSize: 10,
         },
-        // >>> Tidak mendefinisikan inRange.color <<<
-        //    ECharts akan menggunakan skema merah standar
+        // Menggunakan skema merah standar
       },
       series: [
         {
@@ -726,7 +781,7 @@ export class LogbookProjectAnalytics extends Component {
       return;
     }
 
-    // 1) Daftar week_label unik (unsorted), lalu urutkan kronologis
+    // 1) Ambil daftar week_label unik, urutkan kronologis
     const weekLabels = Array.from(
       new Set(allData.map((d) => d.week_label))
     ).sort((a, b) => {
@@ -752,38 +807,57 @@ export class LogbookProjectAnalytics extends Component {
     });
     const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
 
-    // 2) Daftar label unik → formatted, lalu urutkan
-    const labelMap = new Map();
+    // 2) Kumpulkan objek label unik dengan ID, category ID, dan formatted name
+    const labelInfoMap = new Map();
     allData.forEach((r) => {
-      const labelName = r.label_id?.[1] || "Tanpa Label";
-      const category = r.category_id?.[1] || "Tanpa Kategori";
-      const subcat = r.subcategory_id?.[1];
-      const prefix = subcat ? `[${category}-${subcat}]` : `[${category}]`;
-      labelMap.set(labelName, `${prefix} ${labelName}`);
-    });
-    const sortedLabelNames = Array.from(labelMap.keys()).sort((a, b) =>
-      labelMap.get(a).localeCompare(labelMap.get(b))
-    );
-    const yLabels = sortedLabelNames.map((ln) => labelMap.get(ln));
+      const [labelId, labelName] = r.label_id;
+      const [categoryId, categoryName] = r.category_id;
+      const subcategoryName = r.subcategory_id?.[1] || "";
+      const prefix = subcategoryName
+        ? `[${categoryName}-${subcategoryName}]`
+        : `[${categoryName}]`;
+      const formatted = `${prefix} ${labelName}`;
 
-    // 3) Bangun data heatmap sebagai [xIndex, yIndex, nilai]
+      if (!labelInfoMap.has(labelId)) {
+        labelInfoMap.set(labelId, {
+          labelId,
+          categoryId,
+          formatted,
+        });
+      }
+    });
+
+    // 3) Convert Map ke array, lalu sort descending berdasarkan categoryId lalu labelId
+    const labelInfos = Array.from(labelInfoMap.values()).sort((a, b) => {
+      if (a.categoryId !== b.categoryId) {
+        return b.categoryId - a.categoryId; // descending category ID
+      }
+      return b.labelId - a.labelId; // descending label ID
+    });
+
+    // 4) Buat yLabels dan labelIndexMap
+    const yLabels = labelInfos.map((info) => info.formatted);
+    const labelIndexMap = new Map(
+      labelInfos.map((info, idx) => [info.labelId, idx])
+    );
+
+    // 5) Bangun data heatmap sebagai [xIndex, yIndex, nilai]
     const heatmapData = [];
     allData.forEach((r) => {
       const wl = r.week_label;
-      const labelName = r.label_id?.[1];
+      const [labId] = r.label_id;
       const x = weekLabels.indexOf(wl);
-      const y = yLabels.indexOf(labelMap.get(labelName));
-      if (x !== -1 && y !== -1) {
+      const y = labelIndexMap.get(labId);
+      if (x !== -1 && y !== undefined) {
         heatmapData.push([x, y, parseFloat(r.avg_norm_point)]);
       }
     });
 
-    // 4) Set opsi ECharts
+    // 6) Set opsi ECharts
     chart.setOption({
       tooltip: {
         position: "top",
         formatter: function (params) {
-          // params.data = [x, y, nilai]
           const [x, y, val] = params.data;
           return `${yLabels[y]}<br/>${weekIndexLabels[x]} (${
             weekLabels[x]
@@ -831,6 +905,7 @@ export class LogbookProjectAnalytics extends Component {
             formatter: function (param) {
               return param.value[2].toFixed(2);
             },
+            fontSize: 10,
           },
           emphasis: {
             itemStyle: {
@@ -857,54 +932,78 @@ export class LogbookProjectAnalytics extends Component {
       return;
     }
 
-    // 1) Mapping label → nama lengkap "[Kategori] ..." (sama seperti sebelumnya)
-    const labelMap = new Map();
+    // 1) Kumpulkan info unik tiap label: [labelId, categoryId, avg values…]
+    const labelInfoMap = new Map();
     allData.forEach((r) => {
-      const labelName = r.label_id?.[1] || "Tanpa Label";
-      const category = r.category_id?.[1] || "Tanpa Kategori";
-      const subcat = r.subcategory_id?.[1];
-      const prefix = subcat ? `[${category}-${subcat}]` : `[${category}]`;
-      labelMap.set(labelName, `${prefix} ${labelName}`);
+      const [labelId, labelName] = r.label_id;
+      const [categoryId] = r.category_id;
+      const [subcatId, subcatName] = r.subcategory_id || [null, ""];
+      const categoryName = r.category_id?.[1] || "Tanpa Kategori";
+      const prefix = subcatName
+        ? `[${categoryName}-${subcatName}]`
+        : `[${categoryName}]`;
+      const formatted = `${prefix} ${labelName}`;
+
+      if (!labelInfoMap.has(labelId)) {
+        labelInfoMap.set(labelId, {
+          labelId,
+          categoryId,
+          formatted,
+          sum: 0,
+          count: 0,
+        });
+      }
+      const info = labelInfoMap.get(labelId);
+      const val = parseFloat(r.avg_norm_point);
+      info.sum += val;
+      info.count += 1;
     });
 
-    const sortedLabelNames = Array.from(labelMap.keys()).sort((a, b) =>
-      labelMap.get(a).localeCompare(labelMap.get(b))
+    // 2) Convert Map ke array lalu sort DESC categoryId, kemudian DESC labelId
+    const labelInfos = Array.from(labelInfoMap.values()).sort((a, b) => {
+      if (a.categoryId !== b.categoryId) {
+        return b.categoryId - a.categoryId; // descending category ID
+      }
+      return b.labelId - a.labelId; // descending label ID
+    });
+
+    // 3) Bangun arrays formattedLabels & overallValues sesuai urutan itu
+    const formattedLabels = labelInfos.map((info) => info.formatted);
+    const overallValues = labelInfos.map(
+      (info) => +(info.sum / (info.count || 1)).toFixed(2)
     );
-    const formattedLabels = sortedLabelNames.map((ln) => labelMap.get(ln));
 
-    // 2) Hitung rata-rata keseluruhan untuk tiap label
-    const sums = new Map(); // labelName → jumlah
-    const counts = new Map(); // labelName → berapa minggu
-    allData.forEach((r) => {
-      const lbl = r.label_id?.[1];
-      sums.set(lbl, (sums.get(lbl) || 0) + parseFloat(r.avg_norm_point));
-      counts.set(lbl, (counts.get(lbl) || 0) + 1);
-    });
-    const overallValues = sortedLabelNames.map((lbl) => {
-      const total = sums.get(lbl) || 0;
-      const n = counts.get(lbl) || 1; // fallback 1 utk hindari /0
-      return +(total / n).toFixed(2); // 2 desimal
-    });
-
-    // 3) Radar indikator
+    // 4) Radar indikator
     const radarIndicators = formattedLabels.map((lbl) => ({
       name: lbl,
       max: 1,
     }));
 
-    // 4) Siapkan opsi ECharts
+    // 5) Siapkan opsi ECharts
     const option = {
       title: {
         text: "Radar: AVG Point Ternormalisasi (Overall)",
         left: "center",
       },
       tooltip: {
-        trigger: "item", // tooltip aktif untuk area/garis/titik
+        trigger: "item",
+        textStyle: {
+          fontSize: 10, // Mengecilkan font tooltip
+        },
         formatter: function (param) {
           // param.value = array nilai indikator
+          const values = param.value; // array, misal [0.63, 0.55, ...]
+          // Buat array pasangan { label, val }
+          const list = formattedLabels.map((lbl, i) => ({
+            label: lbl,
+            val: values[i],
+          }));
+          // Urutkan descending berdasarkan val
+          list.sort((a, b) => b.val - a.val);
+          // Bangun HTML
           let html = "<strong>Overall</strong><br/>";
-          formattedLabels.forEach((lbl, i) => {
-            html += `${lbl}: ${param.value[i]}<br/>`;
+          list.forEach((item) => {
+            html += `${item.label}: ${item.val}<br/>`;
           });
           return html;
         },
@@ -923,22 +1022,18 @@ export class LogbookProjectAnalytics extends Component {
         {
           name: "Overall",
           type: "radar",
-          // titik tetap ada agar interaksi lebih nyaman
           symbol: "circle",
           symbolSize: 6,
-          // TIDAK ada pengaturan tooltip di level series/data → gunakan default
           data: [
             {
               name: "Overall",
               value: overallValues,
             },
           ],
-          areaStyle: { opacity: 0.2 }, // area transparan, juga memicu tooltip
+          areaStyle: { opacity: 0.2 },
           lineStyle: { width: 2 },
-          // hilangkan label "Overall" di setiap titik
           label: { show: false },
           emphasis: {
-            // tetap tidak menampilkan teks di titik saat hover
             label: { show: false },
           },
         },
