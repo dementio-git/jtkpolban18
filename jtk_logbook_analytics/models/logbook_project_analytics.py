@@ -373,8 +373,8 @@ class LogbookExtractionWeeklyBySubcategory(models.Model):
                 JOIN course_activity w ON lb.week_id = w.id AND w.type = 'week'
                 WHERE
                     lb.project_course_id IS NOT NULL
-                    AND e.point IS NOT NULL
-                    AND e.point <> 0
+                    AND e.content IS NOT NULL
+                    AND e.content != ''
                     AND e.label_sub_category_id IS NOT NULL
                 GROUP BY
                     lb.project_course_id,
@@ -426,7 +426,8 @@ class LogbookExtractionWeeklyBySubcategory(models.Model):
                 WHERE lb.project_course_id      IS NOT NULL
                   AND e.label_category_id       IS NOT NULL
                   AND e.label_sub_category_id   IS NOT NULL
-                  AND e.point        IS NOT NULL AND e.point <> 0
+                  AND e.content IS NOT NULL
+                  AND e.content != ''
                 GROUP BY
                     lb.project_course_id,
                     lb.week_id,
@@ -440,14 +441,18 @@ class LogbookExtractionWeeklyBySubcategory(models.Model):
 class LogbookExtractionWeeklyByLabel(models.Model):
     _name = 'logbook.extraction.weekly.label'
     _auto = False
-    _description = 'Tren Ekstraksi per Minggu berdasarkan Label'
+    _description = 'Tren Ekstraksi per Minggu berdasarkan Label (dengan Kategori dan Subkategori)'
 
     project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
     week_id           = fields.Many2one('course.activity', string='Minggu', readonly=True)
     week_start_date   = fields.Date(string='Tanggal Mulai Minggu', readonly=True)
     week_end_date     = fields.Date(string='Tanggal Akhir Minggu', readonly=True)
     week_label        = fields.Char(string='Label Minggu', readonly=True)
-    label_id          = fields.Many2one('logbook.label', string='Label', readonly=True) # Asumsi ada model 'logbook.label'
+    
+    label_id          = fields.Many2one('logbook.label', string='Label', readonly=True)
+    category_id       = fields.Many2one('logbook.label.category', string='Kategori Label', readonly=True)
+    subcategory_id    = fields.Many2one('logbook.label.sub.category', string='Subkategori Label', readonly=True)
+    
     extraction_count  = fields.Integer(string='Jumlah Ekstraksi (poin ≠ 0)', readonly=True)
 
     def init(self):
@@ -455,27 +460,130 @@ class LogbookExtractionWeeklyByLabel(models.Model):
         self.env.cr.execute("""
             CREATE OR REPLACE VIEW logbook_extraction_weekly_label AS (
                 SELECT
-                    MIN(e.id) AS id,
+                    -- Menggunakan row_number() untuk ID unik, seperti di model 'logbook.extraction.weekly.subcategory'
+                    row_number() OVER () AS id, 
                     lb.project_course_id AS project_course_id,
                     lb.week_id AS week_id,
                     w.start_date AS week_start_date,
                     w.end_date AS week_end_date,
                     to_char(w.start_date, 'DD Mon YYYY') AS week_label,
                     e.label_id AS label_id,
+                    -- Menambahkan category_id dan subcategory_id dari logbook_extraction
+                    e.label_category_id AS category_id,
+                    e.label_sub_category_id AS subcategory_id,
                     COUNT(e.id) AS extraction_count
                 FROM logbook_extraction e
                 JOIN logbook_logbook lb ON e.logbook_id = lb.id
                 JOIN course_activity w ON lb.week_id = w.id AND w.type = 'week'
                 WHERE
                     lb.project_course_id IS NOT NULL
-                    AND e.point IS NOT NULL
-                    AND e.point <> 0
+                    AND e.content IS NOT NULL
+                    AND e.content != ''
                     AND e.label_id IS NOT NULL
+                    -- Hanya sertakan jika kategori dan subkategori juga tidak NULL
+                    AND e.label_category_id IS NOT NULL
                 GROUP BY
                     lb.project_course_id,
                     lb.week_id,
                     w.start_date,
                     w.end_date,
-                    e.label_id
+                    e.label_id,
+                    e.label_category_id,
+                    e.label_sub_category_id
             )
         """)
+                
+
+class LogbookExtractionWeeklyLabelNorm(models.Model):
+    _name = 'logbook.extraction.weekly.label.norm'
+    _auto = False
+    _description = 'Rata-Rata Point Ternormalisasi per Minggu & Label (filter content & range)'
+
+    project_course_id = fields.Many2one(
+        'project.course', string='Mata Kuliah', readonly=True)
+    week_id = fields.Many2one(
+        'course.activity', string='Minggu', readonly=True)
+    week_start_date = fields.Date(
+        string='Tanggal Mulai Minggu', readonly=True)
+    week_end_date = fields.Date(
+        string='Tanggal Akhir Minggu', readonly=True)
+    week_label = fields.Char(
+        string='Label Minggu', readonly=True)
+
+    label_id = fields.Many2one(
+        'logbook.label', string='Label', readonly=True)
+    category_id = fields.Many2one(
+        'logbook.label.category', string='Kategori Label', readonly=True)
+    subcategory_id = fields.Many2one(
+        'logbook.label.sub.category', string='Subkategori Label', readonly=True)
+
+    avg_norm_point = fields.Float(
+        string='AVG Point Ternormalisasi',
+        digits=(16, 2),
+        readonly=True,
+    )
+
+    def init(self):
+        tools.drop_view_if_exists(self._cr, self._table)
+        self._cr.execute("""
+            CREATE OR REPLACE VIEW %(table)s AS (
+                SELECT
+                    row_number() OVER ()                                        AS id,
+
+                    /* Dimensi */
+                    lb.project_course_id                                        AS project_course_id,
+                    lb.week_id                                                  AS week_id,
+                    w.start_date                                                AS week_start_date,
+                    w.end_date                                                  AS week_end_date,
+                    to_char(w.start_date, 'DD Mon YYYY')                         AS week_label,
+
+                    e.label_id                                                 AS label_id,
+                    e.label_category_id                                        AS category_id,
+                    e.label_sub_category_id                                    AS subcategory_id,
+
+                    /* Hitung min & max per label via subquery, lalu normalisasi point */
+                    AVG(
+                        CASE
+                          WHEN lr.min_point = lr.max_point THEN 0
+                          ELSE (e.point - lr.min_point)::numeric
+                               / NULLIF(lr.max_point - lr.min_point, 0)
+                        END
+                    )                                                            AS avg_norm_point
+
+                FROM logbook_extraction        e
+
+                JOIN logbook_logbook           lb ON lb.id = e.logbook_id
+                JOIN course_activity           w  ON w.id = lb.week_id
+                                                     AND w.type = 'week'
+
+                /* Subquery untuk min/max per label */
+                JOIN (
+                   SELECT
+                     label_id,
+                     MIN(point) AS min_point,
+                     MAX(point) AS max_point
+                   FROM logbook_label_point_rule
+                   GROUP BY label_id
+                ) lr ON lr.label_id = e.label_id
+
+                WHERE
+                    lb.project_course_id IS NOT NULL
+                    AND e.point            IS NOT NULL
+                    AND e.label_id         IS NOT NULL
+                    AND e.label_category_id IS NOT NULL
+                    /* 1) Filter: content tidak boleh NULL atau string kosong */
+                    AND e.content IS NOT NULL
+                    AND e.content <> ''
+                    /* 2) Filter: hanya ambil e.point yang ada di antara min_point dan max_point */
+                    AND e.point BETWEEN lr.min_point AND lr.max_point
+
+                GROUP BY
+                    lb.project_course_id,
+                    lb.week_id,
+                    w.start_date,
+                    w.end_date,
+                    e.label_id,
+                    e.label_category_id,
+                    e.label_sub_category_id
+            )
+        """ % {'table': self._table})

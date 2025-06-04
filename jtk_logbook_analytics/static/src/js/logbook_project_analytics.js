@@ -14,6 +14,8 @@ export class LogbookProjectAnalytics extends Component {
       extraction_stats: [], // Add this new state
       extractionByCategory: [],
       extractionBySubcategory: [], // <— data untuk tren subkategori
+      extractionByLabel: [],
+      extractionByNormalizedLabel: [],
     });
     this.orm = useService("orm");
     this.echarts = {};
@@ -25,6 +27,8 @@ export class LogbookProjectAnalytics extends Component {
       await this.loadExtractionDescriptiveStats();
       await this.loadExtractionByCategory();
       await this.loadExtractionBySubcategory();
+      await this.loadExtractionByLabel();
+      await this.loadNormalizedByLabel(); // Panggil fungsi baru untuk memuat data normalisasi
     });
 
     onMounted(() => {
@@ -116,12 +120,46 @@ export class LogbookProjectAnalytics extends Component {
     );
   }
 
+  async loadExtractionByLabel() {
+    this.state.extractionByLabel = await this.orm.searchRead(
+      "logbook.extraction.weekly.label",
+      [],
+      [
+        "week_start_date",
+        "week_end_date",
+        "week_label",
+        "label_id",
+        "extraction_count",
+        "category_id",
+        "subcategory_id",
+      ]
+    );
+  }
+
+  async loadNormalizedByLabel() {
+    // Panggil view baru untuk mendapatkan avg_norm_point per minggu × label
+    this.state.normByLabel = await this.orm.searchRead(
+      "logbook.extraction.weekly.label.norm",
+      [], // no domain filter
+      [
+        "week_label", // misal: "10 Jun 2025"
+        "label_id", // [id, "Nama Label"]
+        "avg_norm_point", // float (0..1)
+        "category_id", // [id, "Nama Kategori"]
+        "subcategory_id", // [id, "Nama Subkategori"] atau null
+      ]
+    );
+  }
+
   renderCharts() {
     this.renderParticipationTrendChart();
     this.renderProductivityTrendChart();
     this.renderExtractionTrendChart(); // Tambahkan render untuk grafik ketiga
     this.renderExtractionCategoryTrendChart();
     this.renderExtractionSubcategoryTrendChart();
+    this.renderExtractionLabelFreqHeatmap();
+    this.renderExtractionLabelPointHeatmap();
+    this.renderExtractionLabelOverallRadarChart();
   }
 
   formatDate(dateStr) {
@@ -399,9 +437,7 @@ export class LogbookProjectAnalytics extends Component {
 
           // Get the week data
           const index = params[0].dataIndex;
-          const weekData = data.find(
-            (d) => d.week_label === weekLabels[index]
-          );
+          const weekData = data.find((d) => d.week_label === weekLabels[index]);
 
           // Build tooltip header with date range
           let result = `Minggu ${index + 1} (${this.formatDate(
@@ -545,6 +581,372 @@ export class LogbookProjectAnalytics extends Component {
     });
 
     this.echarts.chart5 = chart;
+  }
+
+  renderExtractionLabelFreqHeatmap() {
+    const chartDom = document.getElementById("heatmapLabelFreq");
+    if (!chartDom) return;
+
+    const chart = echarts.init(chartDom);
+    const allData = this.state.extractionByLabel;
+
+    if (!allData || allData.length === 0) {
+      chart.clear();
+      return;
+    }
+
+    // 1) Daftar week_label unik, urutkan kronologis
+    const weekLabels = Array.from(
+      new Set(allData.map((d) => d.week_label))
+    ).sort((a, b) => {
+      const parse = (s) => {
+        const [day, mon, year] = s.split(" ");
+        const monthMap = {
+          Jan: 0,
+          Feb: 1,
+          Mar: 2,
+          Apr: 3,
+          May: 4,
+          Jun: 5,
+          Jul: 6,
+          Aug: 7,
+          Sep: 8,
+          Oct: 9,
+          Nov: 10,
+          Dec: 11,
+        };
+        return new Date(parseInt(year), monthMap[mon], parseInt(day));
+      };
+      return parse(a) - parse(b);
+    });
+    const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
+
+    // 2) Daftar label unik → formatted, lalu urutkan
+    const labelMap = new Map();
+    allData.forEach((r) => {
+      const labelName = r.label_id?.[1] || "Tanpa Label";
+      const category = r.category_id?.[1] || "Tanpa Kategori";
+      const subcategory = r.subcategory_id?.[1];
+      const prefix = subcategory
+        ? `[${category}-${subcategory}]`
+        : `[${category}]`;
+      labelMap.set(labelName, `${prefix} ${labelName}`);
+    });
+    const sortedLabelNames = Array.from(labelMap.keys()).sort((a, b) =>
+      labelMap.get(a).localeCompare(labelMap.get(b))
+    );
+    const yLabels = sortedLabelNames.map((ln) => labelMap.get(ln));
+
+    // 3) Bangun data heatmap sebagai [xIndex, yIndex, value]
+    const heatmapData = [];
+    allData.forEach((r) => {
+      const wl = r.week_label;
+      const labelName = r.label_id?.[1];
+      const x = weekLabels.indexOf(wl);
+      const y = yLabels.indexOf(labelMap.get(labelName));
+      if (x !== -1 && y !== -1) {
+        heatmapData.push([x, y, r.extraction_count]);
+      }
+    });
+
+    // 4) Set opsi ECharts (styling sama dengan pointHeatmap, warna default = merah)
+    chart.setOption({
+      tooltip: {
+        position: "top",
+        formatter: function (params) {
+          const [x, y, val] = params.data;
+          return `${yLabels[y]}<br/>${weekIndexLabels[x]} (${weekLabels[x]}): ${val}`;
+        },
+      },
+      grid: {
+        top: "10%",
+        left: 50,
+        right: 50,
+        bottom: "15%",
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category",
+        data: weekIndexLabels,
+        splitArea: { show: true },
+        axisLabel: { interval: 0 },
+        name: "Minggu",
+      },
+      yAxis: {
+        type: "category",
+        data: yLabels,
+        splitArea: { show: true },
+        name: "Label",
+      },
+      visualMap: {
+        min: 0,
+        max: Math.max(...allData.map((r) => r.extraction_count)),
+        calculable: true,
+        orient: "horizontal",
+        left: "center",
+        bottom: "5%",
+        textStyle: {
+          fontSize: 10,
+        },
+        // >>> Tidak mendefinisikan inRange.color <<<
+        //    ECharts akan menggunakan skema merah standar
+      },
+      series: [
+        {
+          name: "Ekstraksi",
+          type: "heatmap",
+          data: heatmapData,
+          label: {
+            show: true,
+            fontSize: 10,
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: "rgba(0, 0, 0, 0.5)",
+            },
+          },
+        },
+      ],
+    });
+
+    this.echarts.heatmapLabelFreq = chart;
+  }
+
+  renderExtractionLabelPointHeatmap() {
+    const chartDom = document.getElementById("heatmapLabelPoint");
+    if (!chartDom) {
+      return;
+    }
+    const chart = echarts.init(chartDom);
+    const allData = this.state.normByLabel; // pastikan sudah diisi lewat loadNormalizedByLabel()
+
+    if (!allData || allData.length === 0) {
+      chart.clear();
+      return;
+    }
+
+    // 1) Daftar week_label unik (unsorted), lalu urutkan kronologis
+    const weekLabels = Array.from(
+      new Set(allData.map((d) => d.week_label))
+    ).sort((a, b) => {
+      const parse = (s) => {
+        const [day, mon, year] = s.split(" ");
+        const monthMap = {
+          Jan: 0,
+          Feb: 1,
+          Mar: 2,
+          Apr: 3,
+          May: 4,
+          Jun: 5,
+          Jul: 6,
+          Aug: 7,
+          Sep: 8,
+          Oct: 9,
+          Nov: 10,
+          Dec: 11,
+        };
+        return new Date(parseInt(year), monthMap[mon], parseInt(day));
+      };
+      return parse(a) - parse(b);
+    });
+    const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
+
+    // 2) Daftar label unik → formatted, lalu urutkan
+    const labelMap = new Map();
+    allData.forEach((r) => {
+      const labelName = r.label_id?.[1] || "Tanpa Label";
+      const category = r.category_id?.[1] || "Tanpa Kategori";
+      const subcat = r.subcategory_id?.[1];
+      const prefix = subcat ? `[${category}-${subcat}]` : `[${category}]`;
+      labelMap.set(labelName, `${prefix} ${labelName}`);
+    });
+    const sortedLabelNames = Array.from(labelMap.keys()).sort((a, b) =>
+      labelMap.get(a).localeCompare(labelMap.get(b))
+    );
+    const yLabels = sortedLabelNames.map((ln) => labelMap.get(ln));
+
+    // 3) Bangun data heatmap sebagai [xIndex, yIndex, nilai]
+    const heatmapData = [];
+    allData.forEach((r) => {
+      const wl = r.week_label;
+      const labelName = r.label_id?.[1];
+      const x = weekLabels.indexOf(wl);
+      const y = yLabels.indexOf(labelMap.get(labelName));
+      if (x !== -1 && y !== -1) {
+        heatmapData.push([x, y, parseFloat(r.avg_norm_point)]);
+      }
+    });
+
+    // 4) Set opsi ECharts
+    chart.setOption({
+      tooltip: {
+        position: "top",
+        formatter: function (params) {
+          // params.data = [x, y, nilai]
+          const [x, y, val] = params.data;
+          return `${yLabels[y]}<br/>${weekIndexLabels[x]} (${
+            weekLabels[x]
+          }): ${val.toFixed(2)}`;
+        },
+      },
+      grid: {
+        top: "10%",
+        left: 50,
+        right: 50,
+        bottom: "15%",
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category",
+        data: weekIndexLabels,
+        splitArea: { show: true },
+        axisLabel: { interval: 0 },
+        name: "Minggu",
+      },
+      yAxis: {
+        type: "category",
+        data: yLabels,
+        splitArea: { show: true },
+        name: "Label",
+      },
+      visualMap: {
+        min: 0,
+        max: 1,
+        calculable: true,
+        orient: "horizontal",
+        left: "center",
+        bottom: "5%",
+        inRange: {
+          color: ["#f7fbff", "#08306b"],
+        },
+      },
+      series: [
+        {
+          name: "Point Normalisasi",
+          type: "heatmap",
+          data: heatmapData,
+          label: {
+            show: true,
+            formatter: function (param) {
+              return param.value[2].toFixed(2);
+            },
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: "rgba(0, 0, 0, 0.5)",
+            },
+          },
+        },
+      ],
+    });
+
+    this.echarts.heatmapLabelPoint = chart;
+  }
+
+  renderExtractionLabelOverallRadarChart() {
+    const chartDom = document.getElementById("labelPointRadar");
+    if (!chartDom) return;
+
+    const chart = echarts.init(chartDom);
+    const allData = this.state.normByLabel; // hasil loadNormalizedByLabel()
+
+    if (!allData || allData.length === 0) {
+      chart.clear();
+      return;
+    }
+
+    // 1) Mapping label → nama lengkap "[Kategori] ..." (sama seperti sebelumnya)
+    const labelMap = new Map();
+    allData.forEach((r) => {
+      const labelName = r.label_id?.[1] || "Tanpa Label";
+      const category = r.category_id?.[1] || "Tanpa Kategori";
+      const subcat = r.subcategory_id?.[1];
+      const prefix = subcat ? `[${category}-${subcat}]` : `[${category}]`;
+      labelMap.set(labelName, `${prefix} ${labelName}`);
+    });
+
+    const sortedLabelNames = Array.from(labelMap.keys()).sort((a, b) =>
+      labelMap.get(a).localeCompare(labelMap.get(b))
+    );
+    const formattedLabels = sortedLabelNames.map((ln) => labelMap.get(ln));
+
+    // 2) Hitung rata-rata keseluruhan untuk tiap label
+    const sums = new Map(); // labelName → jumlah
+    const counts = new Map(); // labelName → berapa minggu
+    allData.forEach((r) => {
+      const lbl = r.label_id?.[1];
+      sums.set(lbl, (sums.get(lbl) || 0) + parseFloat(r.avg_norm_point));
+      counts.set(lbl, (counts.get(lbl) || 0) + 1);
+    });
+    const overallValues = sortedLabelNames.map((lbl) => {
+      const total = sums.get(lbl) || 0;
+      const n = counts.get(lbl) || 1; // fallback 1 utk hindari /0
+      return +(total / n).toFixed(2); // 2 desimal
+    });
+
+    // 3) Radar indikator
+    const radarIndicators = formattedLabels.map((lbl) => ({
+      name: lbl,
+      max: 1,
+    }));
+
+    // 4) Siapkan opsi ECharts
+    const option = {
+      title: {
+        text: "Radar: AVG Point Ternormalisasi (Overall)",
+        left: "center",
+      },
+      tooltip: {
+        trigger: "item", // tooltip aktif untuk area/garis/titik
+        formatter: function (param) {
+          // param.value = array nilai indikator
+          let html = "<strong>Overall</strong><br/>";
+          formattedLabels.forEach((lbl, i) => {
+            html += `${lbl}: ${param.value[i]}<br/>`;
+          });
+          return html;
+        },
+      },
+      legend: { show: false },
+      radar: {
+        indicator: radarIndicators,
+        shape: "circle",
+        splitNumber: 5,
+        axisName: {
+          formatter: (name) =>
+            name.length > 20 ? name.slice(0, 17) + "..." : name,
+        },
+      },
+      series: [
+        {
+          name: "Overall",
+          type: "radar",
+          // titik tetap ada agar interaksi lebih nyaman
+          symbol: "circle",
+          symbolSize: 6,
+          // TIDAK ada pengaturan tooltip di level series/data → gunakan default
+          data: [
+            {
+              name: "Overall",
+              value: overallValues,
+            },
+          ],
+          areaStyle: { opacity: 0.2 }, // area transparan, juga memicu tooltip
+          lineStyle: { width: 2 },
+          // hilangkan label "Overall" di setiap titik
+          label: { show: false },
+          emphasis: {
+            // tetap tidak menampilkan teks di titik saat hover
+            label: { show: false },
+          },
+        },
+      ],
+    };
+
+    chart.setOption(option);
+    this.echarts.radarChart = chart;
   }
 }
 

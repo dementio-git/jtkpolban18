@@ -13,6 +13,16 @@ class LogbookLabel(models.Model):
     category_id = fields.Many2one('logbook.label.category', string='Kategori')
     sub_category_id = fields.Many2one('logbook.label.sub.category', string='Sub Kategori', domain="[('category_ids', 'in', [category_id])]")
     is_required = fields.Boolean(string='Wajib', default=False)
+    point_rule_ids = fields.One2many('logbook.label.point.rule','label_id', string='Aturan Poin')
+    
+    # @api.depends('point_rule_template_id')
+    # def _compute_point_rule_ids(self):
+    #     for record in self:
+    #         if record.point_rule_template_id:
+    #             record.point_rule_ids = record.point_rule_template_id.point_rule_ids
+    #         else:
+    #             record.point_rule_ids = False
+    
     
 class LogbookLabelLevel(models.Model):
     _name = 'logbook.label.level'
@@ -20,6 +30,28 @@ class LogbookLabelLevel(models.Model):
     
     name = fields.Char(string='Level', required=True)
     
+class LogbookLabelPointRule(models.Model):
+    _name = 'logbook.label.point.rule'
+    _description = 'Logbook Label Point Rule'
+    
+    label_id = fields.Many2one('logbook.label', string='Label', ondelete='cascade')
+    name = fields.Char(string='Nama Aturan', compute='_compute_name', store=True)
+    point = fields.Integer(string='Poin', required=True)
+    description = fields.Char(string='Deskripsi')
+    
+    @api.depends('point', 'description')
+    def _compute_name(self):
+        for record in self:
+            if record.point or record.description:
+                record.name = f"{record.point}: {record.description}"
+        
+class LogbookLabelPointRuleTemplate(models.Model):
+    _name = 'logbook.label.point.rule.template'
+    _description = 'Logbook Label Point Rule Template'
+    
+    name = fields.Char(string='Nama Aturan', required=True)
+    point_rule_ids = fields.Many2many('logbook.label.point.rule', string='Aturan Poin')
+
 class LogbookLabelGroup(models.Model):
     _name = 'logbook.label.group'
     _description = 'Logbook Label Group'

@@ -109,6 +109,15 @@
                         <div class="chart-container" style="height: 400px;">
                             <div id="chart5" style="height: 400px;"></div>
                         </div>
+                        <div class="chart-container" style="height: 700px;">
+                            <div id="heatmapLabelFreq" style="height: 700px;"></div>
+                        </div>
+                        <div class="chart-container" style="height: 700px;">
+                            <div id="heatmapLabelPoint" style="height: 700px;"></div>
+                        </div>
+                        <div class="chart-container" style="height: 800px;">
+                            <div id="labelPointRadar" style="height: 800px;"></div>
+                        </div>
 
 
                     </div>

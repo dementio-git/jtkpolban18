@@ -4,16 +4,55 @@
         <field name="name">view.logbook.label.list</field>
         <field name="model">logbook.label</field>
         <field name="arch" type="xml">
-            <list editable="bottom">
+            <list>
                 <field name="is_required"/>
                 <field name="name"/>
                 <field name="description"/>
                 <field name="category_id"/>
                 <field name="sub_category_id"/>
                 <field name="group_id"/>
-                <field name="has_point"/>
-                <field name="points_rule"/>
+                <field name="point_rule_ids" widget="many2many_tags"/>
             </list>
+        </field>
+    </record>
+
+    <record id="view_logbook_label_form" model="ir.ui.view">
+        <field name="name">view.logbook.label.form</field>
+        <field name="model">logbook.label</field>
+        <field name="arch" type="xml">
+            <form string="">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="description"/>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="is_required"/>
+                            <field name="group_id"/>
+                        </group>
+                        <group>
+                            <field name="category_id"/>
+                            <field name="sub_category_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page name="point_rule" string="Point Rule">
+                            <field name="point_rule_ids" context="{'default_label_id': id}">
+                                <list editable="bottom">
+                                    <field name="name" readonly="1"/>
+                                    <field name="point"/>
+                                    <field name="description"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
         </field>
     </record>
 
@@ -36,12 +75,33 @@
         </field>
     </record>
 
+    <!-- search view-->
+    <record id="view_logbook_label_search" model="ir.ui.view">
+        <field name="name">view.logbook.label.search</field>
+        <field name="model">logbook.label</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="description"/>
+                <field name="category_id"/>
+                <field name="sub_category_id"/>
+                <field name="group_id"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_by_category" string="Category" context="{'group_by': 'category_id'}"/>
+                    <filter name="group_by_subcategory" string="Sub Category" context="{'group_by': 'sub_category_id'}"/>
+                    <filter name="group_by_group" string="Group" context="{'group_by': 'group_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
 
     <!-- action label -->
     <record id="action_logbook_label" model="ir.actions.act_window">
         <field name="name">Label</field>
         <field name="res_model">logbook.label</field>
-        <field name="view_mode">list</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_group_by_category': 1}</field>
     </record>
 
     
