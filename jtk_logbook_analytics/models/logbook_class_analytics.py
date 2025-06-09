@@ -100,8 +100,6 @@ class LogbookWeeklyStatsClass(models.Model):
         ORDER BY sw.project_course_id, dw.week_num;
         """)
 
-
-
 class LogbookDescriptiveStatsClass(models.Model):
     _name = 'logbook.descriptive.stats.class'
     _auto = False
@@ -186,4 +184,308 @@ class LogbookDescriptiveStatsClass(models.Model):
                 LEFT JOIN weekly_avg_per_student waps ON waps.class_id = c.id
                 GROUP BY c.id, c.name, pc.id, e.total_students, t.total_logbooks
             );
+        """)
+
+class LogbookExtractionWeeklyClass(models.Model):
+    _name = "logbook.extraction.weekly.class"
+    _auto = False
+    _description = "Tren Ekstraksi Logbook per Kelas per Minggu"
+
+    project_course_id = fields.Many2one(
+        "project.course", string="Mata Kuliah", readonly=True
+    )
+    class_id = fields.Many2one("class.class", string="Kelas", readonly=True)
+    class_name = fields.Char(string="Nama Kelas", readonly=True)
+    week_id = fields.Many2one("course.activity", string="Minggu", readonly=True)
+    week_start_date = fields.Date(string="Tanggal Mulai Minggu", readonly=True)
+    week_end_date = fields.Date(string="Tanggal Akhir Minggu", readonly=True)
+    week_label = fields.Char(string="Label Minggu", readonly=True)
+    extraction_count = fields.Integer(
+        string="Jumlah Ekstraksi (konten ≠ kosong)", readonly=True
+    )
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+        CREATE OR REPLACE VIEW logbook_extraction_weekly_class AS
+        WITH
+        distinct_weeks AS (
+            SELECT
+              rel.project_course_id            AS project_course_id,
+              s.class_id                        AS class_id,
+              w.id                              AS week_id,
+              w.start_date,
+              w.end_date,
+              DENSE_RANK() OVER (
+                  PARTITION BY rel.project_course_id, s.class_id
+                  ORDER BY w.start_date
+              ) AS week_num
+            FROM class_class_project_course_rel rel
+            JOIN course_activity w             ON w.type = 'week'
+            JOIN logbook_logbook lb            ON lb.project_course_id = rel.project_course_id
+                                              AND lb.week_id          = w.id
+            JOIN student_student  s            ON s.id = lb.student_id
+            GROUP BY
+              rel.project_course_id, s.class_id,
+              w.id, w.start_date, w.end_date
+        ),
+        extraction_counts AS (
+            SELECT
+              e.id                  AS extraction_id,
+              lb.project_course_id  AS project_course_id,
+              s.class_id            AS class_id,
+              lb.week_id            AS week_id
+            FROM logbook_extraction e
+            JOIN logbook_logbook lb ON e.logbook_id = lb.id
+            JOIN student_student s  ON s.id = lb.student_id
+            WHERE e.content IS NOT NULL
+              AND e.content <> ''
+        )
+        SELECT
+          ROW_NUMBER() OVER ()              AS id,
+          dw.project_course_id,
+          dw.class_id,
+          c.name                            AS class_name,
+          dw.week_id,
+          dw.start_date                     AS week_start_date,
+          dw.end_date                       AS week_end_date,
+          CONCAT('W', dw.week_num)          AS week_label,
+          COUNT(ec.extraction_id)           AS extraction_count
+        FROM distinct_weeks dw
+        LEFT JOIN extraction_counts ec
+               ON ec.project_course_id = dw.project_course_id
+              AND ec.class_id          = dw.class_id
+              AND ec.week_id           = dw.week_id
+        JOIN class_class c ON c.id = dw.class_id
+        GROUP BY
+          dw.project_course_id,
+          dw.class_id,
+          c.name,
+          dw.week_id,
+          dw.start_date,
+          dw.end_date,
+          dw.week_num
+        ORDER BY
+          dw.project_course_id,
+          dw.class_id,
+          dw.week_num;
+        """)
+
+class LogbookExtractionDescriptiveStatsClass(models.Model):
+    _name = "logbook.extraction.descriptive.stats.class"
+    _auto = False
+    _description = "Statistik Deskriptif Ekstraksi Logbook per Kelas"
+
+    # ──────── DIMENSIONS ────────────────────────────────────────
+    project_course_id                  = fields.Many2one(
+        "project.course", string="Mata Kuliah", readonly=True
+    )
+    class_id                           = fields.Many2one(
+        "class.class", string="Kelas", readonly=True
+    )
+    class_name                         = fields.Char(
+        string="Nama Kelas", readonly=True
+    )
+
+    # ──────── METRICS ───────────────────────────────────────────
+    total_extraction                   = fields.Integer(
+        string="Total Ekstraksi", readonly=True
+    )
+    avg_extraction_per_logbook         = fields.Float(
+        string="Rata-rata Ekstraksi per Logbook", readonly=True
+    )
+    std_extraction_per_logbook         = fields.Float(
+        string="Std Dev Ekstraksi per Logbook", readonly=True
+    )
+    avg_extraction_per_student         = fields.Float(
+        string="Rata-rata Ekstraksi per Mahasiswa", readonly=True
+    )
+    std_extraction_per_student         = fields.Float(
+        string="Std Dev Ekstraksi per Mahasiswa", readonly=True
+    )
+    avg_extraction_per_student_week    = fields.Float(
+        string="Rata-rata Ekstraksi per Mahasiswa per Minggu", readonly=True
+    )
+    std_extraction_per_student_week    = fields.Float(
+        string="Std Dev Ekstraksi per Mahasiswa per Minggu", readonly=True
+    )
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+        --------------------------------------------------------------------------------
+        -- VIEW: logbook_extraction_descriptive_stats_class
+        --------------------------------------------------------------------------------
+        CREATE OR REPLACE VIEW logbook_extraction_descriptive_stats_class AS
+        WITH
+        /* ❶ Kumpulkan semua ekstraksi yang memiliki konten (≠ '') */
+        extraction_data AS (
+            SELECT
+                e.id                    AS extraction_id,
+                lb.project_course_id    AS project_course_id,
+                s.class_id              AS class_id,
+                lb.student_id           AS student_id,
+                lb.week_id              AS week_id,
+                lb.id                   AS logbook_id
+            FROM logbook_extraction e
+            JOIN logbook_logbook lb  ON lb.id = e.logbook_id
+            JOIN student_student s   ON s.id  = lb.student_id
+            WHERE
+                e.content IS NOT NULL
+                AND e.content <> ''
+        ),
+
+        /* ❷ Hitung jumlah ekstraksi per logbook (unique combination student + week + class) */
+        per_logbook AS (
+            SELECT
+                ed.project_course_id,
+                ed.class_id,
+                ed.logbook_id,
+                COUNT(ed.extraction_id)  AS cnt_per_logbook
+            FROM extraction_data ed
+            GROUP BY
+                ed.project_course_id,
+                ed.class_id,
+                ed.logbook_id
+        ),
+
+        /* ❸ Hitung jumlah ekstraksi per mahasiswa (dalam satu kelas) */
+        per_student AS (
+            SELECT
+                ed.project_course_id,
+                ed.class_id,
+                ed.student_id,
+                COUNT(ed.extraction_id)  AS cnt_per_student
+            FROM extraction_data ed
+            GROUP BY
+                ed.project_course_id,
+                ed.class_id,
+                ed.student_id
+        ),
+
+        /* ❹ Hitung jumlah minggu aktif per mahasiswa (distinct week_id) */
+        student_weeks AS (
+            SELECT
+                ed.project_course_id,
+                ed.class_id,
+                ed.student_id,
+                COUNT(DISTINCT ed.week_id)  AS weeks_cnt
+            FROM extraction_data ed
+            GROUP BY
+                ed.project_course_id,
+                ed.class_id,
+                ed.student_id
+        ),
+
+        /* ❺ Hitung rasio ekstraksi per mahasiswa per minggu */
+        ratio_mhs_minggu AS (
+            SELECT
+                ps.project_course_id,
+                ps.class_id,
+                ps.student_id,
+                (ps.cnt_per_student::float / NULLIF(sw.weeks_cnt, 0))  AS ratio_per_student_week
+            FROM per_student ps
+            JOIN student_weeks sw
+              ON sw.project_course_id = ps.project_course_id
+             AND sw.class_id         = ps.class_id
+             AND sw.student_id       = ps.student_id
+        ),
+
+        /* ❻ Hitung total ekstraksi per (project_course, class) */
+        total_per_class AS (
+            SELECT
+                ed.project_course_id,
+                ed.class_id,
+                COUNT(ed.extraction_id)  AS total_extraction
+            FROM extraction_data ed
+            GROUP BY
+                ed.project_course_id,
+                ed.class_id
+        )
+
+        /* ───────── Final aggregation ────────────────────────────────────────────────── */
+        SELECT
+            ROW_NUMBER() OVER ()                                   AS id,
+            tpc.project_course_id,
+            tpc.class_id,
+            c.name                                                 AS class_name,
+            tpc.total_extraction,
+
+            /* Rata-rata & StdDev per logbook */
+            ROUND(AVG(pl.cnt_per_logbook)::numeric, 2)             AS avg_extraction_per_logbook,
+            ROUND(STDDEV(pl.cnt_per_logbook)::numeric, 2)          AS std_extraction_per_logbook,
+
+            /* Rata-rata & StdDev per mahasiswa */
+            ROUND(AVG(ps.cnt_per_student)::numeric, 2)             AS avg_extraction_per_student,
+            ROUND(STDDEV(ps.cnt_per_student)::numeric, 2)          AS std_extraction_per_student,
+
+            /* Rata-rata & StdDev rasio mahasiswa-per-minggu */
+            ROUND(AVG(rm.ratio_per_student_week)::numeric, 2)      AS avg_extraction_per_student_week,
+            ROUND(STDDEV(rm.ratio_per_student_week)::numeric, 2)   AS std_extraction_per_student_week
+
+        FROM total_per_class tpc
+        LEFT JOIN per_logbook            pl  ON pl.project_course_id = tpc.project_course_id
+                                              AND pl.class_id           = tpc.class_id
+        LEFT JOIN per_student            ps  ON ps.project_course_id = tpc.project_course_id
+                                              AND ps.class_id           = tpc.class_id
+        LEFT JOIN ratio_mhs_minggu       rm  ON rm.project_course_id = tpc.project_course_id
+                                              AND rm.class_id           = tpc.class_id
+        JOIN class_class                  c   ON c.id = tpc.class_id
+        GROUP BY
+            tpc.project_course_id,
+            tpc.class_id,
+            c.name,
+            tpc.total_extraction;
+        """)
+        
+class LogbookExtractionWeeklyCategoryClass(models.Model):
+    _name = 'logbook.extraction.weekly.category.class'
+    _auto = False
+    _description = 'Tren Ekstraksi per Kategori per Kelas per Minggu'
+
+    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
+    class_id          = fields.Many2one('class.class',    string='Kelas',           readonly=True)
+    class_name        = fields.Char(                     string='Nama Kelas',      readonly=True)
+    week_id           = fields.Many2one('course.activity', string='Minggu',        readonly=True)
+    week_start_date   = fields.Date(                      string='Tanggal Mulai Minggu', readonly=True)
+    week_end_date     = fields.Date(                      string='Tanggal Akhir Minggu', readonly=True)
+    week_label        = fields.Char(                      string='Label Minggu',    readonly=True)
+    category_id       = fields.Many2one('logbook.label.category', string='Kategori Label', readonly=True)
+    extraction_count  = fields.Integer(                    string='Jumlah Ekstraksi (poin ≠ 0)', readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+            CREATE OR REPLACE VIEW logbook_extraction_weekly_category_class AS (
+                SELECT
+                    ROW_NUMBER() OVER ()                                   AS id,
+                    lb.project_course_id                                   AS project_course_id,
+                    s.class_id                                             AS class_id,
+                    c.name                                                 AS class_name,
+                    lb.week_id                                             AS week_id,
+                    w.start_date                                           AS week_start_date,
+                    w.end_date                                             AS week_end_date,
+                    to_char(w.start_date, 'DD Mon YYYY')                   AS week_label,
+                    e.label_category_id                                    AS category_id,
+                    COUNT(e.id)                                            AS extraction_count
+                FROM logbook_extraction e
+                JOIN logbook_logbook lb   ON lb.id = e.logbook_id
+                JOIN student_student s    ON s.id  = lb.student_id
+                JOIN class_class c        ON c.id  = s.class_id
+                JOIN course_activity w    ON w.id  = lb.week_id
+                                           AND w.type = 'week'
+                WHERE
+                    lb.project_course_id    IS NOT NULL
+                    AND e.content           IS NOT NULL
+                    AND e.content <> ''
+                    AND e.label_category_id IS NOT NULL
+                GROUP BY
+                    lb.project_course_id,
+                    s.class_id,
+                    c.name,
+                    lb.week_id,
+                    w.start_date,
+                    w.end_date,
+                    e.label_category_id
+            )
         """)

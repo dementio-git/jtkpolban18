@@ -295,9 +295,6 @@ class LogbookExtractionDescriptiveStats(models.Model):
         );
         """)
 
-
-
-
 class LogbookExtractionWeeklyByCategory(models.Model):
     _name = 'logbook.extraction.weekly.category'
     _auto = False
@@ -341,7 +338,6 @@ class LogbookExtractionWeeklyByCategory(models.Model):
             )
         """)
 
-
 class LogbookExtractionWeeklyBySubcategory(models.Model):
     _name = 'logbook.extraction.weekly.subcategory'
     _auto = False
@@ -384,7 +380,6 @@ class LogbookExtractionWeeklyBySubcategory(models.Model):
                     e.label_sub_category_id
             )
         """)
-
 
 class LogbookExtractionWeeklyBySubcategory(models.Model):
     _name = 'logbook.extraction.weekly.subcategory'
@@ -436,7 +431,6 @@ class LogbookExtractionWeeklyBySubcategory(models.Model):
                     e.label_sub_category_id
             );
         """)
-
 
 class LogbookExtractionWeeklyByLabel(models.Model):
     _name = 'logbook.extraction.weekly.label'
@@ -493,7 +487,6 @@ class LogbookExtractionWeeklyByLabel(models.Model):
             )
         """)
                 
-
 class LogbookExtractionWeeklyLabelNorm(models.Model):
     _name = 'logbook.extraction.weekly.label.norm'
     _auto = False

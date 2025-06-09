@@ -60,5 +60,64 @@
                 </div>
             </div>
         </div>
+
+    <!-- Statistik Deskriptif Ekstraksi per Kelas -->
+    <div class="row mt-3">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Statistik Deskriptif Ekstraksi per Kelas</h3>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover table-striped">
+                <thead>
+                  <tr>
+                    <th>Nama Kelas</th>
+                    <th>Rata-rata Ekstraksi per Logbook</th>
+                    <th>Std Dev Ekstraksi per Logbook</th>
+                    <th>Rata-rata Ekstraksi per Mahasiswa</th>
+                    <th>Std Dev Ekstraksi per Mahasiswa</th>
+                    <th>Rata-rata Ekstraksi per Mahasiswa per Minggu</th>
+                    <th>Std Dev Ekstraksi per Mahasiswa per Minggu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr t-foreach="state.extractionDescriptiveByClass"
+                      t-as="stat"
+                      t-key="stat.class_id">
+                    <td><t t-esc="stat.class_name"/></td>
+                    <td><t t-esc="stat.avg_extraction_per_logbook"/></td>
+                    <td><t t-esc="stat.std_extraction_per_logbook"/></td>
+                    <td><t t-esc="stat.avg_extraction_per_student"/></td>
+                    <td><t t-esc="stat.std_extraction_per_student"/></td>
+                    <td><t t-esc="stat.avg_extraction_per_student_week"/></td>
+                    <td><t t-esc="stat.std_extraction_per_student_week"/></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+
+    <!-- Bagian Chart Tren Ekstraksi (chart3) -->
+    <div class="row mt-3">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Grafik Tren Waktu Ekstraksi Logbook per Kelas</h3>
+          </div>
+          <div class="card-body" style="height: 400px;">
+            <div id="chart3" style="height: 400px;"></div>
+          </div>
+          <div class="card-body" style="height: 700px;">
+            <div id="chart4" style="height: 700px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     </t>
 </templates>
