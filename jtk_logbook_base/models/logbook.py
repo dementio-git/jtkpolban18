@@ -81,8 +81,14 @@ class Logbook(models.Model):
                         rule_line += f': {label.description.strip()}'
                         if label.sub_category_id:
                             rule_line += f' (Sub Kategori: {label.sub_category_id.name})'
-                        if label.points_rule:
-                            rule_line += f' (Aturan Poin: {label.points_rule.strip()})'
+                        
+                    # Add point rules if they exist
+                    if label.point_rule_ids:
+                        point_rules = []
+                        for rule in label.point_rule_ids:
+                            point_rules.append(f"{rule.point}={rule.description}")
+                        if point_rules:
+                            rule_line += f' (Aturan Poin: {", ".join(point_rules)})'
                     
                     label_rules.append(rule_line)
             

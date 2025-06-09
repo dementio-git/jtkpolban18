@@ -11,6 +11,19 @@
                         <group >
                             <field name="logbook_label_ids" widget="many2many_tags"/>
                         </group>
+                        <group name="clustering" string="Clustering">
+                            <group string="X Axis">
+                                <field name="logbook_clustering_x_axis_name"/>
+                                <field name="logbook_clustering_x_axis_label_ids" widget="many2many_tags" domain="[('id', 'in', logbook_label_ids)]" options="{'no_create': True, 'no_delete': True}"/>
+
+                            </group>
+                            <group string="Y Axis">
+                                <field name="logbook_clustering_y_axis_name"/>
+                                <field name="logbook_clustering_y_axis_label_ids" widget="many2many_tags" domain="[('id', 'in', logbook_label_ids)]" options="{'no_create': True, 'no_delete': True}"/>
+                                
+                            </group>
+
+                        </group>
                     </page>
                 </xpath>
             </field>
