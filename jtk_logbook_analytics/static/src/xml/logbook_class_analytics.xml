@@ -116,6 +116,18 @@
           <div class="card-body" style="height: 700px;">
             <div id="chart4" style="height: 700px;"></div>
           </div>
+          <div class="card-body" style="height: 400px;">
+            <div id="chart5" style="height: 400px;"></div>
+          </div>
+          <div class="card-body" style="height: 1300px;">
+            <div id="heatmapLabelFreqClass" style="min-height: 1000px; height: auto;"></div>
+          </div>
+          <div class="card-body" style="height: 1300px;">
+            <div id="heatmapLabelPointClass" style="min-height: 1000px; height: auto;"></div>
+          </div>
+          <div class="card-body" style="height: 1300px;">
+            <div id="labelPointRadarClass" style="min-height: 1000px; height: auto;"></div>
+          </div>
         </div>
       </div>
     </div>

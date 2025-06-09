@@ -142,11 +142,11 @@ export class LogbookProjectAnalytics extends Component {
       "logbook.extraction.weekly.label.norm",
       [], // no domain filter
       [
-        "week_label", // misal: "10 Jun 2025"
-        "label_id", // [id, "Nama Label"]
-        "avg_norm_point", // float (0..1)
-        "category_id", // [id, "Nama Kategori"]
-        "subcategory_id", // [id, "Nama Subkategori"] atau null
+        "week_label",
+        "label_id", 
+        "avg_norm_point", 
+        "category_id", 
+        "subcategory_id", 
       ]
     );
   }

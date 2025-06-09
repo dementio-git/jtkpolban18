@@ -29,6 +29,9 @@ export class LogbookClassAnalytics extends Component {
       extractionWeeklyByClass: [],
       extractionDescriptiveByClass: [],
       extractionByCategory: [],
+      extractionBySubCategory: [],
+      extractionByLabel: [],
+      extractionByNormalizedLabel: [],
     });
     this.echarts = {};
 
@@ -46,6 +49,9 @@ export class LogbookClassAnalytics extends Component {
       await this.loadExtractionStatsByClass();
       await this.loadExtractionDescriptiveStatsByClass();
       await this.loadExtractionByCategory();
+      await this.loadExtractionBySubcategoryClass();
+      await this.loadExtractionByLabel();
+      await this.loadNormalizedByLabel();
     });
 
     onMounted(() => {
@@ -165,11 +171,74 @@ export class LogbookClassAnalytics extends Component {
     );
   }
 
+  async loadExtractionBySubcategoryClass() {
+    this.state.extractionBySubcategoryClass = await this.orm.searchRead(
+      "logbook.extraction.weekly.subcategory.class",
+      [],
+      [
+        "week_start_date",
+        "week_end_date",
+        "week_label",
+        "subcategory_id",
+        "class_name",
+        "extraction_count",
+      ]
+    );
+  }
+
+  async loadExtractionByLabel() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      this.state.extractionByLabel = [];
+      return;
+    }
+    this.state.extractionByLabel = await this.orm.searchRead(
+      "logbook.extraction.weekly.label.class",
+      [["project_course_id", "=", pid]],
+      [
+        "class_id",
+        "class_name",
+        "week_start_date",
+        "week_end_date",
+        "week_label",
+        "label_id",
+        "extraction_count",
+        "category_id",
+        "subcategory_id",
+      ]
+    );
+  }
+
+  async loadNormalizedByLabel() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      this.state.normByLabel = [];
+      return;
+    }
+    this.state.normByLabel = await this.orm.searchRead(
+      "logbook.extraction.weekly.label.norm.class",
+      [["project_course_id", "=", pid]],
+      [
+        "class_id",
+        "class_name",
+        "week_label",
+        "label_id",
+        "avg_norm_point",
+        "category_id",
+        "subcategory_id",
+      ]
+    );
+  }
+
   renderCharts() {
     this.renderClassParticipationChart();
     this.renderClassProductivityChart();
     this.renderExtractionTrendChartByClass();
     this.renderExtractionStackedBarByCategoryAndClass();
+    this.renderExtractionSubcategoryTrendByClass();
+    this.renderExtractionLabelFreqHeatmapClass();
+    this.renderExtractionLabelPointHeatmapClass();
+    this.renderExtractionLabelOverallRadarChartClass();
   }
 
   formatDate(dateStr) {
@@ -445,253 +514,6 @@ export class LogbookClassAnalytics extends Component {
     this.echarts.chart3 = chart;
   }
 
-  // renderExtractionStackedBarByCategoryAndClass() {
-  //   const chartDom = document.getElementById("chart4");
-  //   if (!chartDom) return;
-  //   if (this.echarts.chart4) this.echarts.chart4.dispose();
-  //   const chart = echarts.init(chartDom);
-  //   const data = this.state.extractionByCategory;
-  //   if (!data || !data.length) {
-  //     chart.clear();
-  //     return;
-  //   }
-
-  //   // 1) Urutkan minggu berdasarkan tanggal
-  //   const parseDate = (s) => {
-  //     const [d, mon, y] = s.split(" ");
-  //     const m = {
-  //       Jan: 0,
-  //       Feb: 1,
-  //       Mar: 2,
-  //       Apr: 3,
-  //       May: 4,
-  //       Jun: 5,
-  //       Jul: 6,
-  //       Aug: 7,
-  //       Sep: 8,
-  //       Oct: 9,
-  //       Nov: 10,
-  //       Dec: 11,
-  //     }[mon];
-  //     return new Date(+y, m, +d);
-  //   };
-  //   const weeks = Array.from(new Set(data.map((r) => r.week_label))).sort(
-  //     (a, b) => parseDate(a) - parseDate(b)
-  //   );
-  //   const xWeeks = weeks.map((_, i) => `W${i + 1}`);
-
-  //   // 2) Urutkan kategori global berdasarkan category_id
-  //   const catMap = new Map();
-  //   data.forEach((r) => {
-  //     const [catId, catName] = r.category_id;
-  //     catMap.set(catId, catName);
-  //   });
-  //   const categories = Array.from(catMap.entries())
-  //     .sort((a, b) => a[0] - b[0])
-  //     .map(([, name]) => name);
-
-  //   // 3) Kelas
-  //   const classes = Array.from(new Set(data.map((r) => r.class_name))).sort();
-
-  //   // 4) Pivot data: pivot[week][category][class] = count
-  //   const pivot = {};
-  //   weeks.forEach((wk) => {
-  //     pivot[wk] = {};
-  //     categories.forEach((cat) => {
-  //       pivot[wk][cat] = {};
-  //       classes.forEach((cls) => {
-  //         pivot[wk][cat][cls] = 0;
-  //       });
-  //     });
-  //   });
-  //   data.forEach((r) => {
-  //     const wk = r.week_label;
-  //     const cat = r.category_id[1];
-  //     const cls = r.class_name;
-  //     pivot[wk][cat][cls] = r.extraction_count;
-  //   });
-
-  //   // 5) Buat satu options per minggu
-  //   const options = weeks.map((wk, idx) => {
-  //     const series = classes.map((cls) => ({
-  //       name: cls,
-  //       type: "bar",
-  //       stack: "total",
-  //       data: categories.map((cat) => pivot[wk][cat][cls]),
-  //     }));
-  //     return {
-  //       title: { text: `Ekstraksi — Minggu ${wk}` },
-  //       tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-  //       legend: { data: classes, top: 30, type: "scroll" },
-  //       xAxis: { type: "category", data: categories, name: "Kategori" },
-  //       yAxis: { type: "value", name: "Jumlah Ekstraksi" },
-  //       series,
-  //     };
-  //   });
-
-  //   // 6) Mode “All” dengan axis dua level: minggu → kategori
-  //   // 6a) Siapkan xAxis.data sebagai array dua dimensi [week, category]
-  //   const xAxisData = [];
-  //   weeks.forEach((wk, wi) => {
-  //     categories.forEach((cat) => {
-  //       xAxisData.push([`W${wi + 1}`, cat]);
-  //     });
-  //   });
-
-  //   // 6b) Series: satu per kelas, stack: 'total'
-  //   const allSeries = classes.map((cls) => ({
-  //     name: cls,
-  //     type: "bar",
-  //     stack: "total",
-  //     // data harus sebaris dengan xAxisData
-  //     data: weeks.flatMap((wk) => categories.map((cat) => pivot[wk][cat][cls])),
-  //   }));
-
-  //   options.push({
-  //     title: { text: "Ekstraksi — Semua Minggu" },
-  //     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-  //     legend: { data: classes, top: 30, type: "scroll" },
-  //     xAxis: {
-  //       type: "category",
-  //       data: xAxisData,
-  //       name: "Minggu / Kategori",
-  //       axisLabel: {
-  //         // tampilkan hanya baris kategori di label
-  //         formatter: (val) => (Array.isArray(val) ? val[1] : val),
-  //         interval: 0,
-  //         rotate: 45,
-  //         fontsize: 9
-  //       },
-  //       // untuk menampilkan label multi-line
-  //       axisTick: { alignWithLabel: true },
-  //     },
-  //     yAxis: { type: "value", name: "Jumlah Ekstraksi" },
-  //     series: allSeries,
-  //   });
-
-  //   // 7) Pasang baseOption + timeline
-  //   chart.setOption({
-  //     baseOption: {
-  //       timeline: {
-  //         axisType: "category",
-  //         data: [...xWeeks, "All"],
-  //         autoPlay: false,
-  //         label: {
-  //           formatter: (s) => (s === "All" ? "All" : s),
-  //         },
-  //       },
-  //       tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-  //       legend: { top: 30, type: "scroll" },
-  //       grid: { top: 80, left: 50, right: 30, bottom: 50 },
-  //     },
-  //     options,
-  //   });
-
-  //   this.echarts.chart4 = chart;
-  // }
-
-  // renderExtractionStackedBarByCategoryAndClass() {
-  //   const chartDom = document.getElementById("chart4");
-  //   if (!chartDom) return;
-  //   if (this.echarts.chart4) this.echarts.chart4.dispose();
-  //   const chart = echarts.init(chartDom);
-  //   const data = this.state.extractionByCategory;
-  //   if (!data || !data.length) {
-  //     chart.clear();
-  //     return;
-  //   }
-
-  //   // parse dan urutkan minggu
-  //   const parseDate = (s) => {
-  //     const [d, mon, y] = s.split(" ");
-  //     const m = {
-  //       Jan: 0,
-  //       Feb: 1,
-  //       Mar: 2,
-  //       Apr: 3,
-  //       May: 4,
-  //       Jun: 5,
-  //       Jul: 6,
-  //       Aug: 7,
-  //       Sep: 8,
-  //       Oct: 9,
-  //       Nov: 10,
-  //       Dec: 11,
-  //     }[mon];
-  //     return new Date(+y, m, +d);
-  //   };
-  //   const weeks = Array.from(new Set(data.map((r) => r.week_label))).sort(
-  //     (a, b) => parseDate(a) - parseDate(b)
-  //   );
-  //   const xWeeks = weeks.map((w, i) => `W${i + 1}`);
-
-  //   // urutkan kategori & kelas
-  //   const catMap = new Map();
-  //   data.forEach((r) => catMap.set(r.category_id[1], true));
-  //   const categories = Array.from(catMap.keys());
-  //   const classes = Array.from(new Set(data.map((r) => r.class_name)));
-
-  //   // pivot[wk][cat][cls] = count
-  //   const pivot = {};
-  //   weeks.forEach((wk) => {
-  //     pivot[wk] = {};
-  //     categories.forEach((cat) => {
-  //       pivot[wk][cat] = {};
-  //       classes.forEach((cls) => {
-  //         pivot[wk][cat][cls] = 0;
-  //       });
-  //     });
-  //   });
-  //   data.forEach((r) => {
-  //     pivot[r.week_label][r.category_id[1]][r.class_name] = r.extraction_count;
-  //   });
-
-  //   // series: untuk setiap kategori, dalamnya satu series per kelas, dengan stack = nama kategori
-  //   const series = [];
-  //   categories.forEach((cat) => {
-  //     classes.forEach((cls) => {
-  //       series.push({
-  //         name: cls,
-  //         type: "bar",
-  //         stack: cat, // semua series dalam satu kategori di-stack
-  //         data: weeks.map((wk) => pivot[wk][cat][cls]),
-  //         barCategoryGap: "20%", // spasi antara stack groups
-  //       });
-  //     });
-  //   });
-
-  //   chart.setOption({
-  //     title: { text: "Ekstraksi — Semua Minggu" },
-  //     tooltip: {
-  //       trigger: "axis",
-  //       axisPointer: { type: "shadow" },
-  //     },
-  //     legend: {
-  //       data: classes,
-  //       top: 30,
-  //       type: "scroll",
-  //     },
-  //     xAxis: {
-  //       type: "category",
-  //       data: xWeeks,
-  //       name: "Minggu",
-  //       axisLabel: {
-  //         interval: 0,
-  //         rotate: 45,
-  //         fontSize: 10,
-  //         margin: 8,
-  //       },
-  //     },
-  //     yAxis: {
-  //       type: "value",
-  //       name: "Jumlah Ekstraksi",
-  //     },
-  //     series,
-  //   });
-
-  //   this.echarts.chart4 = chart;
-  // }
-
   renderExtractionStackedBarByCategoryAndClass() {
     const chartDom = document.getElementById("chart4");
     if (!chartDom) return;
@@ -703,7 +525,6 @@ export class LogbookClassAnalytics extends Component {
       return;
     }
 
-    // 1) Parse dan urutkan minggu
     const parseDate = (s) => {
       const [d, mon, y] = s.split(" ");
       const m = {
@@ -722,50 +543,48 @@ export class LogbookClassAnalytics extends Component {
       }[mon];
       return new Date(+y, m, +d);
     };
+
+    // 1. Urutkan minggu
     const weeks = Array.from(new Set(data.map((r) => r.week_label))).sort(
       (a, b) => parseDate(a) - parseDate(b)
     );
     const xWeeks = weeks.map((_, i) => `W${i + 1}`);
 
-    // 2) Ambil kategori berdasarkan ID dan urutkan
-    const categoryMap = new Map();
-    data.forEach((r) => {
-      const [catId, catName] = r.category_id;
-      categoryMap.set(catId, catName);
-    });
-    const sortedCategoryEntries = Array.from(categoryMap.entries()).sort(
-      (a, b) => a[0] - b[0]
-    );
-    const categories = sortedCategoryEntries.map(([_, name]) => name);
+    // 2. Ambil daftar kategori (sorted by ID)
+    const catPairs = Array.from(
+      new Map(data.map((r) => [r.category_id[0], r.category_id[1]])).entries()
+    ).sort((a, b) => a[0] - b[0]);
+    const categoryIds = catPairs.map((p) => p[0]);
+    const categoryNames = catPairs.map((p) => p[1]);
 
-    // 3) Ambil kelas unik
-    const classes = Array.from(new Set(data.map((r) => r.class_name)));
+    // 3. Ambil daftar kelas
+    const classes = Array.from(new Set(data.map((r) => r.class_name))).sort();
 
-    // 4) Buat pivot: pivot[week][category][class] = jumlah
+    // 4. Bangun pivot[class][week][category] = count
     const pivot = {};
-    weeks.forEach((wk) => {
-      pivot[wk] = {};
-      categories.forEach((cat) => {
-        pivot[wk][cat] = {};
-        classes.forEach((cls) => {
-          pivot[wk][cat][cls] = 0;
+    classes.forEach((cls) => {
+      pivot[cls] = {};
+      weeks.forEach((wk) => {
+        pivot[cls][wk] = {};
+        categoryIds.forEach((cid) => {
+          pivot[cls][wk][cid] = 0;
         });
       });
     });
     data.forEach((r) => {
-      const week = r.week_label;
-      const cat = r.category_id[1];
       const cls = r.class_name;
-      pivot[week][cat][cls] = r.extraction_count;
+      const wk = r.week_label;
+      const cid = r.category_id[0];
+      pivot[cls][wk][cid] = r.extraction_count;
     });
 
-    // 5) Layout grid
+    // 5. Layout grid per kelas
     const cols = 3;
-    const rows = Math.ceil(categories.length / cols);
-    const perRowPx = 250;
-    chartDom.style.height = `${rows * perRowPx + 120}px`;
+    const rows = Math.ceil(classes.length / cols);
+    const perRowHeight = 250;
+    chartDom.style.height = `${rows * perRowHeight + 120}px`;
 
-    const grids = categories.map((_, idx) => ({
+    const grids = classes.map((_, idx) => ({
       left: `${(idx % cols) * (100 / cols + 1) + 2}%`,
       top: `${Math.floor(idx / cols) * (100 / rows + 1) + 15}%`,
       width: `${100 / cols - 2}%`,
@@ -773,8 +592,8 @@ export class LogbookClassAnalytics extends Component {
       containLabel: true,
     }));
 
-    // 6) Axis
-    const xAxes = categories.map((_, ci) => ({
+    // 6. Axis per grid
+    const xAxes = classes.map((_, ci) => ({
       type: "category",
       gridIndex: ci,
       data: xWeeks,
@@ -786,35 +605,37 @@ export class LogbookClassAnalytics extends Component {
       },
       name: "Minggu",
     }));
-    const yAxes = categories.map((_, ci) => ({
+    const yAxes = classes.map((_, ci) => ({
       type: "value",
       gridIndex: ci,
       name: "Jumlah Ekstraksi",
     }));
 
-    // 7) Series: per kelas dalam tiap kategori
+    // 7. Series: per kategori dalam tiap kelas
     const series = [];
-    categories.forEach((cat, ci) => {
-      classes.forEach((cls) => {
+    classes.forEach((cls, ci) => {
+      categoryIds.forEach((catId, ci2) => {
+        const catName = categoryNames[ci2];
         series.push({
-          name: cls,
+          name: catName,
           type: "bar",
-          stack: cat,
+          stack: `kelas_${ci}`, // stack per kelas
           xAxisIndex: ci,
           yAxisIndex: ci,
-          data: weeks.map((wk) => pivot[wk][cat][cls]),
+          data: weeks.map((wk) => pivot[cls][wk][catId]),
+          emphasis: { focus: "series" },
         });
       });
     });
 
-    // 8) Title per grid (tengah)
-    const titlePerGrid = categories.map((cat, i) => {
+    // 8. Title per grid (kelas)
+    const titlePerGrid = classes.map((cls, i) => {
       const topPercent = `${Math.floor(i / cols) * (100 / rows + 1) + 5}%`;
       const leftPercent = `${
         (i % cols) * (100 / cols + 1) + (100 / cols - 2) / 2
       }%`;
       return {
-        text: cat,
+        text: cls,
         left: leftPercent,
         top: topPercent,
         textAlign: "center",
@@ -825,20 +646,20 @@ export class LogbookClassAnalytics extends Component {
       };
     });
 
-    // 9) Render
+    // 9. Render
     if (this.echarts.chart4) this.echarts.chart4.dispose();
     const chart = echarts.init(chartDom);
     chart.setOption({
       title: [
         {
-          text: "Ekstraksi — Semua Minggu (per Kategori)",
+          text: "Ekstraksi — Semua Minggu (per Kelas)",
           left: "center",
           top: 5,
         },
         ...titlePerGrid,
       ],
       legend: {
-        data: classes,
+        data: categoryNames,
         top: 40,
         type: "scroll",
       },
@@ -854,6 +675,604 @@ export class LogbookClassAnalytics extends Component {
     });
 
     this.echarts.chart4 = chart;
+  }
+
+  renderExtractionSubcategoryTrendByClass() {
+    const chartDom = document.getElementById("chart5");
+    if (!chartDom) return;
+
+    const data = this.state.extractionBySubcategoryClass;
+    if (!data || !data.length) {
+      chartDom.innerHTML =
+        "<p style='text-align:center'>Data tidak tersedia</p>";
+      return;
+    }
+
+    const parseDate = (s) => {
+      const [d, mon, y] = s.split(" ");
+      const m = {
+        Jan: 0,
+        Feb: 1,
+        Mar: 2,
+        Apr: 3,
+        May: 4,
+        Jun: 5,
+        Jul: 6,
+        Aug: 7,
+        Sep: 8,
+        Oct: 9,
+        Nov: 10,
+        Dec: 11,
+      }[mon];
+      return new Date(+y, m, +d);
+    };
+
+    const weeks = Array.from(new Set(data.map((r) => r.week_label))).sort(
+      (a, b) => parseDate(a) - parseDate(b)
+    );
+    const xWeeks = weeks.map((_, i) => `W${i + 1}`);
+    const classes = Array.from(new Set(data.map((r) => r.class_name))).sort();
+    const subPairs = Array.from(
+      new Map(
+        data.map((r) => [r.subcategory_id[0], r.subcategory_id[1]])
+      ).entries()
+    ).sort((a, b) => a[0] - b[0]);
+    const subIds = subPairs.map((p) => p[0]);
+    const subNames = subPairs.map((p) => p[1]);
+
+    const pivot = {};
+    classes.forEach((cls) => {
+      pivot[cls] = {};
+      weeks.forEach((wk) => {
+        pivot[cls][wk] = {};
+        subIds.forEach((sub) => {
+          pivot[cls][wk][sub] = 0;
+        });
+      });
+    });
+    data.forEach((r) => {
+      const cls = r.class_name;
+      const wk = r.week_label;
+      const sub = r.subcategory_id[0];
+      pivot[cls][wk][sub] = r.extraction_count;
+    });
+
+    const cols = 2;
+    const rows = Math.ceil(classes.length / cols);
+    const perRowHeight = 260;
+    chartDom.style.height = `${rows * perRowHeight + 80}px`;
+
+    const grids = classes.map((_, idx) => ({
+      left: `${(idx % cols) * (100 / cols + 2) + 3}%`,
+      top: `${Math.floor(idx / cols) * (100 / rows + 3) + 12}%`,
+      width: `${100 / cols - 5}%`,
+      height: `${100 / rows - 10}%`,
+      containLabel: true,
+    }));
+
+    const xAxes = classes.map((_, ci) => ({
+      type: "category",
+      gridIndex: ci,
+      data: xWeeks,
+      axisLabel: {
+        interval: 0,
+        rotate: 45,
+        fontSize: 9,
+      },
+    }));
+
+    const yAxes = classes.map((_, ci) => ({
+      type: "value",
+      gridIndex: ci,
+      name: "Jumlah Ekstraksi",
+    }));
+
+    const series = [];
+    classes.forEach((cls, ci) => {
+      subIds.forEach((subId, si) => {
+        const subName = subNames[si];
+        series.push({
+          name: subName,
+          type: "bar",
+          stack: `stack_${ci}`, // berbeda per kelas
+          xAxisIndex: ci,
+          yAxisIndex: ci,
+          data: weeks.map((wk) => pivot[cls][wk][subId]),
+          emphasis: { focus: "series" },
+        });
+      });
+    });
+
+    const titlePerClass = classes.map((cls, i) => {
+      const top = `${Math.floor(i / cols) * (100 / rows + 3) + 5}%`;
+      const left = `${(i % cols) * (100 / cols + 2) + 8}%`;
+      return {
+        text: cls,
+        top,
+        left,
+        textAlign: "center",
+        textStyle: { fontWeight: "bold", fontSize: 12 },
+      };
+    });
+
+    if (this.echarts.chart5) this.echarts.chart5.dispose();
+    const chart = echarts.init(chartDom);
+    chart.setOption({
+      title: [
+        {
+          text: "Tren Ekstraksi Subkategori per Kelas (Stacked Bar)",
+          left: "center",
+          top: 5,
+        },
+        ...titlePerClass,
+      ],
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+      },
+      legend: {
+        data: subNames,
+        top: 40,
+        type: "scroll",
+      },
+      grid: grids,
+      xAxis: xAxes,
+      yAxis: yAxes,
+      series: series,
+    });
+
+    this.echarts.chart5 = chart;
+  }
+
+  renderExtractionLabelFreqHeatmapClass() {
+    const chartDom = document.getElementById("heatmapLabelFreqClass");
+    if (!chartDom) return;
+
+    const data = this.state.extractionByLabel;
+    if (!data || data.length === 0) {
+      chartDom.innerHTML =
+        "<p style='text-align:center'>Data tidak tersedia</p>";
+      return;
+    }
+
+    // --- 1) Parse dan urutkan minggu
+    const parseDate = (s) => {
+      const [d, m, y] = s.split(" ");
+      const monthMap = {
+        Jan: 0,
+        Feb: 1,
+        Mar: 2,
+        Apr: 3,
+        May: 4,
+        Jun: 5,
+        Jul: 6,
+        Aug: 7,
+        Sep: 8,
+        Oct: 9,
+        Nov: 10,
+        Dec: 11,
+      };
+      return new Date(+y, monthMap[m], +d);
+    };
+    const weekLabels = Array.from(new Set(data.map((d) => d.week_label))).sort(
+      (a, b) => parseDate(a) - parseDate(b)
+    );
+    const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
+
+    // --- 2) Kelas
+    const classList = Array.from(new Set(data.map((d) => d.class_name))).sort();
+    const classCount = classList.length;
+
+    // --- 3) Label
+    const labelMap = new Map();
+    data.forEach((r) => {
+      const [labelId, labelName] = r.label_id;
+      const [catId, catName] = r.category_id;
+      const subcat = r.subcategory_id?.[1] || "";
+      const prefix = subcat ? `[${catName}-${subcat}]` : `[${catName}]`;
+      const formatted = `${prefix} ${labelName}`;
+      if (!labelMap.has(labelId)) {
+        labelMap.set(labelId, { labelId, catId, formatted });
+      }
+    });
+    const labels = Array.from(labelMap.values()).sort(
+      (a, b) => b.catId - a.catId || b.labelId - a.labelId
+    );
+    const yLabels = labels.map((l) => l.formatted);
+    const labelIndex = new Map(labels.map((l, i) => [l.labelId, i]));
+
+    // --- 4) Pivot per kelas
+    const pivotByClass = {};
+    classList.forEach((cls) => {
+      pivotByClass[cls] = [];
+    });
+    data.forEach((r) => {
+      const cls = r.class_name;
+      const week = r.week_label;
+      const [labelId] = r.label_id;
+      const x = weekLabels.indexOf(week);
+      const y = labelIndex.get(labelId);
+      if (x !== -1 && y !== undefined) {
+        pivotByClass[cls].push([x, y, r.extraction_count]);
+      }
+    });
+
+    // --- 5) Tinggi dinamis berdasarkan jumlah kelas (misal 250px per kelas)
+    const containerHeight = 250 * classCount + 80;
+    chartDom.style.height = `${containerHeight}px`;
+
+    // --- 6) Layout grid pakai persen
+    const heightPercent = 80 / classCount; // sisakan atas 10%, bawah 10%
+    const grids = classList.map((_, i) => ({
+      top: `${10 + i * heightPercent}%`,
+      height: `${heightPercent - 5}%`, // 5% padding antar grid
+      left: 60,
+      right: 60,
+      containLabel: true,
+    }));
+
+    const xAxis = classList.map((_, i) => ({
+      type: "category",
+      data: weekIndexLabels,
+      gridIndex: i,
+      name: "Minggu",
+      axisLabel: { interval: 0 },
+      splitArea: { show: true },
+    }));
+
+    const yAxis = classList.map((_, i) => ({
+      type: "category",
+      data: yLabels,
+      gridIndex: i,
+      name: "Label",
+      axisLabel: {
+        interval: 0,
+        fontSize: 8,
+      },
+      splitArea: { show: true },
+    }));
+
+    const series = classList.map((cls, i) => ({
+      name: `Kelas ${cls}`,
+      type: "heatmap",
+      xAxisIndex: i,
+      yAxisIndex: i,
+      data: pivotByClass[cls],
+      label: {
+        show: true,
+        fontSize: 10,
+        formatter: (param) => param.value[2],
+      },
+      emphasis: {
+        itemStyle: {
+          shadowBlur: 10,
+          shadowColor: "rgba(0, 0, 0, 0.5)",
+        },
+      },
+    }));
+
+    const titles = classList.map((cls, i) => ({
+      text: `Kelas ${cls}`,
+      left: "center",
+      top: `${10 + i * heightPercent - 4}%`,
+      textStyle: { fontSize: 12, fontWeight: "bold" },
+    }));
+
+    if (this.echarts.heatmapLabelFreqClass) {
+      this.echarts.heatmapLabelFreqClass.dispose();
+    }
+
+    const chart = echarts.init(chartDom);
+    chart.setOption({
+      title: [
+        {
+          text: "Heatmap Ekstraksi Label — per Kelas",
+          left: "center",
+          top: "2%",
+        },
+        ...titles,
+      ],
+      tooltip: {
+        position: "top",
+        formatter: function (params) {
+          const [x, y, val] = params.data;
+          return `${yLabels[y]}<br/>${weekIndexLabels[x]} (${weekLabels[x]}): ${val}`;
+        },
+      },
+      visualMap: {
+        min: 0,
+        max: Math.max(...data.map((d) => d.extraction_count)),
+        calculable: true,
+        orient: "horizontal",
+        left: "center",
+        bottom: 10,
+      },
+      grid: grids,
+      xAxis,
+      yAxis,
+      series,
+    });
+
+    this.echarts.heatmapLabelFreqClass = chart;
+  }
+
+  renderExtractionLabelPointHeatmapClass() {
+    const chartDom = document.getElementById("heatmapLabelPointClass");
+    if (!chartDom) return;
+
+    const allData = this.state.normByLabel;
+    if (!allData || allData.length === 0) {
+      chartDom.innerHTML =
+        "<p style='text-align:center'>Data tidak tersedia</p>";
+      return;
+    }
+
+    // 1) Urutkan minggu
+    const weekLabels = Array.from(
+      new Set(allData.map((d) => d.week_label))
+    ).sort((a, b) => {
+      const parse = (s) => {
+        const [d, m, y] = s.split(" ");
+        const mm = {
+          Jan: 0,
+          Feb: 1,
+          Mar: 2,
+          Apr: 3,
+          May: 4,
+          Jun: 5,
+          Jul: 6,
+          Aug: 7,
+          Sep: 8,
+          Oct: 9,
+          Nov: 10,
+          Dec: 11,
+        };
+        return new Date(+y, mm[m], +d);
+      };
+      return parse(a) - parse(b);
+    });
+    const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
+
+    // 2) Kelas dan label info
+    const classes = Array.from(new Set(allData.map((d) => d.class_name)));
+    const labelMap = new Map();
+    allData.forEach((r) => {
+      const [labelId, labelName] = r.label_id;
+      const [catId, catName] = r.category_id;
+      const subName = r.subcategory_id?.[1] || "";
+      const prefix = subName ? `[${catName}-${subName}]` : `[${catName}]`;
+      const formatted = `${prefix} ${labelName}`;
+      if (!labelMap.has(labelId)) {
+        labelMap.set(labelId, { labelId, categoryId: catId, formatted });
+      }
+    });
+    const labelInfos = Array.from(labelMap.values()).sort((a, b) =>
+      b.categoryId !== a.categoryId
+        ? b.categoryId - a.categoryId
+        : b.labelId - a.labelId
+    );
+    const yLabels = labelInfos.map((info) => info.formatted);
+    const labelIndexMap = new Map(
+      labelInfos.map((info, i) => [info.labelId, i])
+    );
+
+    // 3) Hitung tinggi
+    const rowHeight = 22; // tinggi per label row
+    const basePadding = 80; // untuk legend + title
+    const perGridHeight = Math.max(200, yLabels.length * rowHeight);
+    chartDom.style.height = `${classes.length * perGridHeight + basePadding}px`;
+
+    const grids = [],
+      xAxes = [],
+      yAxes = [],
+      series = [],
+      titles = [];
+
+    // 4) Bangun heatmap per kelas
+    classes.forEach((cls, idx) => {
+      const heatmapData = [];
+
+      allData.forEach((r) => {
+        if (r.class_name !== cls) return;
+        const wl = r.week_label;
+        const [labelId] = r.label_id;
+        const x = weekLabels.indexOf(wl);
+        const y = labelIndexMap.get(labelId);
+        if (x !== -1 && y !== undefined) {
+          heatmapData.push([x, y, parseFloat(r.avg_norm_point)]);
+        }
+      });
+
+      const gridTop = basePadding + idx * perGridHeight;
+      grids.push({
+        top: `${gridTop}px`,
+        height: `${perGridHeight - 40}px`,
+        left: 100,
+        right: 60,
+        containLabel: true,
+      });
+
+      xAxes.push({
+        type: "category",
+        data: weekIndexLabels,
+        gridIndex: idx,
+        name: "Minggu",
+        axisLabel: { interval: 0, fontSize: 9 },
+        splitArea: { show: true },
+      });
+
+      yAxes.push({
+        type: "category",
+        data: yLabels,
+        gridIndex: idx,
+        name: "",
+        splitArea: { show: true },
+        axisLabel: { fontSize: 10 },
+      });
+
+      series.push({
+        name: cls,
+        type: "heatmap",
+        data: heatmapData,
+        xAxisIndex: idx,
+        yAxisIndex: idx,
+        label: {
+          show: true,
+          fontSize: 9,
+          formatter: (param) => param.value[2].toFixed(2),
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: "rgba(0,0,0,0.5)",
+          },
+        },
+      });
+
+      titles.push({
+        text: `Kelas ${cls}`,
+        top: `${gridTop - 22}px`,
+        left: "center",
+        textStyle: { fontWeight: "bold", fontSize: 13 },
+      });
+    });
+
+    const chart = echarts.init(chartDom);
+    chart.setOption({
+      title: [
+        { text: "Heatmap Ekstraksi Label — per Kelas", left: "center", top: 0 },
+        ...titles,
+      ],
+      tooltip: {
+        position: "top",
+        formatter: (params) => {
+          const [x, y, val] = params.data;
+          return `${yLabels[y]}<br/>${weekIndexLabels[x]}: ${val.toFixed(2)}`;
+        },
+      },
+      visualMap: {
+        min: 0,
+        max: 1,
+        calculable: true,
+        orient: "horizontal",
+        left: "center",
+        bottom: 5,
+        inRange: { color: ["#f7fbff", "#08306b"] },
+      },
+      grid: grids,
+      xAxis: xAxes,
+      yAxis: yAxes,
+      series: series,
+    });
+
+    this.echarts.heatmapLabelPointClass = chart;
+  }
+
+  renderExtractionLabelOverallRadarChartClass() {
+    const chartDom = document.getElementById("labelPointRadarClass");
+    if (!chartDom) return;
+
+    const chart = echarts.init(chartDom);
+    const allData = this.state.normByLabel;
+
+    if (!allData || allData.length === 0) {
+      chart.clear();
+      return;
+    }
+
+    // 1. Ambil info label unik
+    const labelMap = new Map();
+    allData.forEach((r) => {
+      const [id, name] = r.label_id;
+      const cat = r.category_id?.[1] || "";
+      const sub = r.subcategory_id?.[1] || "";
+      const prefix = sub ? `[${cat}-${sub}]` : `[${cat}]`;
+      const full = `${prefix} ${name}`;
+      if (!labelMap.has(id)) {
+        labelMap.set(id, { labelId: id, formatted: full });
+      }
+    });
+
+    const labelInfos = Array.from(labelMap.values());
+    const labelIndexMap = new Map(labelInfos.map((l, i) => [l.labelId, i]));
+    const radarIndicators = labelInfos.map((i) => ({
+      name:
+        i.formatted.length > 25
+          ? i.formatted.slice(0, 22) + "..."
+          : i.formatted,
+      max: 1,
+    }));
+
+    // 2. Hitung avg per label per class
+    const classMap = new Map();
+    allData.forEach((r) => {
+      const cls = r.class_name;
+      const labId = r.label_id[0];
+      const val = parseFloat(r.avg_norm_point);
+      if (!classMap.has(cls)) {
+        classMap.set(cls, {
+          name: cls,
+          sum: Array(labelInfos.length).fill(0),
+          count: Array(labelInfos.length).fill(0),
+        });
+      }
+      const group = classMap.get(cls);
+      const i = labelIndexMap.get(labId);
+      group.sum[i] += val;
+      group.count[i] += 1;
+    });
+
+    const seriesData = Array.from(classMap.values()).map((clsObj) => {
+      const values = clsObj.sum.map(
+        (s, i) => +(s / (clsObj.count[i] || 1)).toFixed(2)
+      );
+      return {
+        name: clsObj.name,
+        value: values,
+      };
+    });
+
+    chart.setOption({
+      title: {
+        text: "Radar: AVG Point Normalisasi (per Kelas)",
+        left: "center",
+      },
+      tooltip: {
+        trigger: "item",
+        formatter: (param) => {
+          const values = param.value;
+          const list = radarIndicators.map((r, i) => ({
+            label: r.name,
+            val: values[i],
+          }));
+          list.sort((a, b) => b.val - a.val);
+          return (
+            `<strong>${param.name}</strong><br/>` +
+            list.map((i) => `${i.label}: ${i.val}`).join("<br/>")
+          );
+        },
+      },
+      legend: {
+        top: 20,
+        type: "scroll",
+      },
+      radar: {
+        indicator: radarIndicators,
+        shape: "circle",
+        splitNumber: 5,
+      },
+      series: [
+        {
+          type: "radar",
+          data: seriesData,
+          symbolSize: 4,
+          areaStyle: { opacity: 0.2 },
+          lineStyle: { width: 2 },
+        },
+      ],
+    });
+
+    this.echarts.labelPointRadarClass = chart;
   }
 }
 
