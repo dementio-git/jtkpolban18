@@ -19,3 +19,4 @@ access_logbook_extraction_weekly_subcategory_class,access.logbook.extraction.wee
 access_logbook_extraction_weekly_label_class,access.logbook.extraction.weekly.label.class,model_logbook_extraction_weekly_label_class,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_label_norm_class,access.logbook.extraction.weekly.label.norm.class,model_logbook_extraction_weekly_label_norm_class,base.group_user,1,1,1,1
 access_logbook_extraction_student_label_aggregate,access.logbook.extraction.student.label.aggregate,model_logbook_extraction_student_label_aggregate,base.group_user,1,1,1,1
+access_logbook_extraction_student_label_norm,access.logbook.extraction.student.label.norm,model_logbook_extraction_student_label_norm,base.group_user,1,1,1,1

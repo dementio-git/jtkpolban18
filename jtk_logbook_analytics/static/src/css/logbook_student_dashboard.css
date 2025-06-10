@@ -1,0 +1,14 @@
+/* teks & padding kecil di header */
+.tabulator .tabulator-header .tabulator-col {
+  font-size: 12px;
+  padding: 4px 6px;
+  justify-content: center;
+  text-align: center;
+}
+
+/* teks & padding kecil di cell */
+.tabulator .tabulator-cell {
+  font-size: 12px;
+  padding: 4px 6px;
+  line-height: 1.2;
+}
