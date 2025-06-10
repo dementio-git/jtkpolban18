@@ -36,14 +36,12 @@ export class LogbookClassAnalytics extends Component {
     this.echarts = {};
 
     onWillStart(async () => {
-      // 1) Coba ambil dari context default_project_course_id
       let pid = this.props.action?.context?.default_project_course_id;
-      // 2) Jika tidak ada, ambil dari URL
       if (!pid) {
         pid = getRecordIdFromPath();
       }
       this.state.projectCourseId = pid;
-      // 3) Load data
+      
       await this.loadStats();
       await this.loadWeeklyStats();
       await this.loadExtractionStatsByClass();

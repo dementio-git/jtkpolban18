@@ -5,11 +5,24 @@ import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import * as echarts from "echarts";
 
+function getRecordIdFromPath() {
+  let m = window.location.pathname.match(
+    /\/(?:odoo\/)?project-course\/(\d+)(\/|$)/
+  );
+  if (m) {
+    return parseInt(m[1], 10);
+  }
+  // fallback: cari angka saja di path
+  m = window.location.pathname.split("/").find((seg) => /^\d+$/.test(seg));
+  return m ? parseInt(m, 10) : null;
+}
+
 export class LogbookProjectAnalytics extends Component {
   setup() {
     this.state = useState({
       stats: [],
       weeklyStats: [],
+      projectCourseId: null,
       extractionStats: [],
       extraction_stats: [], // Add this new state
       extractionByCategory: [],
@@ -21,6 +34,12 @@ export class LogbookProjectAnalytics extends Component {
     this.echarts = {};
 
     onWillStart(async () => {
+      let pid = this.props.action?.context?.default_project_course_id;
+      if (!pid) {
+        pid = getRecordIdFromPath();
+      }
+      this.state.projectCourseId = pid;
+
       await this.loadStats();
       await this.loadWeeklyStats();
       await this.loadExtractionStats();
@@ -37,9 +56,15 @@ export class LogbookProjectAnalytics extends Component {
   }
 
   async loadStats() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      console.warn("projectCourseId belum tersedia");
+      this.state.stats = [];
+      return;
+    }
     this.state.stats = await this.orm.searchRead(
       "logbook.descriptive.stats",
-      [],
+      [["project_course_id", "=", pid]],
       [
         "project_course_id",
         "total_students",
@@ -55,9 +80,15 @@ export class LogbookProjectAnalytics extends Component {
   }
 
   async loadWeeklyStats() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      console.warn("projectCourseId belum tersedia");
+      this.state.weeklyStats = [];
+      return;
+    }
     this.state.weeklyStats = await this.orm.searchRead(
       "logbook.weekly.stats",
-      [],
+      [["project_course_id", "=", pid]],
       [
         "week_start_date",
         "week_end_date",
@@ -69,17 +100,27 @@ export class LogbookProjectAnalytics extends Component {
   }
 
   async loadExtractionStats() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      this.state.extractionStats = [];
+      return;
+    }
     this.state.extractionStats = await this.orm.searchRead(
       "logbook.extraction.weekly",
-      [],
+      [["project_course_id", "=", pid]],
       ["week_start_date", "week_end_date", "week_label", "extraction_count"]
     );
   }
 
   async loadExtractionDescriptiveStats() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      this.state.extraction_stats = [];
+      return;
+    }
     this.state.extraction_stats = await this.orm.searchRead(
       "logbook.extraction.descriptive.stats",
-      [],
+      [["project_course_id", "=", pid]],
       [
         "avg_extraction_per_logbook",
         "std_extraction_per_logbook",
@@ -92,9 +133,14 @@ export class LogbookProjectAnalytics extends Component {
   }
 
   async loadExtractionByCategory() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      this.state.extractionByCategory = [];
+      return;
+    }
     this.state.extractionByCategory = await this.orm.searchRead(
       "logbook.extraction.weekly.category",
-      [],
+      [["project_course_id", "=", pid]],
       [
         "week_start_date",
         "week_end_date",
@@ -107,9 +153,14 @@ export class LogbookProjectAnalytics extends Component {
 
   // 1) Memuat data tren subkategori
   async loadExtractionBySubcategory() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      this.state.extractionBySubcategory = [];
+      return;
+    }
     this.state.extractionBySubcategory = await this.orm.searchRead(
       "logbook.extraction.weekly.subcategory",
-      [],
+      [["project_course_id", "=", pid]],
       [
         "week_start_date",
         "week_end_date",
@@ -121,9 +172,14 @@ export class LogbookProjectAnalytics extends Component {
   }
 
   async loadExtractionByLabel() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      this.state.extractionByLabel = [];
+      return;
+    }
     this.state.extractionByLabel = await this.orm.searchRead(
       "logbook.extraction.weekly.label",
-      [],
+      [["project_course_id", "=", pid]],
       [
         "week_start_date",
         "week_end_date",
@@ -137,10 +193,15 @@ export class LogbookProjectAnalytics extends Component {
   }
 
   async loadNormalizedByLabel() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      this.state.normByLabel = [];
+      return;
+    }
     // Panggil view baru untuk mendapatkan avg_norm_point per minggu × label
     this.state.normByLabel = await this.orm.searchRead(
       "logbook.extraction.weekly.label.norm",
-      [], // no domain filter
+      [["project_course_id", "=", pid]], // no domain filter
       [
         "week_label",
         "label_id", 

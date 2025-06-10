@@ -232,6 +232,7 @@ class LogbookExtractionDescriptiveStats(models.Model):
     _auto = False
     _description = 'Statistik Deskriptif Ekstraksi Logbook'
 
+    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
     avg_extraction_per_logbook      = fields.Float(string='Rata-rata Ekstraksi per Logbook', readonly=True)
     std_extraction_per_logbook      = fields.Float(string='Std Dev Ekstraksi per Logbook', readonly=True)
     avg_extraction_per_student      = fields.Float(string='Rata-rata Ekstraksi per Mahasiswa', readonly=True)
@@ -241,58 +242,73 @@ class LogbookExtractionDescriptiveStats(models.Model):
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
-        self.env.cr.execute("""
-        CREATE OR REPLACE VIEW logbook_extraction_descriptive_stats AS (
-            WITH 
-            per_logbook AS (
+        self.env.cr.execute("""       
+            CREATE OR REPLACE VIEW logbook_extraction_descriptive_stats AS
+                WITH extraction_data AS (
+                    SELECT
+                        lb.project_course_id,
+                        lb.id          AS logbook_id,
+                        lb.student_id,
+                        lb.week_id,
+                        e.id           AS extraction_id
+                    FROM logbook_logbook     lb
+                    JOIN logbook_extraction  e  ON e.logbook_id = lb.id
+                    WHERE e.content IS NOT NULL AND e.content <> ''
+                ),
+
+                -- 1 baris / project_course_id
+                logbook_stats AS (
+                    SELECT
+                        project_course_id,
+                        ROUND(AVG(cnt)::numeric,2)  AS avg_logbook,
+                        ROUND(STDDEV(cnt)::numeric,2) AS std_logbook
+                    FROM (
+                        SELECT project_course_id, logbook_id, COUNT(*) AS cnt
+                        FROM extraction_data
+                        GROUP BY project_course_id, logbook_id
+                    ) t GROUP BY project_course_id
+                ),
+
+                student_stats AS (
+                    SELECT
+                        project_course_id,
+                        ROUND(AVG(cnt)::numeric,2)  AS avg_student,
+                        ROUND(STDDEV(cnt)::numeric,2) AS std_student
+                    FROM (
+                        SELECT project_course_id, student_id, COUNT(*) AS cnt
+                        FROM extraction_data
+                        GROUP BY project_course_id, student_id
+                    ) t GROUP BY project_course_id
+                ),
+
+                student_week_stats AS (
+                    SELECT
+                        project_course_id,
+                        ROUND(AVG(cnt)::numeric,2)  AS avg_stu_week,
+                        ROUND(STDDEV(cnt)::numeric,2) AS std_stu_week
+                    FROM (
+                        SELECT project_course_id, student_id, week_id, COUNT(*) AS cnt
+                        FROM extraction_data
+                        GROUP BY project_course_id, student_id, week_id
+                    ) t GROUP BY project_course_id
+                )
+
                 SELECT
-                  COUNT(e.id) AS count_logbook
-                FROM logbook_logbook lb
-                LEFT JOIN logbook_extraction e 
-                  ON e.logbook_id = lb.id
-                 AND e.content IS NOT NULL
-                 AND e.content != ''
-                GROUP BY lb.id
-            ),
-            per_student AS (
-                SELECT
-                  COUNT(e.id) AS count_student
-                FROM logbook_logbook lb
-                LEFT JOIN logbook_extraction e 
-                  ON e.logbook_id = lb.id
-                 AND e.content IS NOT NULL
-                 AND e.content != ''
-                GROUP BY lb.student_id
-            ),
-            per_student_week AS (
-                SELECT
-                  COUNT(e.id) AS count_student_week
-                FROM logbook_logbook lb
-                LEFT JOIN logbook_extraction e 
-                  ON e.logbook_id = lb.id
-                 AND e.content IS NOT NULL
-                 AND e.content != ''
-                WHERE lb.week_id IS NOT NULL
-                GROUP BY lb.student_id, lb.week_id
-            )
-            SELECT
-              1 AS id,
-              -- Agregasi CTE per_logbook
-              (SELECT ROUND(AVG(count_logbook)::numeric, 2) 
-               FROM per_logbook)             AS avg_extraction_per_logbook,
-              (SELECT ROUND(STDDEV(count_logbook)::numeric, 2) 
-               FROM per_logbook)             AS std_extraction_per_logbook,
-              -- Agregasi CTE per_student
-              (SELECT ROUND(AVG(count_student)::numeric, 2) 
-               FROM per_student)             AS avg_extraction_per_student,
-              (SELECT ROUND(STDDEV(count_student)::numeric, 2) 
-               FROM per_student)             AS std_extraction_per_student,
-              -- Agregasi CTE per_student_week
-              (SELECT ROUND(AVG(count_student_week)::numeric, 2) 
-               FROM per_student_week)        AS avg_extraction_per_student_week,
-              (SELECT ROUND(STDDEV(count_student_week)::numeric, 2) 
-               FROM per_student_week)        AS std_extraction_per_student_week
-        );
+                    ROW_NUMBER() OVER ()                    AS id,
+                    pc.project_course_id                    AS project_course_id,
+                    ls.avg_logbook                          AS avg_extraction_per_logbook,
+                    ls.std_logbook                          AS std_extraction_per_logbook,
+                    ss.avg_student                          AS avg_extraction_per_student,
+                    ss.std_student                          AS std_extraction_per_student,
+                    sws.avg_stu_week                        AS avg_extraction_per_student_week,
+                    sws.std_stu_week                        AS std_extraction_per_student_week
+                FROM (
+                    SELECT DISTINCT project_course_id FROM extraction_data
+                ) pc
+                LEFT JOIN logbook_stats      ls  ON ls.project_course_id  = pc.project_course_id
+                LEFT JOIN student_stats      ss  ON ss.project_course_id  = pc.project_course_id
+                LEFT JOIN student_week_stats sws ON sws.project_course_id = pc.project_course_id;
+
         """)
 
 class LogbookExtractionWeeklyByCategory(models.Model):
@@ -580,3 +596,117 @@ class LogbookExtractionWeeklyLabelNorm(models.Model):
                     e.label_sub_category_id
             )
         """ % {'table': self._table})
+
+class LogbookKeywordCloud(models.Model):
+    _name = 'logbook.keyword.cloud'
+    _auto = False
+    _description = 'WordCloud Keyword Logbook per Minggu dengan Persentase dan Peringkat'
+
+    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
+    week_id           = fields.Many2one('course.activity', string='Minggu', readonly=True)
+    class_id          = fields.Many2one('class.class', string='Kelas', readonly=True)
+    keyword           = fields.Char(string='Keyword', readonly=True)
+    frequency         = fields.Integer(string='Frekuensi', readonly=True)
+    freq_pct_week     = fields.Float(string='Persentase Mingguan (%)', readonly=True)
+    freq_rank_week    = fields.Integer(string='Peringkat Mingguan', readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+            CREATE OR REPLACE VIEW logbook_keyword_cloud AS (
+                WITH KeywordStats AS (
+                    SELECT 
+                        l.project_course_id,
+                        l.week_id,
+                        s.class_id,
+                        k.name      AS keyword,
+                        COUNT(*)    AS frequency
+                    FROM logbook_logbook l
+                    JOIN student_student s ON l.student_id = s.id
+                    JOIN logbook_keyword k ON k.logbook_id = l.id
+                    WHERE l.project_course_id IS NOT NULL
+                    GROUP BY l.project_course_id, l.week_id, s.class_id, k.name
+                ),
+                TotalFreq AS (
+                    SELECT
+                        project_course_id,
+                        week_id,
+                        class_id,
+                        SUM(frequency) AS total_freq
+                    FROM KeywordStats
+                    GROUP BY project_course_id, week_id, class_id
+                )
+                SELECT
+                    ROW_NUMBER() OVER ()                                         AS id,
+                    ks.project_course_id,
+                    ks.week_id,
+                    ks.class_id,
+                    ks.keyword,
+                    ks.frequency,
+                    ROUND(ks.frequency::numeric / tf.total_freq * 100, 2)        AS freq_pct_week,
+                    DENSE_RANK() OVER (
+                        PARTITION BY ks.project_course_id, ks.week_id, ks.class_id
+                        ORDER BY ks.frequency DESC
+                    )                                                              AS freq_rank_week
+                FROM KeywordStats ks
+                JOIN TotalFreq tf ON
+                    tf.project_course_id = ks.project_course_id AND
+                    tf.week_id           = ks.week_id           AND
+                    tf.class_id          = ks.class_id
+            )
+        """)
+        
+        
+class LogbookKeywordCloudOverall(models.Model):
+    _name = 'logbook.keyword.cloud.overall'
+    _auto = False
+    _description = 'WordCloud Keyword Logbook Overall dengan Persentase dan Peringkat'
+
+    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
+    class_id          = fields.Many2one('class.class', string='Kelas', readonly=True)
+    keyword           = fields.Char(string='Keyword', readonly=True)
+    frequency         = fields.Integer(string='Frekuensi', readonly=True)
+    freq_pct_overall  = fields.Float(string='Persentase Overall (%)', readonly=True)
+    freq_rank_overall = fields.Integer(string='Peringkat Overall', readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+            CREATE OR REPLACE VIEW logbook_keyword_cloud_overall AS (
+                WITH KeywordStats AS (
+                    SELECT 
+                        l.project_course_id,
+                        s.class_id,
+                        k.name      AS keyword,
+                        COUNT(*)    AS frequency
+                    FROM logbook_logbook l
+                    JOIN student_student s ON l.student_id = s.id
+                    JOIN logbook_keyword k ON k.logbook_id = l.id
+                    WHERE l.project_course_id IS NOT NULL
+                    GROUP BY l.project_course_id, s.class_id, k.name
+                ),
+                TotalFreqAll AS (
+                    SELECT
+                        project_course_id,
+                        class_id,
+                        SUM(frequency) AS total_freq
+                    FROM KeywordStats
+                    GROUP BY project_course_id, class_id
+                )
+                SELECT
+                    ROW_NUMBER() OVER ()                                          AS id,
+                    ks.project_course_id,
+                    ks.class_id,
+                    ks.keyword,
+                    ks.frequency,
+                    ROUND(ks.frequency::numeric / tfa.total_freq * 100, 2)       AS freq_pct_overall,
+                    DENSE_RANK() OVER (
+                        PARTITION BY ks.project_course_id, ks.class_id
+                        ORDER BY ks.frequency DESC
+                    )                                                              AS freq_rank_overall
+                FROM KeywordStats ks
+                JOIN TotalFreqAll tfa ON
+                    tfa.project_course_id = ks.project_course_id AND
+                    tfa.class_id          = ks.class_id
+            )
+        """)
