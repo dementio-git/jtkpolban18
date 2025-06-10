@@ -28,3 +28,4 @@ access_logbook_extraction_weekly_category_student,access.logbook.extraction.week
 access_logbook_extraction_weekly_subcategory_student,access.logbook.extraction.weekly.subcategory.student,model_logbook_extraction_weekly_subcategory_student,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_label_student,access.logbook.extraction.weekly.label.student,model_logbook_extraction_weekly_label_student,base.group_user,1,1,1,1
 access_logbook_keyword_cloud,access.logbook.keyword.cloud,model_logbook_keyword_cloud,base.group_user,1,1,1,1
+access_logbook_keyword_cloud_overall,access.logbook.keyword.cloud.overall,model_logbook_keyword_cloud_overall,base.group_user,1,1,1,1

@@ -29,6 +29,8 @@ export class LogbookProjectAnalytics extends Component {
       extractionBySubcategory: [], // <— data untuk tren subkategori
       extractionByLabel: [],
       extractionByNormalizedLabel: [],
+      wordcloudData: [], // Menambahkan state untuk wordcloud
+      wordcloudOverallData: [], // Menambahkan state untuk wordcloud overall
     });
     this.orm = useService("orm");
     this.echarts = {};
@@ -48,6 +50,8 @@ export class LogbookProjectAnalytics extends Component {
       await this.loadExtractionBySubcategory();
       await this.loadExtractionByLabel();
       await this.loadNormalizedByLabel(); // Panggil fungsi baru untuk memuat data normalisasi
+      await this.loadWordcloud(); // Tambahkan pemanggilan loadWordcloud
+      await this.loadWordcloudOverall(); // Tambahkan pemanggilan loadWordcloudOverall
     });
 
     onMounted(() => {
@@ -212,15 +216,111 @@ export class LogbookProjectAnalytics extends Component {
     );
   }
 
+  async loadWordcloud() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      this.state.wordcloudData = [];
+      return;
+    }
+    // Mengambil data wordcloud untuk project tertentu
+    this.state.wordcloudData = await this.orm.searchRead(
+      "logbook.keyword.cloud",
+      [["project_course_id", "=", pid]],
+      ["keyword", "frequency", "freq_pct_week", "freq_rank_week"]
+    );
+  }
+
+  async loadWordcloudOverall() {
+    const pid = this.state.projectCourseId;
+    if (!pid) {
+      this.state.wordcloudOverallData = [];
+      return;
+    }
+    // Mengambil data wordcloud overall untuk project tertentu
+    this.state.wordcloudOverallData = await this.orm.searchRead(
+      "logbook.keyword.cloud.overall",
+      [["project_course_id", "=", pid]],
+      ["keyword", "frequency", "freq_pct_overall", "freq_rank_overall"]
+    );
+  }
+
   renderCharts() {
     this.renderParticipationTrendChart();
     this.renderProductivityTrendChart();
-    this.renderExtractionTrendChart(); // Tambahkan render untuk grafik ketiga
+    this.renderExtractionTrendChart();    
     this.renderExtractionCategoryTrendChart();
     this.renderExtractionSubcategoryTrendChart();
     this.renderExtractionLabelFreqHeatmap();
     this.renderExtractionLabelPointHeatmap();
     this.renderExtractionLabelOverallRadarChart();
+    this.renderWordcloudChart();
+    this.renderWordcloudOverallChart();
+  }
+
+  renderWordcloudChart() {
+    const chartDom = document.getElementById("wordcloud");
+    if (!chartDom) return;
+
+    const chart = echarts.init(chartDom);
+    
+    // Transform data untuk wordcloud - menggunakan frequency sebagai nilai
+    const data = this.state.wordcloudData.map(item => ({
+      name: item.keyword,
+      value: item.frequency
+    })).sort((a, b) => b.value - a.value).slice(0, 200);
+
+    const option = {
+      title: { text: "Word Cloud Keyword Logbook" },
+      tooltip: {
+        formatter: ({data}) => `${data.name}: ${data.value}`
+      },
+      series: [{
+        type: 'wordCloud',
+        gridSize: 8,
+        sizeRange: [12, 40],
+        rotationRange: [-45, 90],
+        shape: 'circle',
+        textStyle: {
+          color: () => `hsl(${Math.random() * 360}, 70%, 50%)`
+        },
+        data
+      }]
+    };
+
+    chart.setOption(option);
+  }
+
+  renderWordcloudOverallChart() {
+    const chartDom = document.getElementById("wordcloud_overall");
+    if (!chartDom) return;
+
+    const chart = echarts.init(chartDom);
+    
+    // Transform data untuk wordcloud overall - menggunakan frequency sebagai nilai
+    const data = this.state.wordcloudOverallData.map(item => ({
+      name: item.keyword,
+      value: item.frequency
+    })).sort((a, b) => b.value - a.value).slice(0, 200);
+
+    const option = {
+      title: { text: "Word Cloud Keyword Logbook (Overall)" },
+      tooltip: {
+        formatter: ({data}) => `${data.name}: ${data.value}`
+      },
+      series: [{
+        type: 'wordCloud',
+        gridSize: 8,
+        sizeRange: [12, 40],
+        rotationRange: [-45, 90],
+        shape: 'circle',
+        textStyle: {
+          color: () => `hsl(${Math.random() * 360}, 70%, 50%)`
+        },
+        data
+      }]
+    };
+
+    chart.setOption(option);
   }
 
   formatDate(dateStr) {
