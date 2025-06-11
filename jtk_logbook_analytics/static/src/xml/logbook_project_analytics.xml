@@ -113,8 +113,21 @@
                 <div class="card-header bg-primary text-white">
                     <h3 class="card-title">Tren Jumlah dan Point Per Kategori Label</h3>
                 </div>
-                <div class="card-body" style="height: 400px;">
-                    <div id="chart4" style="height: 400px;"></div>
+                <div class="card-body" style="height: 500px;">
+                    <div id="chart4" style="height: 500px;"></div>
+                </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title">Tren Jumlah dan Point Per Sub-Kategori Label</h3>
+                </div>
+                <div class="card-body" style="height: 500px;">
+                    <div id="chart5" style="height: 500px;"></div>
                 </div>
                 </div>
             </div>
@@ -127,9 +140,6 @@
                         <h3 class="card-title">Grafik Tren Waktu Ekstraksi Logbook</h3>
                     </div>
                     <div class="card-body">
-                        <div class="chart-container" style="height: 400px;">
-                            <div id="chart5" style="height: 400px;"></div>
-                        </div>
                         <div class="chart-container" style="height: 700px;">
                             <div id="heatmapLabelFreq" style="height: 700px;"></div>
                         </div>

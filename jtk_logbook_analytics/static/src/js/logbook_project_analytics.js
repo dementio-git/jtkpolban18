@@ -182,6 +182,7 @@ export class LogbookProjectAnalytics extends Component {
         "week_label",
         "subcategory_id",
         "extraction_count",
+        "avg_norm_point",
       ]
     );
   }
@@ -826,6 +827,38 @@ export class LogbookProjectAnalytics extends Component {
       ];
     }
 
+    const averages = {};
+    categoryIds.forEach((catId, ci) => {
+      const catName = categoryNames[ci];
+      let totalCount = 0;
+      let totalPoint = 0;
+      let weekCount = 0;
+
+      weeks.forEach((wk) => {
+        totalCount += pivot[wk][catId];
+        const record = data.find(
+          (r) => r.week_label === wk && r.category_id[0] === catId
+        );
+        if (record?.avg_norm_point) {
+          totalPoint += parseFloat(record.avg_norm_point);
+          weekCount++;
+        }
+      });
+
+      averages[catName] = {
+        count: totalCount / weeks.length,
+        point: weekCount ? totalPoint / weekCount : 0,
+      };
+    });
+
+    const averagesText = categoryIds.map((catId) => {
+      const catName = categoryNames[categoryIds.indexOf(catId)];
+      const avg = averages[catName];
+      return `${catName}: Rata-rata Ekstraksi: ${avg.count.toFixed(
+        1
+      )} | Point: ${avg.point.toFixed(2)}`;
+    }).reverse();;
+
     // Generate series
     const series = [];
     categoryIds.forEach((catId, ci) => {
@@ -864,6 +897,18 @@ export class LogbookProjectAnalytics extends Component {
 
     // Chart options
     const option = {
+      title: [
+        {},
+        ...averagesText.map((text, idx) => ({
+          text: text,
+          bottom: 20 + idx * 16,
+          left: 10,
+          textStyle: {
+            fontSize: 11,
+            fontWeight: "normal",
+          },
+        })),
+      ],
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "cross" },
@@ -902,7 +947,7 @@ export class LogbookProjectAnalytics extends Component {
       grid: {
         left: "3%",
         right: "4%",
-        bottom: "10%",
+        bottom: 20 + averagesText.length * 16 + 20,
         top: "20%",
         containLabel: true,
       },
@@ -949,29 +994,24 @@ export class LogbookProjectAnalytics extends Component {
 
     const chart = echarts.init(chartDom);
     const allData = this.state.extractionBySubcategory;
-    const weekly = this.state.extractionStats;
 
     if (!allData || allData.length === 0) {
-      chart.clear();
+      chartDom.innerHTML =
+        "<p style='text-align:center'>Data tidak tersedia</p>";
       return;
     }
 
-    //
     // 1) Kumpulkan pasangan [subcategory_id, subcategory_name] unik
-    //
     const mapSub = new Map();
     allData.forEach((r) => {
-      const [subId, subName] = r.subcategory_id; // misal [12, "Detail"]
+      const [subId, subName] = r.subcategory_id;
       mapSub.set(subId, subName);
     });
-    // Ubah map ke array [[id, name], ...] lalu urutkan berdasarkan id ascending
     const subPairs = Array.from(mapSub.entries()).sort((a, b) => a[0] - b[0]);
-    const subIds = subPairs.map((p) => p[0]); // [id1, id2, ...]
-    const subNames = subPairs.map((p) => p[1]); // ["SubA", "SubB", ...]
+    const subIds = subPairs.map((p) => p[0]);
+    const subNames = subPairs.map((p) => p[1]);
 
-    //
     // 2) Ambil semua week_label unik, urutkan kronologis
-    //
     const weekLabels = Array.from(
       new Set(allData.map((r) => r.week_label))
     ).sort((a, b) => {
@@ -997,69 +1037,197 @@ export class LogbookProjectAnalytics extends Component {
     });
     const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
 
-    //
-    // 3) Bangun series: satu objek per subkategori (urut by subIds)
-    //
-    const seriesData = subIds.map((subId, idx) => {
-      const subName = subNames[idx];
-      return {
-        name: subName,
-        type: "line",
-        smooth: true,
-        data: weekLabels.map((wl) => {
-          const rec = allData.find(
-            (r) => r.week_label === wl && r.subcategory_id[0] === subId
-          );
-          return rec ? rec.extraction_count : 0;
-        }),
+    // 3) Build pivot data
+    const pivot = {};
+    weekLabels.forEach((wk) => {
+      pivot[wk] = {};
+      subIds.forEach((sid) => {
+        pivot[wk][sid] = 0;
+      });
+    });
+
+    allData.forEach((r) => {
+      const wk = r.week_label;
+      const sid = r.subcategory_id[0];
+      pivot[wk][sid] = r.extraction_count;
+    });
+
+    // Color config
+    const baseColors = [
+      "#5470C6",
+      "#91CC75",
+      "#EE6666",
+      "#73C0DE",
+      "#3BA272",
+      "#FC8452",
+      "#9A60B4",
+      "#EA7CCC",
+    ];
+
+    function generateColorVariants(baseColor) {
+      const color = echarts.color.lift(baseColor, 0);
+      return [
+        echarts.color.lift(color, 0.2),
+        color,
+        echarts.color.lift(color, -0.2),
+      ];
+    }
+    const subAverages = {};
+    subIds.forEach((subId, si) => {
+      const subName = subNames[si];
+      let totalCount = 0;
+      let totalPoint = 0;
+      let weekCount = 0;
+
+      weekLabels.forEach((wk) => {
+        totalCount += pivot[wk][subId];
+        const record = allData.find(
+          (r) => r.week_label === wk && r.subcategory_id[0] === subId
+        );
+        if (record?.avg_norm_point) {
+          totalPoint += parseFloat(record.avg_norm_point);
+          weekCount++;
+        }
+      });
+
+      subAverages[subName] = {
+        count: totalCount / weekLabels.length,
+        point: weekCount ? totalPoint / weekCount : 0,
       };
     });
 
-    //
-    // 4) Set opsi ECharts
-    //
-    chart.setOption({
-      title: {
-        text: "Tren Ekstraksi per Subkategori",
-      },
+    const subAveragesText = subIds.map((subId) => {
+      const subName = subNames[subIds.indexOf(subId)];
+      const avg = subAverages[subName];
+      return `${subName}: Rata-rata Ekstraksi: ${avg.count.toFixed(
+        1
+      )} | Point: ${avg.point.toFixed(2)}`;
+    }).reverse();;
+
+    // Generate series
+    const series = [];
+    subIds.forEach((subId, si) => {
+      const subName = subNames[si];
+      const baseColor = baseColors[si % baseColors.length];
+      const variants = generateColorVariants(baseColor);
+
+      series.push({
+        name: `${subName} (Jumlah)`,
+        type: "bar",
+        stack: "count",
+        data: weekLabels.map((wk) => pivot[wk][subId]),
+        itemStyle: { color: variants[1] },
+        emphasis: { focus: "series" },
+      });
+
+      series.push({
+        name: `${subName} (Point)`,
+        type: "line",
+        yAxisIndex: 1,
+        symbol: "circle",
+        symbolSize: 6,
+        lineStyle: {
+          width: 2,
+          type: "solid",
+        },
+        itemStyle: { color: variants[2] },
+        data: weekLabels.map((wk) => {
+          const record = allData.find(
+            (r) => r.week_label === wk && r.subcategory_id[0] === subId
+          );
+          return record?.avg_norm_point?.toFixed(2) || 0;
+        }),
+      });
+    });
+
+    // Chart options
+    const option = {
+      title: [
+        {},
+        ...subAveragesText.map((text, idx) => ({
+          text: text,
+          bottom: 20 + idx * 16,
+          left: 10,
+          textStyle: {
+            fontSize: 11,
+            fontWeight: "normal",
+          },
+        })),
+      ],
       tooltip: {
         trigger: "axis",
-        formatter: (params) => {
-          // Urutkan params berdasarkan value descending
-          params.sort((a, b) => b.value - a.value);
-          const index = params[0].dataIndex;
-          const weekData = allData.find(
-            (d) => d.week_label === weekLabels[index]
-          );
-          let result = `Minggu ${index + 1} (${this.formatDate(
-            weekData.week_start_date
-          )} - ${this.formatDate(weekData.week_end_date)})<br/>`;
-          params.forEach((param) => {
-            if (param.value > 0) {
-              result += `${param.marker} ${param.seriesName}: ${param.value}<br/>`;
-            }
+        axisPointer: { type: "cross" },
+        formatter: function (params) {
+          let result = `${params[0].axisValue}<br/>`;
+          let total = 0;
+
+          const bars = params.filter((p) => p.seriesName.includes("(Jumlah)"));
+          const lines = params.filter((p) => p.seriesName.includes("(Point)"));
+
+          bars.forEach((param) => {
+            total += param.value;
+            result += `${param.marker}${param.seriesName}: ${param.value}<br/>`;
           });
+          result += `${"-".repeat(10)}<br/>Total: ${total}<br/>`;
+
+          lines.forEach((param) => {
+            result += `${param.marker}${param.seriesName}: ${parseFloat(
+              param.value
+            ).toFixed(2)}<br/>`;
+          });
+
           return result;
         },
       },
       legend: {
-        data: subNames, // sudah urut by subIds ascending
-        top: 0,
         type: "scroll",
+        top: 10,
+        padding: [5, 50],
+        height: 50,
+        textStyle: { fontSize: 11 },
+        width: "90%",
+        left: "center",
+        formatter: (name) => name.replace(/\s-\s[^(]+/, ""),
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: 20 + subAveragesText.length * 16 + 20,
+        top: "20%",
+        containLabel: true,
       },
       xAxis: {
         type: "category",
-        name: "Minggu",
         data: weekIndexLabels,
-        axisLabel: { interval: 0 },
+        axisLabel: {
+          rotate: 45,
+          interval: 0,
+        },
       },
-      yAxis: {
-        type: "value",
-        name: "Jumlah Ekstraksi",
-      },
-      series: seriesData,
-    });
+      yAxis: [
+        {
+          type: "value",
+          name: "Jumlah Ekstraksi",
+          position: "left",
+        },
+        {
+          type: "value",
+          name: "Point",
+          position: "right",
+          offset: 0,
+          min: 0,
+          max: 1,
+          axisLabel: {
+            formatter: (value) => value.toFixed(2),
+          },
+        },
+      ],
+      series: series,
+    };
 
+    // Render chart
+    if (this.echarts.chart5) this.echarts.chart5.dispose();
+    chart.setOption(option);
     this.echarts.chart5 = chart;
   }
 

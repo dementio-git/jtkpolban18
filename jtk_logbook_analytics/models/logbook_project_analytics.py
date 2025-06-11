@@ -429,18 +429,25 @@ class LogbookExtractionWeeklyBySubcategory(models.Model):
     week_start_date   = fields.Date(string='Tanggal Mulai Minggu', readonly=True)
     week_end_date     = fields.Date(string='Tanggal Akhir Minggu', readonly=True)
     week_label        = fields.Char(string='Label Minggu', readonly=True)
-
-    # Kolom kategori & subkategori:
     category_id       = fields.Many2one('logbook.label.category', string='Kategori Label', readonly=True)
     subcategory_id    = fields.Many2one('logbook.label.sub.category', string='Subkategori Label', readonly=True)
-
-    extraction_count  = fields.Integer(string='Jumlah Ekstraksi (poin ≠ 0)', readonly=True)
+    extraction_count  = fields.Integer(string='Jumlah Ekstraksi', readonly=True)
+    avg_norm_point    = fields.Float(string='Rata-rata Point Ternormalisasi', digits=(16,2), readonly=True)
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
-        # CREATE VIEW: satu baris per (project, week, category, subcategory)
         self.env.cr.execute("""
             CREATE OR REPLACE VIEW logbook_extraction_weekly_subcategory AS (
+                WITH point_rules AS (
+                    SELECT 
+                        l.category_id,
+                        l.sub_category_id,
+                        MIN(lr.point) as min_point,
+                        MAX(lr.point) as max_point
+                    FROM logbook_label l
+                    JOIN logbook_label_point_rule lr ON lr.label_id = l.id
+                    GROUP BY l.category_id, l.sub_category_id
+                )
                 SELECT
                     row_number() OVER ()                                AS id,
                     lb.project_course_id                                AS project_course_id,
@@ -448,28 +455,41 @@ class LogbookExtractionWeeklyBySubcategory(models.Model):
                     w.start_date                                        AS week_start_date,
                     w.end_date                                          AS week_end_date,
                     to_char(w.start_date, 'DD Mon YYYY')                AS week_label,
-
                     e.label_category_id                                 AS category_id,
                     e.label_sub_category_id                             AS subcategory_id,
-                    COUNT(e.id)                                         AS extraction_count
-
+                    COUNT(e.id)                                         AS extraction_count,
+                    ROUND(
+                        AVG(
+                            CASE
+                                WHEN pr.min_point = pr.max_point THEN 0
+                                ELSE (e.point - pr.min_point)::numeric / 
+                                     NULLIF(pr.max_point - pr.min_point, 0)
+                            END
+                        )::numeric, 
+                    2)                                                  AS avg_norm_point
                 FROM logbook_extraction e
                 JOIN logbook_logbook lb ON lb.id = e.logbook_id
                 JOIN course_activity w  ON w.id = lb.week_id AND w.type = 'week'
+                LEFT JOIN point_rules pr ON pr.category_id = e.label_category_id 
+                                      AND pr.sub_category_id = e.label_sub_category_id
                 WHERE lb.project_course_id      IS NOT NULL
                   AND e.label_category_id       IS NOT NULL
                   AND e.label_sub_category_id   IS NOT NULL
                   AND e.content IS NOT NULL
                   AND e.content != ''
+                  AND e.point IS NOT NULL
+                  AND e.point BETWEEN COALESCE(pr.min_point, e.point) 
+                                AND COALESCE(pr.max_point, e.point)
                 GROUP BY
                     lb.project_course_id,
                     lb.week_id,
-                    w.start_date, w.end_date,
+                    w.start_date, 
+                    w.end_date,
                     e.label_category_id,
                     e.label_sub_category_id
             );
         """)
-
+        
 class LogbookExtractionWeeklyByLabel(models.Model):
     _name = 'logbook.extraction.weekly.label'
     _auto = False

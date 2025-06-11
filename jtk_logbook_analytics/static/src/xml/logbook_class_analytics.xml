@@ -122,7 +122,7 @@
           <div class="card-header bg-primary text-white">
             <h3 class="card-title">Tren Jumlah dan Point Per Kategori Label</h3>
           </div>
-          <div class="card-body" style="height: 400px;">
+          <div class="card-body" style="height: fit-content;max-height: 500px;">
             <div id="chart4" style="height: 400px;"></div>
           </div>
         </div>

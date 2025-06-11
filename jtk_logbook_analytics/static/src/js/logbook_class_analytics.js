@@ -843,10 +843,11 @@ export class LogbookClassAnalytics extends Component {
 
     // Sesuaikan grid untuk memberi ruang lebih
     const grids = classes.map((_, idx) => ({
-      left: `${(idx % cols) * (100 / cols + 1) + 4}%`, // Tambah margin kiri
-      top: `${Math.floor(idx / cols) * (100 / rows + 1) + legendHeight}px`, // Posisi setelah legend
-      width: `${100 / cols - 6}%`, // Kurangi lebar untuk beri ruang
-      height: `${perRowHeight - 60}px`, // Fixed height dengan margin
+      left: `${(idx % cols) * (100 / cols + 1) + 4}%`,
+      top: `${Math.floor(idx / cols) * (100 / rows + 1) + legendHeight}px`,
+      width: `${100 / cols - 6}%`,
+      // Kurangi height untuk memberi ruang averages text
+      height: `${perRowHeight * 0.75}px`,
       containLabel: true,
     }));
 
@@ -881,6 +882,45 @@ export class LogbookClassAnalytics extends Component {
         echarts.color.lift(color, -0.2),
       ];
     }
+
+    const averagesTextByClass = {};
+    Object.entries(pivot).forEach(([className, weekData]) => {
+      const classAverages = {}; // Store averages per category for this class
+      categoryIds.forEach((catId, ci) => {
+        const catName = categoryNames[ci];
+        let totalCount = 0;
+        let totalPoint = 0;
+        let weekCount = 0;
+
+        weeks.forEach((wk) => {
+          const count = weekData[wk][catId];
+          totalCount += count;
+          const record = data.find(
+            (r) =>
+              r.class_name === className &&
+              r.week_label === wk &&
+              r.category_id[0] === catId
+          );
+          if (record?.avg_norm_point) {
+            totalPoint += parseFloat(record.avg_norm_point);
+            weekCount++;
+          }
+        });
+
+        classAverages[catName] = {
+          count: totalCount / weeks.length,
+          point: weekCount ? totalPoint / weekCount : 0,
+        };
+      });
+
+      // Format text for this class's averages
+      averagesTextByClass[className] = Object.entries(classAverages).map(
+        ([catName, avg]) =>
+          `${catName}: Rata-rata Ekstraksi: ${avg.count.toFixed(
+            1
+          )} | Point: ${avg.point.toFixed(2)}`
+      );
+    });
 
     // Generate series
     const series = [];
@@ -926,18 +966,81 @@ export class LogbookClassAnalytics extends Component {
       });
     });
 
-    // Chart options
     const option = {
+      title: [
+        {},
+        // Class titles dan averages text
+        ...classes
+          .map((cls, idx) => [
+            // Class title
+            {
+              text: cls,
+              textAlign: "center",
+              left: `${
+                (idx % cols) * (100 / cols + 1) + 4 + (100 / cols - 6) / 2
+              }%`,
+              top: `${
+                Math.floor(idx / cols) * (100 / rows + 1) + legendHeight - 20
+              }px`,
+              textStyle: {
+                fontSize: 12,
+                fontWeight: "bold",
+              },
+            },
+            // Averages text untuk setiap kelas
+            ...averagesTextByClass[cls].map((text, textIdx) => ({
+              text: text,
+              textAlign: "left",
+              left: `${(idx % cols) * (100 / cols + 1) + 4}%`,
+              // Posisikan di bawah grid
+              top: `${
+                Math.floor(idx / cols) * (100 / rows + 1) +
+                legendHeight +
+                perRowHeight * 0.8 +
+                textIdx * 16
+              }px`,
+              textStyle: {
+                fontSize: 11,
+                fontWeight: "normal",
+              },
+            })),
+          ])
+          .flat(),
+      ],
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "cross" },
+        formatter: function (params) {
+          let result = `${params[0].axisValue}<br/>`;
+          let total = 0;
+
+          const bars = params.filter((p) => p.seriesName.includes("(Jumlah)"));
+          const lines = params.filter((p) => p.seriesName.includes("(Point)"));
+
+          bars.forEach((param) => {
+            total += param.value;
+            result += `${param.marker}${param.seriesName}: ${param.value}<br/>`;
+          });
+          result += `${"-".repeat(10)}<br/>Total: ${total}<br/>`;
+
+          lines.forEach((param) => {
+            result += `${param.marker}${param.seriesName}: ${parseFloat(
+              param.value
+            ).toFixed(2)}<br/>`;
+          });
+
+          return result;
+        },
+      },
       legend: {
         type: "scroll",
-        top: 40,
+        top: 20,
         padding: [5, 50],
         height: legendHeight - 50,
         textStyle: { fontSize: 11 },
         width: "90%",
         left: "center",
-        // Perbaiki formatter dengan menggunakan arrow function yang hanya mengembalikan name
-        formatter: (name) => name.replace(/\s-\s[^(]+/, ""), // Hapus ' - ClassName' dari legend
+        formatter: (name) => name.replace(/\s-\s[^(]+/, ""),
       },
       grid: grids,
       xAxis: classes.map((_, ci) => ({
@@ -982,37 +1085,24 @@ export class LogbookClassAnalytics extends Component {
           },
         ])
         .flat(),
-      tooltip: {
-        trigger: "axis",
-        axisPointer: { type: "cross" },
-        formatter: function (params) {
-          let result = `${params[0].axisValue}<br/>`;
-          let total = 0;
-
-          const bars = params.filter((p) => p.seriesName.includes("(Jumlah)"));
-          const lines = params.filter((p) => p.seriesName.includes("(Point)"));
-
-          bars.forEach((param) => {
-            total += param.value;
-            result += `${param.marker}${param.seriesName}: ${param.value}<br/>`;
-          });
-          result += `${"-".repeat(10)}<br/>Total: ${total}<br/>`;
-
-          lines.forEach((param) => {
-            result += `${param.marker}${param.seriesName}: ${parseFloat(
-              param.value
-            ).toFixed(2)}<br/>`;
-          });
-
-          return result;
-        },
-      },
       series: series,
+      // Adjust visual settings
+      backgroundColor: "#fff",
+      animation: true,
+      animationDuration: 500,
     };
+
+    chartDom.style.height = `${
+      rows * perRowHeight +
+      legendHeight +
+      Math.max(...Object.values(averagesTextByClass).map((arr) => arr.length)) *
+        16
+    }px`;
 
     // Render chart
     if (this.echarts.chart4) this.echarts.chart4.dispose();
     const chart = echarts.init(chartDom);
+
     chart.setOption(option);
     this.echarts.chart4 = chart;
   }
