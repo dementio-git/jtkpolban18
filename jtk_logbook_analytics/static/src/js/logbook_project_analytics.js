@@ -424,10 +424,6 @@ export class LogbookProjectAnalytics extends Component {
     const weekLabels = weekly.map((_, i) => `W${i + 1}`);
 
     const option = {
-      title: {
-        text: "Tren Partisipasi & Produktivitas",
-        left: "center",
-      },
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "cross" },
@@ -446,7 +442,7 @@ export class LogbookProjectAnalytics extends Component {
               formattedValue = `${value} logbook`;
             } else if (param.seriesName === "Mahasiswa Aktif") {
               formattedValue = `${value} mahasiswa`;
-            } else if (param.seriesName === "Rata-rata Produktivitas") {
+            } else if (param.seriesName === "Rata-rata Produktivitas Logbook/Mahasiswa") {
               formattedValue = `${value.toFixed(2)} logbook/mhs`;
             }
 
@@ -459,7 +455,7 @@ export class LogbookProjectAnalytics extends Component {
         data: [
           "Jumlah Logbook",
           "Mahasiswa Aktif",
-          "Rata-rata Logbook/Mahasiswa",
+          "Rata-rata Produktivitas Logbook/Mahasiswa",
         ],
         top: 40,
       },
@@ -535,7 +531,7 @@ export class LogbookProjectAnalytics extends Component {
           },
         },
         {
-          name: "Rata-rata Produktivitas Logbook Mahasiswa",
+          name: "Rata-rata Produktivitas Logbook/Mahasiswa",
           type: "line",
           data: weekly.map((s) =>
             parseFloat(s.avg_logbooks_per_student_week.toFixed(2))
