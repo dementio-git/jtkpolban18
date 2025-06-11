@@ -166,6 +166,7 @@ export class LogbookClassAnalytics extends Component {
         "week_label",
         "category_id",
         "extraction_count",
+        "avg_norm_point",
       ]
     );
   }
@@ -521,21 +522,6 @@ export class LogbookClassAnalytics extends Component {
       ].join(" | ");
     });
 
-    const colorPalettes = {
-      default: [
-        "#5470c6",
-        "#91cc75",
-        "#fac858",
-        "#ee6666",
-        "#73c0de",
-        "#3ba272",
-      ],
-      dark: ["#4a5c8c", "#6b8e57", "#ba9545", "#b34d4d", "#538da6", "#2d7a57"],
-      light: ["#a8b7db", "#c8deb7", "#fde4b3", "#f7b3b3", "#b9dff0", "#9ed3b9"],
-    };
-
-
-
     // Bulatkan ke atas ke nilai yang lebih bagus untuk ditampilkan
     const yAxisMaxRatio = Math.ceil(maxRatio * 1.1);
 
@@ -798,102 +784,236 @@ export class LogbookClassAnalytics extends Component {
       pivot[cls][wk][cid] = r.extraction_count;
     });
 
-    // 5. Layout grid per kelas
-    const cols = 3;
-    const rows = Math.ceil(classes.length / cols);
-    const perRowHeight = 250;
-    chartDom.style.height = `${rows * perRowHeight + 120}px`;
+    const avgPoints = {};
+    classes.forEach((cls) => {
+      weeks.forEach((wk) => {
+        let totalPoints = 0;
+        let totalCount = 0;
+        categoryIds.forEach((catId) => {
+          const count = pivot[cls][wk][catId];
+          totalCount += count;
+          const record = data.find(
+            (r) =>
+              r.class_name === cls &&
+              r.week_label === wk &&
+              r.category_id[0] === catId
+          );
+          totalPoints += (record?.avg_norm_point || 0) * count;
+        });
+        avgPoints[`${cls}_${wk}`] = totalCount ? totalPoints / totalCount : 0;
+      });
+    });
 
+    // Calculate averages for text display - SETELAH avgPoints didefinisikan
+    const averages = {};
+    Object.entries(pivot).forEach(([className, weekData]) => {
+      let totalExtraction = 0;
+      let totalPoints = 0;
+      let weekCount = 0;
+
+      Object.entries(weekData).forEach(([week, categories]) => {
+        let weekTotal = 0;
+        let weekPoints = avgPoints[`${className}_${week}`] || 0;
+        Object.values(categories).forEach((count) => {
+          weekTotal += count;
+        });
+        totalExtraction += weekTotal;
+        totalPoints += weekPoints;
+        weekCount++;
+      });
+
+      averages[className] = {
+        extraction: totalExtraction / weekCount,
+        points: totalPoints / weekCount,
+      };
+    });
+
+    // Format averages text
+
+    // 5. Layout grid - sesuaikan tinggi dan margin
+
+    const MAX_COLS = 3; // maksimum kolom per baris
+    const cols = Math.min(MAX_COLS, classes.length);
+    const rows = Math.ceil(classes.length / cols);
+    const perRowHeight = 300; // Tambah tinggi per row
+    const legendHeight = 80; // Ruang untuk legend
+
+    // Tambah tinggi container untuk legend dan text rata-rata
+    chartDom.style.height = `${rows * perRowHeight + legendHeight}px`;
+
+    // Sesuaikan grid untuk memberi ruang lebih
     const grids = classes.map((_, idx) => ({
-      left: `${(idx % cols) * (100 / cols + 1) + 2}%`,
-      top: `${Math.floor(idx / cols) * (100 / rows + 1) + 15}%`,
-      width: `${100 / cols - 2}%`,
-      height: `${100 / rows - 10}%`,
+      left: `${(idx % cols) * (100 / cols + 1) + 4}%`, // Tambah margin kiri
+      top: `${Math.floor(idx / cols) * (100 / rows + 1) + legendHeight}px`, // Posisi setelah legend
+      width: `${100 / cols - 6}%`, // Kurangi lebar untuk beri ruang
+      height: `${perRowHeight - 60}px`, // Fixed height dengan margin
       containLabel: true,
     }));
 
-    // 6. Axis per grid
-    const xAxes = classes.map((_, ci) => ({
-      type: "category",
-      gridIndex: ci,
-      data: xWeeks,
-      axisLabel: {
-        rotate: 45,
-        fontSize: 9,
-        interval: 0,
-        margin: 6,
+    // Add titlePerGrid definition
+    const titlePerGrid = classes.map((cls, idx) => ({
+      text: cls,
+      textAlign: "center",
+      left: `${(idx % cols) * (100 / cols + 1) + 4 + (100 / cols - 6) / 2}%`,
+      top: `${Math.floor(idx / cols) * (100 / rows + 1) + legendHeight - 20}px`,
+      textStyle: {
+        fontSize: 12,
+        fontWeight: "bold",
       },
-      name: "Minggu",
-    }));
-    const yAxes = classes.map((_, ci) => ({
-      type: "value",
-      gridIndex: ci,
-      name: "Jumlah Ekstraksi",
     }));
 
-    // 7. Series: per kategori dalam tiap kelas
+    const baseColors = [
+      "#5470C6", // Biru
+      "#91CC75", // Hijau
+      "#EE6666", // Merah
+      "#73C0DE", // Biru Muda
+      "#3BA272", // Hijau Tua
+      "#FC8452", // Oranye
+      "#9A60B4", // Ungu
+      "#EA7CCC", // Pink
+    ];
+
+    function generateColorVariants(baseColor) {
+      const color = echarts.color.lift(baseColor, 0);
+      return [
+        echarts.color.lift(color, 0.2),
+        color,
+        echarts.color.lift(color, -0.2),
+      ];
+    }
+
+    // Generate series
     const series = [];
     classes.forEach((cls, ci) => {
       categoryIds.forEach((catId, ci2) => {
         const catName = categoryNames[ci2];
+        const baseColor = baseColors[ci2 % baseColors.length];
+        const variants = generateColorVariants(baseColor);
+
         series.push({
-          name: catName,
+          name: `${catName} (Jumlah)`,
           type: "bar",
-          stack: `kelas_${ci}`, // stack per kelas
+          stack: `kelas_${ci}`,
           xAxisIndex: ci,
-          yAxisIndex: ci,
+          yAxisIndex: ci * 2,
           data: weeks.map((wk) => pivot[cls][wk][catId]),
+          itemStyle: { color: variants[1] },
           emphasis: { focus: "series" },
+        });
+
+        series.push({
+          name: `${catName} (Point)`,
+          type: "line",
+          xAxisIndex: ci,
+          yAxisIndex: ci * 2 + 1,
+          symbol: "circle",
+          symbolSize: 6,
+          lineStyle: {
+            width: 2,
+            type: "solid",
+          },
+          itemStyle: { color: variants[2] },
+          data: weeks.map((wk) => {
+            const record = data.find(
+              (r) =>
+                r.class_name === cls &&
+                r.week_label === wk &&
+                r.category_id[0] === catId
+            );
+            return record?.avg_norm_point?.toFixed(2) || 0;
+          }),
         });
       });
     });
 
-    // 8. Title per grid (kelas)
-    const titlePerGrid = classes.map((cls, i) => {
-      const topPercent = `${Math.floor(i / cols) * (100 / rows + 1) + 5}%`;
-      const leftPercent = `${
-        (i % cols) * (100 / cols + 1) + (100 / cols - 2) / 2
-      }%`;
-      return {
-        text: cls,
-        left: leftPercent,
-        top: topPercent,
-        textAlign: "center",
-        textStyle: {
-          fontSize: 12,
-          fontWeight: "bold",
-        },
-      };
-    });
-
-    // 9. Render
-    if (this.echarts.chart4) this.echarts.chart4.dispose();
-    const chart = echarts.init(chartDom);
-    chart.setOption({
-      title: [
-        {
-          text: "Ekstraksi — Semua Minggu (per Kelas)",
-          left: "center",
-          top: 5,
-        },
-        ...titlePerGrid,
-      ],
+    // Chart options
+    const option = {
       legend: {
-        data: categoryNames,
-        top: 40,
         type: "scroll",
-      },
-      tooltip: {
-        trigger: "axis",
-        axisPointer: { type: "shadow" },
-        confine: true,
+        top: 40,
+        padding: [5, 50],
+        height: legendHeight - 50,
+        textStyle: { fontSize: 11 },
+        width: "90%",
+        left: "center",
+        // Perbaiki formatter dengan menggunakan arrow function yang hanya mengembalikan name
+        formatter: (name) => name.replace(/\s-\s[^(]+/, ""), // Hapus ' - ClassName' dari legend
       },
       grid: grids,
-      xAxis: xAxes,
-      yAxis: yAxes,
-      series: series,
-    });
+      xAxis: classes.map((_, ci) => ({
+        type: "category",
+        gridIndex: ci,
+        data: xWeeks,
+        axisLabel: {
+          rotate: 45,
+          fontSize: 10,
+          interval: 0,
+          margin: 14,
+        },
+        nameGap: 35,
+      })),
+      yAxis: classes
+        .map((_, ci) => [
+          {
+            type: "value",
+            gridIndex: ci,
+            name: "Jumlah Ekstraksi",
+            nameLocation: "middle",
+            nameGap: 45,
+            position: "left",
+            axisLabel: { fontSize: 10 },
+            splitLine: { show: false },
+          },
+          {
+            type: "value",
+            gridIndex: ci,
+            name: "Point",
+            nameLocation: "middle",
+            nameGap: 50,
+            position: "right",
+            offset: 0,
+            min: 0,
+            max: 1,
+            axisLabel: {
+              fontSize: 10,
+              formatter: (value) => value.toFixed(2),
+            },
+            splitLine: { show: false },
+          },
+        ])
+        .flat(),
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "cross" },
+        formatter: function (params) {
+          let result = `${params[0].axisValue}<br/>`;
+          let total = 0;
 
+          const bars = params.filter((p) => p.seriesName.includes("(Jumlah)"));
+          const lines = params.filter((p) => p.seriesName.includes("(Point)"));
+
+          bars.forEach((param) => {
+            total += param.value;
+            result += `${param.marker}${param.seriesName}: ${param.value}<br/>`;
+          });
+          result += `${"-".repeat(10)}<br/>Total: ${total}<br/>`;
+
+          lines.forEach((param) => {
+            result += `${param.marker}${param.seriesName}: ${parseFloat(
+              param.value
+            ).toFixed(2)}<br/>`;
+          });
+
+          return result;
+        },
+      },
+      series: series,
+    };
+
+    // Render chart
+    if (this.echarts.chart4) this.echarts.chart4.dispose();
+    const chart = echarts.init(chartDom);
+    chart.setOption(option);
     this.echarts.chart4 = chart;
   }
 

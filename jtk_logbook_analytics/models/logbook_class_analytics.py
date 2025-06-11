@@ -464,12 +464,22 @@ class LogbookExtractionWeeklyCategoryClass(models.Model):
     week_end_date     = fields.Date(                      string='Tanggal Akhir Minggu', readonly=True)
     week_label        = fields.Char(                      string='Label Minggu',    readonly=True)
     category_id       = fields.Many2one('logbook.label.category', string='Kategori Label', readonly=True)
-    extraction_count  = fields.Integer(                    string='Jumlah Ekstraksi (poin ≠ 0)', readonly=True)
+    extraction_count = fields.Integer(string='Jumlah Ekstraksi', readonly=True)
+    avg_norm_point = fields.Float(string='Rata-rata Point Ternormalisasi', digits=(16,2), readonly=True)
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""
             CREATE OR REPLACE VIEW logbook_extraction_weekly_category_class AS (
+                WITH point_rules AS (
+                    SELECT 
+                        l.category_id,
+                        MIN(lr.point) as min_point,
+                        MAX(lr.point) as max_point
+                    FROM logbook_label l
+                    JOIN logbook_label_point_rule lr ON lr.label_id = l.id
+                    GROUP BY l.category_id
+                )
                 SELECT
                     ROW_NUMBER() OVER ()                                   AS id,
                     lb.project_course_id                                   AS project_course_id,
@@ -480,18 +490,32 @@ class LogbookExtractionWeeklyCategoryClass(models.Model):
                     w.end_date                                             AS week_end_date,
                     to_char(w.start_date, 'DD Mon YYYY')                   AS week_label,
                     e.label_category_id                                    AS category_id,
-                    COUNT(e.id)                                            AS extraction_count
+                    COUNT(e.id)                                            AS extraction_count,
+                    /* Perhitungan rata-rata poin ternormalisasi */
+                    ROUND(
+                        AVG(
+                            CASE
+                                WHEN pr.min_point = pr.max_point THEN 0
+                                ELSE (e.point - pr.min_point)::numeric / 
+                                     NULLIF(pr.max_point - pr.min_point, 0)
+                            END
+                        )::numeric, 
+                    2)                                                     AS avg_norm_point
                 FROM logbook_extraction e
                 JOIN logbook_logbook lb   ON lb.id = e.logbook_id
                 JOIN student_student s    ON s.id  = lb.student_id
                 JOIN class_class c        ON c.id  = s.class_id
                 JOIN course_activity w    ON w.id  = lb.week_id
-                                           AND w.type = 'week'
+                                       AND w.type = 'week'
+                LEFT JOIN point_rules pr  ON pr.category_id = e.label_category_id
                 WHERE
                     lb.project_course_id    IS NOT NULL
                     AND e.content           IS NOT NULL
                     AND e.content <> ''
                     AND e.label_category_id IS NOT NULL
+                    AND e.point             IS NOT NULL
+                    AND e.point BETWEEN COALESCE(pr.min_point, e.point) 
+                                  AND COALESCE(pr.max_point, e.point)
                 GROUP BY
                     lb.project_course_id,
                     s.class_id,
