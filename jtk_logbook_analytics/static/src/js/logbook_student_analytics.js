@@ -24,87 +24,113 @@ export class LogbookStudentAnalytics extends Component {
       studentList: [],
       categories: [],
     });
-    this.table = null; // simpan instance Tabulator
+    this.table = null;
+
     onWillStart(async () => {
       const projectCourseId = getRecordIdFromPath();
       if (!projectCourseId) return;
 
-      // clustering data
-      const res = await rpc("/logbook/clustering/label", {
-        project_course_id: projectCourseId,
-      });
-      this.state.students = res.students || [];
-      this.state.components = res.components_info || {};
+      await Promise.all([
+        this.fetchClusteringData(projectCourseId),
+        this.fetchNormalizationData(projectCourseId),
+      ]);
 
-      // normalisasi data
-      this.state.normData = await this.orm.searchRead(
-        "logbook.extraction.student.label.norm",
-        [["project_course_id", "=", projectCourseId]],
-        [
-          "student_id",
-          "label_id",
-          "avg_norm_point",
-          "category_id",
-          "subcategory_id",
-        ]
-      );
-
-      // bangun struktur studentList & categories
-      const studentMap = {};
-      const categoryMap = new Map();
-      for (const row of this.state.normData) {
-        const [sid, sname] = row.student_id;
-        const [lid, lname] = row.label_id;
-        const [cid, cname] = row.category_id;
-        const subid = row.subcategory_id?.[0] ?? null;
-        const subname = row.subcategory_id?.[1] ?? "-";
-        const point = row.avg_norm_point;
-
-        // studentMap
-        if (!studentMap[sid]) {
-          studentMap[sid] = {
-            student_id: sid,
-            student_name: sname,
-            scores: {},
-          };
-        }
-        studentMap[sid].scores[`label_${lid}`] = point;
-
-        // kategori → subkategori → label
-        if (!categoryMap.has(cid)) {
-          categoryMap.set(cid, {
-            id: cid,
-            name: cname,
-            subcategories: new Map(),
-          });
-        }
-        const cat = categoryMap.get(cid);
-        if (!cat.subcategories.has(subid)) {
-          cat.subcategories.set(subid, {
-            id: subid,
-            name: subname,
-            labels: [],
-          });
-        }
-        const sub = cat.subcategories.get(subid);
-        if (!sub.labels.find((l) => l.id === lid)) {
-          sub.labels.push({ id: lid, name: lname });
-        }
-      }
-      this.state.studentList = Object.values(studentMap);
-      this.state.categories = Array.from(categoryMap.values()).map((cat) => ({
-        ...cat,
-        subcategories: Array.from(cat.subcategories.values()),
-      }));
+      this.processDataStructures();
     });
 
     onMounted(() => {
-      // setelah DOM siap dan state telah terisi
       setTimeout(() => {
         this.renderChart();
         this.renderTable();
       }, 0);
     });
+  }
+
+  async fetchClusteringData(projectCourseId) {
+    const res = await rpc("/logbook/clustering/label", {
+      project_course_id: projectCourseId,
+    });
+    this.state.students = res.students || [];
+    this.state.components = res.components_info || {};
+  }
+
+  async fetchNormalizationData(projectCourseId) {
+    this.state.normData = await this.orm.searchRead(
+      "logbook.extraction.student.label.norm",
+      [["project_course_id", "=", projectCourseId]],
+      [
+        "student_id",
+        "label_id",
+        "avg_norm_point",
+        "category_id",
+        "subcategory_id",
+        "class_name", // Add this line
+      ]
+    );
+  }
+
+  processDataStructures() {
+    const studentMap = {};
+    const categoryMap = new Map();
+
+    for (const row of this.state.normData) {
+      const [sid, sname] = row.student_id;
+      const [lid, lname] = row.label_id;
+      const [cid, cname] = row.category_id;
+      const subid = row.subcategory_id?.[0] ?? null;
+      const subname = row.subcategory_id?.[1] ?? "-";      const point = row.avg_norm_point;
+      const className = row.class_name || "-";
+
+      this.updateStudentMap(studentMap, sid, sname, lid, point, className);
+      this.updateCategoryMap(
+        categoryMap,
+        cid,
+        cname,
+        subid,
+        subname,
+        lid,
+        lname
+      );
+    }
+
+    this.state.studentList = Object.values(studentMap);
+    this.state.categories = Array.from(categoryMap.values()).map((cat) => ({
+      ...cat,
+      subcategories: Array.from(cat.subcategories.values()),
+    }));
+  }
+  updateStudentMap(studentMap, sid, sname, lid, point, className) {
+    if (!studentMap[sid]) {
+      studentMap[sid] = {
+        student_id: sid,
+        student_name: sname,
+        class_name: className,
+        scores: {},
+      };
+    }
+    studentMap[sid].scores[`label_${lid}`] = point;
+  }
+
+  updateCategoryMap(categoryMap, cid, cname, subid, subname, lid, lname) {
+    if (!categoryMap.has(cid)) {
+      categoryMap.set(cid, {
+        id: cid,
+        name: cname,
+        subcategories: new Map(),
+      });
+    }
+    const cat = categoryMap.get(cid);
+    if (!cat.subcategories.has(subid)) {
+      cat.subcategories.set(subid, {
+        id: subid,
+        name: subname,
+        labels: [],
+      });
+    }
+    const sub = cat.subcategories.get(subid);
+    if (!sub.labels.find((l) => l.id === lid)) {
+      sub.labels.push({ id: lid, name: lname });
+    }
   }
 
   goToStudent(studentId) {
@@ -177,6 +203,13 @@ export class LogbookStudentAnalytics extends Component {
         headerFilter: "input",
         headerFilterPlaceholder: "🔍 Cari…",
       },
+      {
+        title: "Kelas",
+        field: "class_name",
+        frozen: true,
+        headerSort: true,
+        headerFilter: "input",
+      },
       ...sortedCategories.map((cat) => ({
         title: cat.name,
         columns: cat.subcategories
@@ -201,11 +234,13 @@ export class LogbookStudentAnalytics extends Component {
       })),
     ];
 
-    // =========================
-    // Build data rows
+    // =========================    // Build data rows
     // =========================
     const data = this.state.studentList.map((s) => {
-      const row = { student_name: s.student_name };
+      const row = { 
+        student_name: s.student_name,
+        class_name: s.class_name
+      };
       Object.entries(s.scores).forEach(([key, val]) => {
         row[key] = val != null ? parseFloat(val) : null;
       });

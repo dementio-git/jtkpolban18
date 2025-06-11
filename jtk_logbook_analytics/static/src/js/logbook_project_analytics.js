@@ -24,13 +24,15 @@ export class LogbookProjectAnalytics extends Component {
       weeklyStats: [],
       projectCourseId: null,
       extractionStats: [],
-      extraction_stats: [], // Add this new state
+      extraction_stats: [],
       extractionByCategory: [],
-      extractionBySubcategory: [], // <— data untuk tren subkategori
+      extractionBySubcategory: [],
       extractionByLabel: [],
       extractionByNormalizedLabel: [],
-      wordcloudData: [], // Menambahkan state untuk wordcloud
-      wordcloudOverallData: [], // Menambahkan state untuk wordcloud overall
+      wordcloudData: [],
+      wordcloudOverallData: [],
+      selectedWeek: "all", // Menambahkan state untuk selected week
+      weekLabels: [], // Menambahkan state untuk daftar minggu
     });
     this.orm = useService("orm");
     this.echarts = {};
@@ -208,10 +210,10 @@ export class LogbookProjectAnalytics extends Component {
       [["project_course_id", "=", pid]], // no domain filter
       [
         "week_label",
-        "label_id", 
-        "avg_norm_point", 
-        "category_id", 
-        "subcategory_id", 
+        "label_id",
+        "avg_norm_point",
+        "category_id",
+        "subcategory_id",
       ]
     );
   }
@@ -222,12 +224,24 @@ export class LogbookProjectAnalytics extends Component {
       this.state.wordcloudData = [];
       return;
     }
+
     // Mengambil data wordcloud untuk project tertentu
     this.state.wordcloudData = await this.orm.searchRead(
       "logbook.keyword.cloud",
       [["project_course_id", "=", pid]],
-      ["keyword", "frequency", "freq_pct_week", "freq_rank_week"]
+      ["keyword", "frequency", "freq_pct_week", "freq_rank_week", "week_id"]
     );
+
+    // Menyiapkan week labels
+    const uniqueWeeks = Array.from(
+      new Set(this.state.wordcloudData.map((item) => item.week_id[1]))
+    ).sort((a, b) => {
+      // Mengasumsikan format minggu adalah "Week X" atau sejenisnya
+      const numA = parseInt(a.match(/\d+/)[0]);
+      const numB = parseInt(b.match(/\d+/)[0]);
+      return numA - numB;
+    });
+    this.state.weekLabels = uniqueWeeks;
   }
 
   async loadWordcloudOverall() {
@@ -244,84 +258,140 @@ export class LogbookProjectAnalytics extends Component {
     );
   }
 
+  onWordcloudWeekChange(event) {
+    this.state.selectedWeek = event.target.value;
+    this.renderWordcloudChart();
+  }
+
   renderCharts() {
     this.renderParticipationTrendChart();
     this.renderProductivityTrendChart();
-    this.renderExtractionTrendChart();    
+    this.renderExtractionTrendChart();
     this.renderExtractionCategoryTrendChart();
     this.renderExtractionSubcategoryTrendChart();
     this.renderExtractionLabelFreqHeatmap();
     this.renderExtractionLabelPointHeatmap();
     this.renderExtractionLabelOverallRadarChart();
     this.renderWordcloudChart();
-    this.renderWordcloudOverallChart();
+    // this.renderWordcloudOverallChart();
   }
 
   renderWordcloudChart() {
     const chartDom = document.getElementById("wordcloud");
     if (!chartDom) return;
-
+    if (this.echarts.wordcloud) this.echarts.wordcloud.dispose();
     const chart = echarts.init(chartDom);
-    
-    // Transform data untuk wordcloud - menggunakan frequency sebagai nilai
-    const data = this.state.wordcloudData.map(item => ({
-      name: item.keyword,
-      value: item.frequency
-    })).sort((a, b) => b.value - a.value).slice(0, 200);
 
+    // 1) Siapkan label minggu + "All"
+    const weekLabels = Array.from(
+      new Set(this.state.wordcloudData.map((d) => d.week_id[1]))
+    ).sort((a, b) => {
+      const na = parseInt(a.match(/\d+/)?.[0] || 0),
+        nb = parseInt(b.match(/\d+/)?.[0] || 0);
+      return na - nb;
+    });
+    weekLabels.push("All");
+
+    // 2) Siapkan data per minggu & All
+    const dataMap = {};
+    weekLabels.forEach((lbl) => {
+      let arr;
+      if (lbl === "All") {
+        // PAKAI this.state.wordcloudOverallData untuk All
+        arr = (this.state.wordcloudOverallData || []).map((d) => ({
+          name: d.keyword,
+          value: d.frequency,
+        }));
+      } else {
+        arr = this.state.wordcloudData
+          .filter((d) => d.week_id[1] === lbl)
+          .map((d) => ({ name: d.keyword, value: d.frequency }));
+      }
+      dataMap[lbl] = arr.sort((a, b) => b.value - a.value).slice(0, 200);
+    });
+
+    // 3) Bangun option dengan timeline + autoplay
     const option = {
-      title: { text: "Word Cloud Keyword Logbook" },
-      tooltip: {
-        formatter: ({data}) => `${data.name}: ${data.value}`
-      },
-      series: [{
-        type: 'wordCloud',
-        gridSize: 8,
-        sizeRange: [12, 40],
-        rotationRange: [-45, 90],
-        shape: 'circle',
-        textStyle: {
-          color: () => `hsl(${Math.random() * 360}, 70%, 50%)`
+      baseOption: {
+        timeline: {
+          axisType: "category",
+          autoPlay: true,
+          playInterval: 3000,
+          data: weekLabels.map((w, i) => (w === "All" ? "All" : `W${i + 1}`)),
+          label: {
+            formatter: (_, idx) =>
+              weekLabels[idx] === "All" ? "All" : `W${idx + 1}`,
+          },
+          // tambahkan controlStyle jika mau positioning custom
         },
-        data
-      }]
+        title: { text: "Word Cloud Keyword Logbook", left: "center" },
+        tooltip: {},
+        // ==== ANIMASI HALUS DI SINI ====
+        animationDuration: 1000, // durasi animasi frame masuk (ms)
+        animationDurationUpdate: 1000, // durasi update data antar frame
+        animationEasing: "cubicOut", // easing untuk masuk
+        animationEasingUpdate: "cubicOut", // easing untuk update
+        // ==============================
+        series: [
+          {
+            type: "wordCloud",
+            gridSize: 8,
+            sizeRange: [12, 40],
+            rotationRange: [-45, 90],
+            textStyle: {
+              color: () => `hsl(${Math.random() * 360},70%,50%)`,
+            },
+            data: [], // akan diisi via options[]
+          },
+        ],
+      },
+      options: weekLabels.map((lbl) => ({
+        series: [{ data: dataMap[lbl] }],
+      })),
     };
 
-    chart.setOption(option);
+    this.echarts.wordcloud?.dispose();
+    this.echarts.wordcloud = echarts.init(chartDom);
+    this.echarts.wordcloud.setOption(option);
   }
 
-  renderWordcloudOverallChart() {
-    const chartDom = document.getElementById("wordcloud_overall");
-    if (!chartDom) return;
+  // renderWordcloudOverallChart() {
+  //   const chartDom = document.getElementById("wordcloud_overall");
+  //   if (!chartDom) return;
 
-    const chart = echarts.init(chartDom);
-    
-    // Transform data untuk wordcloud overall - menggunakan frequency sebagai nilai
-    const data = this.state.wordcloudOverallData.map(item => ({
-      name: item.keyword,
-      value: item.frequency
-    })).sort((a, b) => b.value - a.value).slice(0, 200);
+  //   const chart = echarts.init(chartDom);
 
-    const option = {
-      title: { text: "Word Cloud Keyword Logbook (Overall)" },
-      tooltip: {
-        formatter: ({data}) => `${data.name}: ${data.value}`
-      },
-      series: [{
-        type: 'wordCloud',
-        gridSize: 8,
-        sizeRange: [12, 40],
-        rotationRange: [-45, 90],
-        shape: 'circle',
-        textStyle: {
-          color: () => `hsl(${Math.random() * 360}, 70%, 50%)`
-        },
-        data
-      }]
-    };
+  //   // Transform data untuk wordcloud overall - menggunakan frequency sebagai nilai
+  //   const data = this.state.wordcloudOverallData
+  //     .map((item) => ({
+  //       name: item.keyword,
+  //       value: item.frequency,
+  //     }))
+  //     .sort((a, b) => b.value - a.value)
+  //     .slice(0, 200);
 
-    chart.setOption(option);
-  }
+  //   const option = {
+  //     title: { text: "Word Cloud Keyword Logbook (Overall)" },
+  //     tooltip: {
+  //       formatter: ({ data }) => `${data.name}: ${data.value}`,
+  //     },
+  //     series: [
+  //       {
+  //         type: "wordCloud",
+  //         gridSize: 8,
+  //         sizeRange: [12, 40],
+  //         rotationRange: [-45, 90],
+  //         shape: "circle",
+  //         textStyle: {
+  //           color: () => `hsl(${Math.random() * 360}, 70%, 50%)`,
+  //         },
+  //         data,
+  //       },
+  //     ],
+  //   };
+
+  //   chart.setOption(option);
+  // }
 
   formatDate(dateStr) {
     const date = new Date(dateStr);

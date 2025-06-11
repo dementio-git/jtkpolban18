@@ -655,8 +655,7 @@ class LogbookKeywordCloud(models.Model):
                     tf.class_id          = ks.class_id
             )
         """)
-        
-        
+                
 class LogbookKeywordCloudOverall(models.Model):
     _name = 'logbook.keyword.cloud.overall'
     _auto = False
@@ -710,3 +709,4 @@ class LogbookKeywordCloudOverall(models.Model):
                     tfa.class_id          = ks.class_id
             )
         """)
+        

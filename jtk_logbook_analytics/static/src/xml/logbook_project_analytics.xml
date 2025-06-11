@@ -2,42 +2,42 @@
     <t t-name="jtk_logbook_analytics.LogbookProjectAnalytics" owl="1">
         <div class="row mt-3">
             <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Statistik Deskriptif Logbook</h3>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Total Mahasiswa</th>
-                                        <th>Rata-rata Mahasiswa Aktif per Minggu</th>
-                                        <th>Std Dev Mahasiswa Aktif per Minggu</th>
-                                        <th>Total Logbook</th>
-                                        <th>Rata-rata Logbook per Minggu</th>
-                                        <th>Std Dev Logbook per Minggu</th>
-                                        <th>Rata-rata Produktivitas* Mahasiswa per Minggu</th>
-                                        <th>Std Dev Produktivitas* Mahasiswa per Minggu</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr t-foreach="state.stats" t-as="stat" t-key="stat.id">
-                                        <td><t t-esc="stat.total_students"/></td>
-                                        <td><t t-esc="stat.avg_active_students_per_week"/></td>
-                                        <td><t t-esc="stat.std_dev_active_students_per_week"/></td>
-                                        <td><t t-esc="stat.total_logbooks"/></td>
-                                        <td><t t-esc="stat.avg_logbooks_per_week"/></td>
-                                        <td><t t-esc="stat.std_dev_logbooks"/></td>
-                                        <td><t t-esc="stat.avg_logbooks_per_student_week"/></td>
-                                        <td><t t-esc="stat.std_dev_logbooks_per_student_week"/></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <p style="margin-left: 10px; margin-top:10px">* Produktivitas Mahasiswa dihitung sebagai jumlah logbook per mahasiswa per minggu.</p>
-                        </div>
-                    </div>
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                <h3 class="card-title">Statistik Deskriptif Logbook</h3>
                 </div>
+                <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                    <thead class="bg-light">
+                        <tr class="text-primary">
+                        <th>Total Mahasiswa</th>
+                        <th>Rata-rata Mahasiswa Aktif per Minggu</th>
+                        <th>Std Dev Mahasiswa Aktif per Minggu</th>
+                        <th>Total Logbook</th>
+                        <th>Rata-rata Logbook per Minggu</th>
+                        <th>Std Dev Logbook per Minggu</th>
+                        <th>Rata-rata Produktivitas* Mahasiswa per Minggu</th>
+                        <th>Std Dev Produktivitas* Mahasiswa per Minggu</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="state.stats" t-as="stat" t-key="stat.id" class="text-muted">
+                        <td><t t-esc="stat.total_students"/></td>
+                        <td><t t-esc="stat.avg_active_students_per_week"/></td>
+                        <td><t t-esc="stat.std_dev_active_students_per_week"/></td>
+                        <td><t t-esc="stat.total_logbooks"/></td>
+                        <td><t t-esc="stat.avg_logbooks_per_week"/></td>
+                        <td><t t-esc="stat.std_dev_logbooks"/></td>
+                        <td><t t-esc="stat.avg_logbooks_per_student_week"/></td>
+                        <td><t t-esc="stat.std_dev_logbooks_per_student_week"/></td>
+                        </tr>
+                    </tbody>
+                    </table>
+                    <p class="text-secondary fst-italic" style="margin-left: 10px; margin-top:10px">* Produktivitas Mahasiswa dihitung sebagai jumlah logbook per mahasiswa per minggu.</p>
+                </div>
+                </div>
+            </div>
             </div>
         </div>
         <div class="row mt-3">
@@ -121,13 +121,12 @@
                         
                         <!-- Wordcloud Charts -->
                         <div class="chart-container" style="height: 600px;">
-                            <h4>Word Cloud Keyword Logbook</h4>
                             <div id="wordcloud" style="height: 600px;"></div>
                         </div>
-                        <div class="chart-container" style="height: 600px;">
+                        <!-- <div class="chart-container" style="height: 600px;">
                             <h4>Word Cloud Keyword Logbook (Overall)</h4>
                             <div id="wordcloud_overall" style="height: 600px;"></div>
-                        </div>
+                        </div> -->
                     </div>
                     
                 </div>
