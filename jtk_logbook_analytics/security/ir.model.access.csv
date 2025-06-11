@@ -6,14 +6,13 @@ logbook.descriptive.stats,logbook.descriptive.stats,model_logbook_descriptive_st
 access_logbook_weekly_stats,access.logbook.weekly.stats,model_logbook_weekly_stats,base.group_user,1,1,1,1
 access_logbook_weekly_stats_class,access.logbook.weekly.stats.class,model_logbook_weekly_stats_class,base.group_user,1,1,1,1
 access_logbook_descriptive_stats_class,access.logbook.descriptive.stats.class,model_logbook_descriptive_stats_class,base.group_user,1,1,1,1
-access_logbook_extraction_weekly,access.logbook.extraction.weekly,model_logbook_extraction_weekly,base.group_user,1,1,1,1
+access_logbook_weekly_activity,access.logbook.weekly.activity,model_logbook_weekly_activity,base.group_user,1,1,1,1
 access_logbook_extraction_descriptive_stats,access.logbook.extraction.descriptive.stats,model_logbook_extraction_descriptive_stats,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_category,access.logbook.extraction.weekly.category,model_logbook_extraction_weekly_category,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_subcategory,access.logbook.extraction.weekly.subcategory,model_logbook_extraction_weekly_subcategory,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_label,access.logbook.extraction.weekly.label,model_logbook_extraction_weekly_label,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_label_norm,access.logbook.extraction.weekly.label.norm,model_logbook_extraction_weekly_label_norm,base.group_user,1,1,1,1
 access_logbook_weekly_activity_class,access.logbook.weekly.activity.class,model_logbook_weekly_activity_class,base.group_user,1,1,1,1
-access_logbook_extraction_weekly_class,access.logbook.extraction.weekly.class,model_logbook_extraction_weekly_class,base.group_user,1,1,1,1
 access_logbook_extraction_descriptive_stats_class,access.logbook.extraction.descriptive.stats.class,model_logbook_extraction_descriptive_stats_class,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_category_class,access.logbook.extraction.weekly.category.class,model_logbook_extraction_weekly_category_class,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_subcategory_class,access.logbook.extraction.weekly.subcategory.class,model_logbook_extraction_weekly_subcategory_class,base.group_user,1,1,1,1

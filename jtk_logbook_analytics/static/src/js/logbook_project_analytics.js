@@ -23,7 +23,7 @@ export class LogbookProjectAnalytics extends Component {
       stats: [],
       weeklyStats: [],
       projectCourseId: null,
-      extractionStats: [],
+      weeklyActivity: [],
       extraction_stats: [],
       extractionByCategory: [],
       extractionBySubcategory: [],
@@ -46,7 +46,7 @@ export class LogbookProjectAnalytics extends Component {
 
       await this.loadStats();
       await this.loadWeeklyStats();
-      await this.loadExtractionStats();
+      await this.loadWeeklyActivity();
       await this.loadExtractionDescriptiveStats();
       await this.loadExtractionByCategory();
       await this.loadExtractionBySubcategory();
@@ -105,16 +105,24 @@ export class LogbookProjectAnalytics extends Component {
     );
   }
 
-  async loadExtractionStats() {
+  async loadWeeklyActivity() {
     const pid = this.state.projectCourseId;
     if (!pid) {
-      this.state.extractionStats = [];
+      console.warn("projectCourseId belum tersedia");
+      this.state.weeklyActivity = [];
       return;
     }
-    this.state.extractionStats = await this.orm.searchRead(
-      "logbook.extraction.weekly",
+    this.state.weeklyActivity = await this.orm.searchRead(
+      "logbook.weekly.activity",
       [["project_course_id", "=", pid]],
-      ["week_start_date", "week_end_date", "week_label", "extraction_count"]
+      [
+        "week_start_date",
+        "week_end_date",
+        "week_label",
+        "logbook_count",
+        "extraction_count",
+        "extraction_ratio",
+      ]
     );
   }
 
@@ -264,9 +272,8 @@ export class LogbookProjectAnalytics extends Component {
   }
 
   renderCharts() {
-    this.renderParticipationTrendChart();
     this.renderProductivityTrendChart();
-    this.renderExtractionTrendChart();
+    this.renderWeeklyActivityChart();
     this.renderExtractionCategoryTrendChart();
     this.renderExtractionSubcategoryTrendChart();
     this.renderExtractionLabelFreqHeatmap();
@@ -402,52 +409,107 @@ export class LogbookProjectAnalytics extends Component {
       .padStart(2, "0")}/${date.getFullYear()}`;
   }
 
-  renderParticipationTrendChart() {
-    const chartDom = document.getElementById("chart1");
+  renderProductivityTrendChart() {
+    const chartDom = document.getElementById("chart_productivity");
     if (!chartDom) return;
-
+    if (this.echarts.chart_productivity) {
+      this.echarts.chart_productivity.dispose();
+    }
     const chart = echarts.init(chartDom);
+
     const weekly = this.state.weeklyStats;
     const overall = this.state.stats.length ? this.state.stats[0] : {};
 
-    chart.setOption({
+    // Generate week labels
+    const weekLabels = weekly.map((_, i) => `W${i + 1}`);
+
+    const option = {
+      title: {
+        text: "Tren Partisipasi & Produktivitas",
+        left: "center",
+      },
       tooltip: {
         trigger: "axis",
+        axisPointer: { type: "cross" },
         formatter: (params) => {
           const index = params[0].dataIndex;
-          const s = this.state.weeklyStats[index];
-          const items = params
-            .map((p) => `${p.marker} ${p.seriesName}: ${p.value}`)
-            .join("<br>");
-          return `Minggu ${index + 1} (${this.formatDate(
+          const s = weekly[index];
+          let result = `Minggu ${index + 1} (${this.formatDate(
             s.week_start_date
-          )} - ${this.formatDate(s.week_end_date)})<br>${items}`;
+          )} - ${this.formatDate(s.week_end_date)})<br/>`;
+
+          params.forEach((param) => {
+            let value = param.value;
+            let formattedValue = "";
+
+            if (param.seriesName === "Jumlah Logbook") {
+              formattedValue = `${value} logbook`;
+            } else if (param.seriesName === "Mahasiswa Aktif") {
+              formattedValue = `${value} mahasiswa`;
+            } else if (param.seriesName === "Rata-rata Produktivitas") {
+              formattedValue = `${value.toFixed(2)} logbook/mhs`;
+            }
+
+            result += `${param.marker}${param.seriesName}: ${formattedValue}<br/>`;
+          });
+          return result;
         },
       },
       legend: {
-        data: ["Jumlah Logbook", "Mahasiswa Aktif"],
+        data: [
+          "Jumlah Logbook",
+          "Mahasiswa Aktif",
+          "Rata-rata Logbook/Mahasiswa",
+        ],
+        top: 40,
+      },
+      grid: {
+        right: "15%",
+        top: "25%",
+        containLabel: true,
       },
       xAxis: {
         type: "category",
-        name: "Minggu",
-        data: weekly.map((_, i) => `W${i + 1}`),
+        data: weekLabels,
         axisLabel: { interval: 0 },
       },
-      yAxis: {
-        type: "value",
-        name: "Nilai",
-      },
+      yAxis: [
+        {
+          type: "value",
+          name: "Jumlah",
+          position: "left",
+          axisLine: { show: true },
+          splitLine: { show: false },
+          axisLabel: {
+            formatter: "{value}",
+          },
+        },
+        {
+          type: "value",
+          name: "Rata-rata Produktivitas",
+          position: "right",
+          offset: 80,
+          axisLine: { show: true },
+          splitLine: { show: false },
+          axisLabel: {
+            formatter: "{value}",
+          },
+        },
+      ],
       series: [
         {
           name: "Jumlah Logbook",
+          type: "bar",
           data: weekly.map((s) => s.avg_logbooks_per_week),
-          type: "line",
-          smooth: true,
+          yAxisIndex: 0,
+          itemStyle: { color: "#5470C6" },
           markLine: {
             symbol: "none",
             label: {
-              formatter: "Rata-rata Logbook/Minggu\n{c}",
-              position: "insideEnd",
+              formatter: "Rata-rata\nJumlah Logbook:\n{c}",
+              position: "end",
+              lineHeight: 15,
+              fontSize: 10,
             },
             data: [{ yAxis: overall.avg_logbooks_per_week }],
             lineStyle: { type: "dashed", color: "#5470C6" },
@@ -455,144 +517,236 @@ export class LogbookProjectAnalytics extends Component {
         },
         {
           name: "Mahasiswa Aktif",
-          data: weekly.map((s) => s.avg_active_students_per_week),
           type: "line",
-          smooth: true,
+          data: weekly.map((s) => s.avg_active_students_per_week),
+          yAxisIndex: 0,
+          itemStyle: { color: "#91CC75" },
+          symbol: "circle",
           markLine: {
             symbol: "none",
             label: {
-              formatter: "Rata-rata Mahasiswa Aktif\n{c}",
-              position: "insideEnd",
+              formatter: "Rata-rata\nMahasiswa Aktif:\n{c}",
+              position: "end",
+              lineHeight: 15,
+              fontSize: 10,
             },
             data: [{ yAxis: overall.avg_active_students_per_week }],
             lineStyle: { type: "dashed", color: "#91CC75" },
           },
         },
-      ],
-    });
-
-    this.echarts.chart1 = chart;
-  }
-
-  renderProductivityTrendChart() {
-    const chartDom = document.getElementById("chart2");
-    if (!chartDom) return;
-
-    const chart = echarts.init(chartDom);
-    const weekly = this.state.weeklyStats;
-    const overall = this.state.stats.length ? this.state.stats[0] : {};
-
-    chart.setOption({
-      tooltip: { trigger: "axis" },
-      legend: { data: ["Rata-rata Logbook / Mahasiswa"], top: 0 },
-      xAxis: {
-        type: "category",
-        name: "Minggu",
-        data: weekly.map((_, i) => `W${i + 1}`),
-        axisLabel: { interval: 0 },
-      },
-      yAxis: {
-        type: "value",
-        name: "Rata-rata",
-      },
-      series: [
         {
-          name: "Rata-rata Logbook / Mahasiswa",
+          name: "Rata-rata Produktivitas Logbook Mahasiswa",
+          type: "line",
           data: weekly.map((s) =>
             parseFloat(s.avg_logbooks_per_student_week.toFixed(2))
           ),
-          type: "line",
-          smooth: true,
+          yAxisIndex: 1,
+          itemStyle: { color: "#EE6666" },
+          symbol: "circle",
+          lineStyle: { type: "dashed" },
           markLine: {
             symbol: "none",
             label: {
-              formatter: "Rata-rata Keseluruhan\n{c}",
-              position: "insideEnd",
+              formatter: "Rata-rata\nProduktivitas\nLogbook Mahasiswa:\n{c}",
+              position: "end",
+              lineHeight: 15,
+              fontSize: 10,
             },
             data: [{ yAxis: overall.avg_logbooks_per_student_week }],
-            lineStyle: { type: "dashed", color: "#5470C6" },
+            lineStyle: { type: "dashed", color: "#EE6666" },
           },
         },
       ],
-    });
+    };
 
-    this.echarts.chart2 = chart;
+    chart.setOption(option);
+    this.echarts.chart_productivity = chart;
   }
 
-  renderExtractionTrendChart() {
-    const chartDom = document.getElementById("chart3");
+  renderWeeklyActivityChart() {
+    const chartDom = document.getElementById("chart_activity");
     if (!chartDom) return;
-
-    const chart = echarts.init(chartDom);
-    const extr = this.state.extractionStats;
-
-    if (!extr || extr.length === 0) {
-      chart.clear();
-      return;
+    if (this.echarts.chart_activity) {
+      this.echarts.chart_activity.dispose();
     }
+    const chart = echarts.init(chartDom);
 
-    chart.setOption({
+    const weekLabels = [
+      ...new Set(
+        this.state.weeklyActivity
+          .sort(
+            (a, b) => new Date(a.week_start_date) - new Date(b.week_start_date)
+          )
+          .map((s) => s.week_label)
+      ),
+    ];
+
+    // Hitung maxRatio untuk y-axis
+    const maxRatio = Math.max(
+      ...this.state.weeklyActivity.map((d) => d.extraction_ratio)
+    );
+    const yAxisMaxRatio = Math.ceil(maxRatio * 1.1);
+
+    const option = {
+      title: {
+        text: "Aktivitas Logbook & Ekstraksi",
+        left: "center",
+      },
       tooltip: {
         trigger: "axis",
-        formatter: (params) => {
-          const index = params[0].dataIndex;
-          const s = this.state.extractionStats[index];
-          return `Minggu ${index + 1} (${this.formatDate(
-            s.week_start_date
-          )} - ${this.formatDate(s.week_end_date)})<br>
-            Jumlah Ekstraksi: ${params[0].value}`;
+        axisPointer: { type: "cross" },
+        formatter: function (params) {
+          let result = `${params[0].axisValue}<br/>`;
+          params.forEach((param) => {
+            let value = param.value;
+            let formattedValue = "";
+
+            if (param.seriesName === "Jumlah Ekstraksi") {
+              formattedValue = `${value} ekstraksi`;
+            } else if (param.seriesName === "Jumlah Logbook") {
+              formattedValue = `${value} logbook`;
+            } else if (param.seriesName === "Rasio Ekstraksi") {
+              formattedValue = `${value.toFixed(2)}x (${(value * 100).toFixed(
+                1
+              )}%)`;
+            }
+
+            result += `${param.marker}${param.seriesName}: ${formattedValue}<br/>`;
+          });
+          return result;
         },
       },
       legend: {
-        data: ["Rata-rata Logbook / Mahasiswa"],
-        top: 0,
-        type: "scroll",
-        formatter: (name) => {
-          const values = extr.map((s) => s.extraction_count);
-          values.sort((a, b) => b - a);
-          return name + ": " + values[0];
-        },
+        top: 40,
+        data: ["Jumlah Ekstraksi", "Jumlah Logbook", "Rasio Ekstraksi"],
+      },
+      grid: {
+        right: "15%",
+        top: "25%",
+        containLabel: true,
       },
       xAxis: {
         type: "category",
-        name: "Minggu",
-        data: extr.map((_, i) => `W${i + 1}`),
+        data: weekLabels,
         axisLabel: { interval: 0 },
       },
-      yAxis: {
-        type: "value",
-        name: "Total Ekstraksi",
-      },
+      yAxis: [
+        {
+          type: "value",
+          name: "Jumlah Ekstraksi",
+          position: "left",
+          axisLine: { show: true },
+          splitLine: { show: false },
+        },
+        {
+          type: "value",
+          name: "Jumlah Logbook",
+          position: "right",
+          offset: 0,
+          axisLine: { show: true },
+          splitLine: { show: false },
+        },
+        {
+          type: "value",
+          name: "Rasio Ekstraksi",
+          min: 0,
+          max: yAxisMaxRatio,
+          position: "right",
+          offset: 80,
+          axisLabel: {
+            formatter: "{value}x",
+          },
+          axisLine: { show: true },
+          splitLine: { show: false },
+        },
+      ],
       series: [
         {
           name: "Jumlah Ekstraksi",
-          data: extr.map((s) => s.extraction_count),
-          type: "line",
-          smooth: true,
+          type: "bar",
+          data: this.state.weeklyActivity.map((w) => w.extraction_count),
+          yAxisIndex: 0,
+          itemStyle: { color: "#5470C6" },
           markLine: {
             symbol: "none",
             label: {
-              formatter: "Total Ekstraksi Rata-rata\n{c}",
-              position: "insideEnd",
+              formatter: "Rata-rata\nJumlah Ekstraksi:\n{c}",
+              position: "end",
+              lineHeight: 15,
+              fontSize: 10,
             },
             data: [
               {
-                yAxis: (() => {
-                  const sum = extr.reduce(
-                    (acc, cur) => acc + (cur.extraction_count || 0),
+                yAxis:
+                  this.state.weeklyActivity.reduce(
+                    (sum, w) => sum + w.extraction_count,
                     0
-                  );
-                  return extr.length ? (sum / extr.length).toFixed(2) : 0;
-                })(),
+                  ) / this.state.weeklyActivity.length,
+              },
+            ],
+            lineStyle: { type: "dashed", color: "#5470C6" },
+          },
+        },
+        {
+          name: "Jumlah Logbook",
+          type: "line",
+          data: this.state.weeklyActivity.map((w) => w.logbook_count),
+          yAxisIndex: 1,
+          symbol: "circle",
+          itemStyle: { color: "#91CC75" },
+          markLine: {
+            symbol: "none",
+            label: {
+              formatter: "Rata-rata\nJumlah Logbook:\n{c}",
+              position: "end",
+              lineHeight: 15,
+              fontSize: 10,
+            },
+            data: [
+              {
+                yAxis:
+                  this.state.weeklyActivity.reduce(
+                    (sum, w) => sum + w.logbook_count,
+                    0
+                  ) / this.state.weeklyActivity.length,
+              },
+            ],
+            lineStyle: { type: "dashed", color: "#91CC75" },
+          },
+        },
+        {
+          name: "Rasio Ekstraksi",
+          type: "line",
+          data: this.state.weeklyActivity.map((w) => w.extraction_ratio),
+          yAxisIndex: 2,
+          symbol: "circle",
+          lineStyle: { type: "dashed" },
+          itemStyle: { color: "#EE6666" },
+          markLine: {
+            symbol: "none",
+            label: {
+              formatter: "Rata-rata\nRasio Ekstraksi:\n{c}",
+              position: "end",
+              lineHeight: 15,
+              fontSize: 10,
+            },
+            data: [
+              {
+                yAxis:
+                  this.state.weeklyActivity.reduce(
+                    (sum, w) => sum + w.extraction_ratio,
+                    0
+                  ) / this.state.weeklyActivity.length,
               },
             ],
             lineStyle: { type: "dashed", color: "#EE6666" },
           },
         },
       ],
-    });
+    };
 
-    this.echarts.chart3 = chart;
+    chart.setOption(option);
+    this.echarts.chart_activity = chart;
   }
 
   renderExtractionCategoryTrendChart() {

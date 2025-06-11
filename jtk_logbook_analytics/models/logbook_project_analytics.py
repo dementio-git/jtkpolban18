@@ -188,44 +188,6 @@ class LogbookWeeklyStats(models.Model):
             )
         """)
 
-class LogbookExtractionWeekly(models.Model):
-    _name = 'logbook.extraction.weekly'
-    _auto = False
-    _description = 'Tren Ekstraksi Logbook per Proyek per Minggu'
-
-    project_course_id = fields.Many2one('project.course', string='Mata Kuliah', readonly=True)
-    week_id           = fields.Many2one('course.activity', string='Minggu', readonly=True)
-    week_start_date   = fields.Date(string='Tanggal Mulai Minggu', readonly=True)
-    week_end_date     = fields.Date(string='Tanggal Akhir Minggu', readonly=True)
-    week_label        = fields.Char(string='Label Minggu', readonly=True)
-    extraction_count  = fields.Integer(string='Jumlah Ekstraksi (poin ≠ 0)', readonly=True)
-
-    def init(self):
-        tools.drop_view_if_exists(self.env.cr, self._table)
-        self.env.cr.execute("""
-            CREATE OR REPLACE VIEW logbook_extraction_weekly AS (
-                SELECT
-                    MIN(e.id)                                             AS id,
-                    lb.project_course_id                                 AS project_course_id,
-                    lb.week_id                                           AS week_id,
-                    w.start_date                                         AS week_start_date,
-                    w.end_date                                           AS week_end_date,
-                    to_char(w.start_date, 'DD Mon YYYY')                 AS week_label,
-                    COUNT(e.id)                                          AS extraction_count
-                FROM logbook_extraction e
-                JOIN logbook_logbook lb ON e.logbook_id = lb.id
-                JOIN course_activity w ON lb.week_id = w.id AND w.type = 'week'
-                WHERE
-                    lb.project_course_id IS NOT NULL
-                    AND e.content IS NOT NULL
-                    AND e.content != ''
-                GROUP BY
-                    lb.project_course_id,
-                    lb.week_id,
-                    w.start_date,
-                    w.end_date
-            )
-        """)
         
 class LogbookExtractionDescriptiveStats(models.Model):
     _name = 'logbook.extraction.descriptive.stats'
@@ -309,6 +271,86 @@ class LogbookExtractionDescriptiveStats(models.Model):
                 LEFT JOIN student_stats      ss  ON ss.project_course_id  = pc.project_course_id
                 LEFT JOIN student_week_stats sws ON sws.project_course_id = pc.project_course_id;
 
+        """)
+        
+class LogbookWeeklyActivityProject(models.Model):
+    _name = "logbook.weekly.activity"
+    _auto = False
+    _description = "Statistik Aktivitas Logbook per Project per Minggu"
+
+    project_course_id = fields.Many2one("project.course", string="Mata Kuliah", readonly=True)
+    week_id = fields.Many2one("course.activity", string="Minggu", readonly=True)
+    week_start_date = fields.Date(string="Tanggal Mulai Minggu", readonly=True)
+    week_end_date = fields.Date(string="Tanggal Akhir Minggu", readonly=True)
+    week_label = fields.Char(string="Label Minggu", readonly=True)
+    logbook_count = fields.Integer(string="Jumlah Logbook", readonly=True)
+    extraction_count = fields.Integer(string="Jumlah Ekstraksi", readonly=True)
+    extraction_ratio = fields.Float(string="Rasio Ekstraksi/Logbook", readonly=True)
+
+    def init(self):
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        self.env.cr.execute("""
+        CREATE OR REPLACE VIEW logbook_weekly_activity AS
+        WITH 
+        distinct_weeks AS (
+            SELECT
+                lb.project_course_id,
+                lb.week_id,
+                w.start_date,
+                w.end_date,
+                DENSE_RANK() OVER (
+                    PARTITION BY lb.project_course_id
+                    ORDER BY w.start_date
+                ) AS week_num
+            FROM logbook_logbook lb
+            JOIN course_activity w ON w.id = lb.week_id AND w.type = 'week'
+            WHERE lb.project_course_id IS NOT NULL
+            GROUP BY
+                lb.project_course_id,
+                lb.week_id,
+                w.start_date,
+                w.end_date
+        ),
+        logbook_stats AS (
+            SELECT 
+                lb.project_course_id,
+                lb.week_id,
+                COUNT(DISTINCT lb.id) as logbook_count
+            FROM logbook_logbook lb
+            GROUP BY lb.project_course_id, lb.week_id
+        ),
+        extraction_stats AS (
+            SELECT
+                lb.project_course_id,
+                lb.week_id,
+                COUNT(e.id) as extraction_count
+            FROM logbook_extraction e
+            JOIN logbook_logbook lb ON e.logbook_id = lb.id
+            WHERE e.content IS NOT NULL AND e.content <> ''
+            GROUP BY lb.project_course_id, lb.week_id
+        )
+        SELECT
+            ROW_NUMBER() OVER () AS id,
+            dw.project_course_id,
+            dw.week_id,
+            dw.start_date AS week_start_date,
+            dw.end_date AS week_end_date,
+            CONCAT('W', dw.week_num) AS week_label,
+            COALESCE(ls.logbook_count, 0) as logbook_count,
+            COALESCE(es.extraction_count, 0) as extraction_count,
+            CASE 
+                WHEN COALESCE(ls.logbook_count, 0) = 0 THEN 0
+                ELSE ROUND((COALESCE(es.extraction_count, 0)::numeric / 
+                          ls.logbook_count::numeric)::numeric, 2)
+            END as extraction_ratio
+        FROM distinct_weeks dw
+        LEFT JOIN logbook_stats ls ON ls.project_course_id = dw.project_course_id
+                                 AND ls.week_id = dw.week_id
+        LEFT JOIN extraction_stats es ON es.project_course_id = dw.project_course_id
+                                    AND es.week_id = dw.week_id
+        ORDER BY
+            dw.project_course_id,
+            dw.week_num
         """)
 
 class LogbookExtractionWeeklyByCategory(models.Model):
