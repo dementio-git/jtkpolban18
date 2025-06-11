@@ -161,6 +161,7 @@ export class LogbookProjectAnalytics extends Component {
         "week_label",
         "category_id",
         "extraction_count",
+        "avg_norm_point",
       ]
     );
   }
@@ -442,7 +443,9 @@ export class LogbookProjectAnalytics extends Component {
               formattedValue = `${value} logbook`;
             } else if (param.seriesName === "Mahasiswa Aktif") {
               formattedValue = `${value} mahasiswa`;
-            } else if (param.seriesName === "Rata-rata Produktivitas Logbook/Mahasiswa") {
+            } else if (
+              param.seriesName === "Rata-rata Produktivitas Logbook/Mahasiswa"
+            ) {
               formattedValue = `${value.toFixed(2)} logbook/mhs`;
             }
 
@@ -749,131 +752,193 @@ export class LogbookProjectAnalytics extends Component {
     const chartDom = document.getElementById("chart4");
     if (!chartDom) return;
 
-    const chart = echarts.init(chartDom);
-    const data = this.state.extractionByCategory; // [{week_start_date,week_label,category_id,extraction_count}, ...]
-    const weekly = this.state.extractionStats; // Untuk label minggu
-
-    if (!data || data.length === 0) {
-      chart.clear();
+    const data = this.state.extractionByCategory;
+    if (!data || !data.length) {
+      chartDom.innerHTML =
+        "<p style='text-align:center'>Data tidak tersedia</p>";
       return;
     }
 
-    //
-    // 1) Kumpulkan pasangan [category_id, category_name] unik
-    //
-    //    Kita pakai Map agar kunci = category_id (angka), nilai = category_name.
-    const mapCat = new Map();
+    const parseDate = (s) => {
+      const [d, mon, y] = s.split(" ");
+      const m = {
+        Jan: 0,
+        Feb: 1,
+        Mar: 2,
+        Apr: 3,
+        May: 4,
+        Jun: 5,
+        Jul: 6,
+        Aug: 7,
+        Sep: 8,
+        Oct: 9,
+        Nov: 10,
+        Dec: 11,
+      }[mon];
+      return new Date(+y, m, +d);
+    };
+
+    // 1. Urutkan minggu
+    const weeks = Array.from(new Set(data.map((r) => r.week_label))).sort(
+      (a, b) => parseDate(a) - parseDate(b)
+    );
+    const xWeeks = weeks.map((_, i) => `W${i + 1}`);
+
+    // 2. Ambil daftar kategori (sorted by ID)
+    const catPairs = Array.from(
+      new Map(data.map((r) => [r.category_id[0], r.category_id[1]])).entries()
+    ).sort((a, b) => a[0] - b[0]);
+    const categoryIds = catPairs.map((p) => p[0]);
+    const categoryNames = catPairs.map((p) => p[1]);
+
+    // 3. Build pivot data
+    const pivot = {};
+    weeks.forEach((wk) => {
+      pivot[wk] = {};
+      categoryIds.forEach((cid) => {
+        pivot[wk][cid] = 0;
+      });
+    });
+
     data.forEach((r) => {
-      const [catId, catName] = r.category_id; // misal [3, "Motivasi"]
-      mapCat.set(catId, catName);
+      const wk = r.week_label;
+      const cid = r.category_id[0];
+      pivot[wk][cid] = r.extraction_count;
     });
-    // Sekarang convert Map ke array [[id, name], ...] lalu urutkan berdasarkan id
-    const categoryPairs = Array.from(mapCat.entries()).sort(
-      (a, b) => a[0] - b[0]
-    );
-    // Pisahkan kembali menjadi dua array: ids dan names dalam urutan yg sudah di-sort
-    const categoryIds = categoryPairs.map((pair) => pair[0]); // [2, 5, 7, ...]
-    const categories = categoryPairs.map((pair) => pair[1]); // ["Konten", "Motivasi", "Waktu", ...]
 
-    //
-    // 2) Kumpulkan semua minggu unik, urutkan berdasarkan tanggal
-    //
-    const weekLabels = Array.from(new Set(data.map((r) => r.week_label))).sort(
-      (a, b) => {
-        // Parse format "DD Mon YYYY"
-        const parse = (s) => {
-          const parts = s.split(" ");
-          const day = parseInt(parts[0], 10);
-          const monthNames = {
-            Jan: 0,
-            Feb: 1,
-            Mar: 2,
-            Apr: 3,
-            May: 4,
-            Jun: 5,
-            Jul: 6,
-            Aug: 7,
-            Sep: 8,
-            Oct: 9,
-            Nov: 10,
-            Dec: 11,
-          };
-          const month = monthNames[parts[1]];
-          const year = parseInt(parts[2], 10);
-          return new Date(year, month, day);
-        };
-        return parse(a) - parse(b);
-      }
-    );
-    // Label sumbu X: W1, W2, W3, ...
-    const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
+    const baseColors = [
+      "#5470C6",
+      "#91CC75",
+      "#EE6666",
+      "#73C0DE",
+      "#3BA272",
+      "#FC8452",
+      "#9A60B4",
+      "#EA7CCC",
+    ];
 
-    //
-    // 3) Bangun seriesData: satu objek per kategori (dalam urutan ascending ID)
-    //
-    const seriesData = categoryIds.map((catId, idx) => {
-      const catName = categories[idx];
-      return {
-        name: catName,
+    function generateColorVariants(baseColor) {
+      const color = echarts.color.lift(baseColor, 0);
+      return [
+        echarts.color.lift(color, 0.2),
+        color,
+        echarts.color.lift(color, -0.2),
+      ];
+    }
+
+    // Generate series
+    const series = [];
+    categoryIds.forEach((catId, ci) => {
+      const catName = categoryNames[ci];
+      const baseColor = baseColors[ci % baseColors.length];
+      const variants = generateColorVariants(baseColor);
+
+      series.push({
+        name: `${catName} (Jumlah)`,
+        type: "bar",
+        stack: "count",
+        data: weeks.map((wk) => pivot[wk][catId]),
+        itemStyle: { color: variants[1] },
+        emphasis: { focus: "series" },
+      });
+
+      series.push({
+        name: `${catName} (Point)`,
         type: "line",
-        smooth: true,
-        data: weekLabels.map((wl) => {
-          // Cari record yang sama minggu + category_id
-          const rec = data.find(
-            (r) => r.week_label === wl && r.category_id[0] === catId
+        yAxisIndex: 1,
+        symbol: "circle",
+        symbolSize: 6,
+        lineStyle: {
+          width: 2,
+          type: "solid",
+        },
+        itemStyle: { color: variants[2] },
+        data: weeks.map((wk) => {
+          const record = data.find(
+            (r) => r.week_label === wk && r.category_id[0] === catId
           );
-          return rec ? rec.extraction_count : 0;
+          return record?.avg_norm_point?.toFixed(2) || 0;
         }),
-      };
+      });
     });
 
-    //
-    // 4) Set opsi ECharts
-    //
-    chart.setOption({
-      title: { text: "Tren Ekstraksi per Minggu per Kategori Label" },
+    // Chart options
+    const option = {
       tooltip: {
         trigger: "axis",
-        formatter: (params) => {
-          // Urutkan params berdasarkan nilai descending, agar tooltip tampilkan besar ke kecil
-          params.sort((a, b) => b.value - a.value);
+        axisPointer: { type: "cross" },
+        formatter: function (params) {
+          let result = `${params[0].axisValue}<br/>`;
+          let total = 0;
 
-          // Cari data minggu berdasarkan dataIndex (indeks minggu ke berapa)
-          const index = params[0].dataIndex;
-          const weekData = data.find((d) => d.week_label === weekLabels[index]);
+          const bars = params.filter((p) => p.seriesName.includes("(Jumlah)"));
+          const lines = params.filter((p) => p.seriesName.includes("(Point)"));
 
-          // Bangun header tooltip: "Minggu X (tanggal ... - tanggal ...)"
-          let result = `Minggu ${index + 1} (${this.formatDate(
-            weekData.week_start_date
-          )} - ${this.formatDate(weekData.week_end_date)})<br/>`;
-
-          // Tambahkan setiap seri (kategori) dengan nilai > 0
-          params.forEach((param) => {
-            if (param.value > 0) {
-              result += `${param.marker} ${param.seriesName}: ${param.value}<br/>`;
-            }
+          bars.forEach((param) => {
+            total += param.value;
+            result += `${param.marker}${param.seriesName}: ${param.value}<br/>`;
           });
+          result += `${"-".repeat(10)}<br/>Total: ${total}<br/>`;
+
+          lines.forEach((param) => {
+            result += `${param.marker}${param.seriesName}: ${parseFloat(
+              param.value
+            ).toFixed(2)}<br/>`;
+          });
+
           return result;
         },
       },
       legend: {
-        data: categories, // urutan nama kategori sudah berdasarkan ascending ID
-        top: 0,
         type: "scroll",
+        top: 10,
+        padding: [5, 50],
+        height: 50,
+        textStyle: { fontSize: 11 },
+        width: "90%",
+        left: "center",
+        formatter: (name) => name.replace(/\s-\s[^(]+/, ""),
+      },
+      grid: {
+        left: "3%",
+        right: "4%",
+        bottom: "10%",
+        top: "20%",
+        containLabel: true,
       },
       xAxis: {
         type: "category",
-        name: "Minggu",
-        data: weekIndexLabels,
-        axisLabel: { interval: 0 },
+        data: xWeeks,
+        axisLabel: {
+          rotate: 45,
+          interval: 0,
+        },
       },
-      yAxis: {
-        type: "value",
-        name: "Jumlah Ekstraksi",
-      },
-      series: seriesData,
-    });
+      yAxis: [
+        {
+          type: "value",
+          name: "Jumlah Ekstraksi",
+          position: "left",
+        },
+        {
+          type: "value",
+          name: "Point",
+          position: "right",
+          offset: 0,
+          min: 0,
+          max: 1,
+          axisLabel: {
+            formatter: (value) => value.toFixed(2),
+          },
+        },
+      ],
+      series: series,
+    };
 
+    // Render chart
+    if (this.echarts.chart4) this.echarts.chart4.dispose();
+    const chart = echarts.init(chartDom);
+    chart.setOption(option);
     this.echarts.chart4 = chart;
   }
 
