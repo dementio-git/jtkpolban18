@@ -12,6 +12,7 @@ access_logbook_extraction_weekly_category,access.logbook.extraction.weekly.categ
 access_logbook_extraction_weekly_subcategory,access.logbook.extraction.weekly.subcategory,model_logbook_extraction_weekly_subcategory,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_label,access.logbook.extraction.weekly.label,model_logbook_extraction_weekly_label,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_label_norm,access.logbook.extraction.weekly.label.norm,model_logbook_extraction_weekly_label_norm,base.group_user,1,1,1,1
+access_logbook_weekly_activity_class,access.logbook.weekly.activity.class,model_logbook_weekly_activity_class,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_class,access.logbook.extraction.weekly.class,model_logbook_extraction_weekly_class,base.group_user,1,1,1,1
 access_logbook_extraction_descriptive_stats_class,access.logbook.extraction.descriptive.stats.class,model_logbook_extraction_descriptive_stats_class,base.group_user,1,1,1,1
 access_logbook_extraction_weekly_category_class,access.logbook.extraction.weekly.category.class,model_logbook_extraction_weekly_category_class,base.group_user,1,1,1,1

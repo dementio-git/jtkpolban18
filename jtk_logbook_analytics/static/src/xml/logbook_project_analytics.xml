@@ -44,12 +44,26 @@
             <div class="col-12">
                 <div class="card shadow">
                     <div class="card-header bg-primary text-white">
-                        <h3 class="card-title">Grafik Tren Waktu Logbook</h3>
+                        <h3 class="card-title">Tren Jumlah Logbook dan Mahasiswa Aktif* </h3>
                     </div>
                     <div class="card-body">
                         <div class="chart-container" style="height: 400px;">
                             <div id="chart1" style="height: 400px;"></div>
                         </div>
+                        <p class="text-secondary fst-italic" style="margin-left: 10px; margin-top:10px">*Mahasiswa yang submit logbook</p>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="card-title">Tren Produktivitas Logbook per Mahasiswa</h3>
+                    </div>
+                    <div class="card-body">
                         <div class="chart-container" style="height: 400px;">
                             <div id="chart2" style="height: 400px;"></div>
                         </div>
@@ -93,6 +107,20 @@
                 </div>
             </div>
         </div>
+
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title">Tren Jumlah Ekstraksi Logbook</h3>
+                </div>
+                <div class="card-body" style="height: 400px;">
+                    <div id="chart3" style="height: 400px;"></div>
+                </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row mt-3">
             <div class="col-12">
                 <div class="card shadow">

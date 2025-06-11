@@ -411,7 +411,6 @@ export class LogbookProjectAnalytics extends Component {
     const overall = this.state.stats.length ? this.state.stats[0] : {};
 
     chart.setOption({
-      title: { text: "Tren Waktu Logbook" },
       tooltip: {
         trigger: "axis",
         formatter: (params) => {
@@ -484,7 +483,6 @@ export class LogbookProjectAnalytics extends Component {
     const overall = this.state.stats.length ? this.state.stats[0] : {};
 
     chart.setOption({
-      title: { text: "Tren Produktivitas Logbook per Mahasiswa" },
       tooltip: { trigger: "axis" },
       legend: { data: ["Rata-rata Logbook / Mahasiswa"], top: 0 },
       xAxis: {
@@ -534,7 +532,6 @@ export class LogbookProjectAnalytics extends Component {
     }
 
     chart.setOption({
-      title: { text: "Tren Jumlah Ekstraksi Label per Minggu" },
       tooltip: {
         trigger: "axis",
         formatter: (params) => {

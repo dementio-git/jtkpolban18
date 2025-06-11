@@ -26,7 +26,7 @@ export class LogbookClassAnalytics extends Component {
       stats: [],
       weeklyStats: [],
       projectCourseId: null,
-      extractionWeeklyByClass: [],
+      weeklyActivity: [],
       extractionDescriptiveByClass: [],
       extractionByCategory: [],
       extractionBySubCategory: [],
@@ -41,10 +41,10 @@ export class LogbookClassAnalytics extends Component {
         pid = getRecordIdFromPath();
       }
       this.state.projectCourseId = pid;
-      
+
       await this.loadStats();
       await this.loadWeeklyStats();
-      await this.loadExtractionStatsByClass();
+      await this.loadWeeklyActivity();
       await this.loadExtractionDescriptiveStatsByClass();
       await this.loadExtractionByCategory();
       await this.loadExtractionBySubcategoryClass();
@@ -108,26 +108,28 @@ export class LogbookClassAnalytics extends Component {
     this.state.overall = overallStats[0] || null;
   }
 
-  async loadExtractionStatsByClass() {
+  async loadWeeklyActivity() {
     const pid = this.state.projectCourseId;
     if (!pid) {
-      this.state.extractionWeeklyByClass = [];
+      this.state.weeklyActivity = [];
       return;
     }
-    this.state.extractionWeeklyByClass = await this.orm.searchRead(
-      "logbook.extraction.weekly.class",
-      [["project_course_id", "=", pid]],
+    this.state.weeklyActivity = await this.orm.searchRead(
+      "logbook.weekly.activity.class",
+      [["project_course_id", "=", pid]],      
       [
-        "project_course_id",
         "class_id",
         "class_name",
-        "week_label",
         "week_start_date",
         "week_end_date",
+        "week_label",
+        "logbook_count",
         "extraction_count",
+        "extraction_ratio",
       ]
     );
   }
+
 
   async loadExtractionDescriptiveStatsByClass() {
     const pid = this.state.projectCourseId || false;
@@ -231,7 +233,7 @@ export class LogbookClassAnalytics extends Component {
   renderCharts() {
     this.renderClassParticipationChart();
     this.renderClassProductivityChart();
-    this.renderExtractionTrendChartByClass();
+    this.renderWeeklyActivityChart();
     this.renderExtractionStackedBarByCategoryAndClass();
     this.renderExtractionSubcategoryTrendByClass();
     this.renderExtractionLabelFreqHeatmapClass();
@@ -275,29 +277,103 @@ export class LogbookClassAnalytics extends Component {
           )
           .map((s) => s.week_label)
       ),
-    ];
-    const series = Object.entries(grouped).map(([className, stats]) => ({
-      name: `Aktif - ${className}`,
+    ]; // Create series for both active students and logbooks per class
+    const activeSeries = Object.entries(grouped).map(([className, stats]) => ({
+      name: `Mahasiswa Aktif - ${className}`,
       data: stats.map((s) => s.avg_active_students_per_week),
       type: "line",
       smooth: true,
+      yAxisIndex: 0,
     }));
+    const logbookSeries = Object.entries(grouped).map(([className, stats]) => ({
+      name: `Logbook - ${className}`,
+      data: stats.map((s) => s.avg_logbooks_per_week),
+      type: "line",
+      smooth: true,
+      yAxisIndex: 1,
+    })); // Buat series rata-rata untuk setiap kelas
+    const averageSeries = [];
+
+    // Untuk setiap kelas, buat rata-rata mahasiswa aktif dan logbook
+    Object.entries(grouped).forEach(([className, stats]) => {
+      // Hitung rata-rata mahasiswa aktif untuk kelas ini
+      const avgActive = parseFloat(
+        (
+          stats.reduce((acc, s) => acc + s.avg_active_students_per_week, 0) /
+          stats.length
+        ).toFixed(2)
+      );
+
+      // Hitung rata-rata logbook untuk kelas ini
+      const avgLogbook = parseFloat(
+        (
+          stats.reduce((acc, s) => acc + s.avg_logbooks_per_week, 0) /
+          stats.length
+        ).toFixed(2)
+      );
+
+      // Tambahkan series rata-rata mahasiswa aktif untuk kelas ini
+      averageSeries.push({
+        name: `Rata-rata Mahasiswa Aktif - ${className}`,
+        type: "line",
+        yAxisIndex: 0,
+        data: [],
+        markLine: {
+          silent: true,
+          symbol: "none",
+          label: {
+            formatter: `Rata-rata ${className}: {c}`,
+            position: "insideEndTop",
+          },
+          data: [{ yAxis: avgActive }],
+          lineStyle: { type: "dashed", color: "#5470C6" },
+        },
+      });
+
+      // Tambahkan series rata-rata logbook untuk kelas ini
+      averageSeries.push({
+        name: `Rata-rata Logbook - ${className}`,
+        type: "line",
+        yAxisIndex: 1,
+        data: [],
+        markLine: {
+          silent: true,
+          symbol: "none",
+          label: {
+            formatter: `Rata-rata ${className}: {c}`,
+            position: "insideEndTop",
+          },
+          data: [{ yAxis: avgLogbook }],
+          lineStyle: { type: "dashed", color: "#91CC75" },
+        },
+      });
+    });
 
     chart.setOption({
-      title: { text: "Tren Mahasiswa Aktif per Kelas" },
       tooltip: { trigger: "axis" },
-      legend: { type: "scroll" },
+      legend: {
+        type: "scroll",
+        textStyle: { fontSize: 11 },
+      },
       xAxis: {
         type: "category",
         name: "Minggu",
         data: weekLabels,
         axisLabel: { interval: 0 },
       },
-      yAxis: {
-        type: "value",
-        name: "Jumlah Mahasiswa",
-      },
-      series,
+      yAxis: [
+        {
+          type: "value",
+          name: "Jumlah Mahasiswa Aktif",
+          position: "left",
+        },
+        {
+          type: "value",
+          name: "Jumlah Logbook",
+          position: "right",
+        },
+      ],
+      series: [...activeSeries, ...logbookSeries, ...averageSeries],
     });
     console.log(
       "WEEKLY STATS:",
@@ -347,7 +423,6 @@ export class LogbookClassAnalytics extends Component {
 
     chart.setOption({
       title: {
-        text: "Tren Produktivitas Logbook per Mahasiswa per Kelas",
         top: 10,
       },
       tooltip: { trigger: "axis" },
@@ -388,128 +463,233 @@ export class LogbookClassAnalytics extends Component {
     this.echarts.chart2 = chart;
   }
 
-  renderExtractionTrendChartByClass() {
-    const chartDom = document.getElementById("chart3");
+  renderWeeklyActivityChart() {
+    const chartDom = document.getElementById("chart_activity");
     if (!chartDom) return;
-
-    if (this.echarts.chart3) {
-      this.echarts.chart3.dispose();
+    if (this.echarts.chart_activity) {
+        this.echarts.chart_activity.dispose();
     }
     const chart = echarts.init(chartDom);
 
-    // Ambil data hasil searchRead dari model logbook.extraction.weekly.class
-    const extr = this.state.extractionWeeklyByClass;
-
-    if (!extr || extr.length === 0) {
-      chart.clear();
-      return;
+    const grouped = {};
+    for (const stat of this.state.weeklyActivity) {
+        if (!grouped[stat.class_name]) {
+            grouped[stat.class_name] = [];
+        }
+        grouped[stat.class_name].push(stat);
     }
 
-    // 1) Dapatkan semua week_start_date unik, lalu sortir kronologis
-    const uniqueWeeks = Array.from(
-      new Set(extr.map((r) => r.week_start_date))
-    ).sort((a, b) => new Date(a) - new Date(b));
-
-    // 2) Buat label W1, W2, … sesuai urutan uniqueWeeks
-    const weekLabels = uniqueWeeks.map((_, idx) => `W${idx + 1}`);
-
-    // 3) Kumpulkan nama‐nama kelas unik
-    const classNames = Array.from(new Set(extr.map((r) => r.class_name)));
-
-    // 4) Buat struktur data kosong per kelas, indexed by week_start_date
-    const dataByClass = {};
-    classNames.forEach((cn) => {
-      dataByClass[cn] = {};
+    // Initialize maxRatio before using it
+    let maxRatio = 0;
+    Object.values(grouped).forEach((stats) => {
+        stats.forEach((stat) => {
+            if (stat.extraction_ratio > maxRatio) {
+                maxRatio = stat.extraction_ratio;
+            }
+        });
     });
 
-    // 5) Isi dataByClass[class_name][week_start_date] = extraction_count
-    extr.forEach((rec) => {
-      const cn = rec.class_name;
-      const wk = rec.week_start_date;
-      dataByClass[cn][wk] = rec.extraction_count || 0;
-    });
+    for (const stat of this.state.weeklyActivity) {
+      if (!grouped[stat.class_name]) {
+        grouped[stat.class_name] = [];
+      }
+      grouped[stat.class_name].push(stat);
+    }    const weekLabels = [
+      ...new Set(
+        this.state.weeklyActivity
+          .sort(
+            (a, b) => new Date(a.week_start_date) - new Date(b.week_start_date)
+          )
+          .map((s) => s.week_label)
+      ),
+    ];
 
-    // 6) Bangun array series untuk tiap kelas
-    const series = classNames.map((cn) => {
-      const values = uniqueWeeks.map((wk) =>
-        wk in dataByClass[cn] ? dataByClass[cn][wk] : 0
-      );
-      return {
-        name: cn,
-        type: "line",
-        smooth: true,
-        data: values,
+    const colorPalettes = {
+      default: ["#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de", "#3ba272"],
+      dark: ["#4a5c8c", "#6b8e57", "#ba9545", "#b34d4d", "#538da6", "#2d7a57"],
+      light: ["#a8b7db", "#c8deb7", "#fde4b3", "#f7b3b3", "#b9dff0", "#9ed3b9"],
+    };
+
+    // Bulatkan ke atas ke nilai yang lebih bagus untuk ditampilkan
+    const yAxisMaxRatio = Math.ceil(maxRatio * 1.1);
+
+    // Series untuk setiap kelas
+    const allSeries = [];
+
+    // Generate warna dasar untuk setiap kelas
+    const baseColors = [
+      "#5470C6", // Biru
+      "#91CC75", // Hijau
+      "#EE6666", // Merah
+      "#73C0DE", // Biru Muda
+      "#3BA272", // Hijau Tua
+      "#FC8452", // Oranye
+      "#9A60B4", // Ungu
+      "#EA7CCC", // Pink
+    ];
+
+    // Fungsi untuk menghasilkan variasi warna (light, normal, dark)
+    function generateColorVariants(baseColor) {
+      const color = echarts.color.lift(baseColor, 0); // Convert to RGB
+      return [
+        echarts.color.lift(color, 0.2), // Light version
+        color, // Normal version
+        echarts.color.lift(color, -0.2), // Dark version
+      ];
+    }
+
+    // Generate color map untuk setiap kelas
+    const classNames = Object.keys(grouped).sort();
+    const classColors = {};
+    classNames.forEach((className, idx) => {
+      const baseColor = baseColors[idx % baseColors.length];
+      classColors[className] = {
+        base: baseColor,
+        variants: generateColorVariants(baseColor),
       };
     });
 
-    // 7) Hitung rata-rata (garis putus-putus)
-    const semuaValues = [];
-    classNames.forEach((cn) => {
-      uniqueWeeks.forEach((wk) => {
-        semuaValues.push(dataByClass[cn][wk] || 0);
+    Object.entries(grouped).forEach(([className, stats]) => {
+      const colors = classColors[className].variants;      allSeries.push({
+        name: `Jumlah Ekstraksi - ${className}`,
+        type: "bar",
+        data: stats.map((s) => s.extraction_count),
+        yAxisIndex: 0,
+        color: colors[0], // Light shade
+      });
+
+      // Jumlah Logbook  
+      allSeries.push({
+        name: `Logbook - ${className}`,
+        type: "line",
+        data: stats.map((s) => s.logbook_count),
+        yAxisIndex: 1,
+        color: colors[1], // Normal shade
+      });
+
+      // Rasio Ekstraksi
+      allSeries.push({
+        name: `Rasio Ekstraksi - ${className}`,
+        type: "line",
+        data: stats.map((s) => s.extraction_ratio),
+        yAxisIndex: 2,
+        lineStyle: {
+          type: "dashed",
+        },
+        symbol: "circle",
+        color: colors[2], // Dark shade
       });
     });
-    const sumAll = semuaValues.reduce((acc, v) => acc + v, 0);
-    const avgAll =
-      semuaValues.length > 0 ? (sumAll / semuaValues.length).toFixed(2) : 0;
 
-    series.push({
-      name: "Rata-rata Semua",
-      type: "line",
-      data: [],
-      markLine: {
-        symbol: "none",
-        label: {
-          formatter: `Rata-rata\n${avgAll}`,
-          position: "insideEnd",
-        },
-        data: [{ yAxis: parseFloat(avgAll) }],
-        lineStyle: { type: "dashed", color: "#EE6666" },
-      },
-    });
-
-    // 8) Susun option dan render
+    // Opsi chart
     const option = {
-      title: { text: "Tren Jumlah Ekstraksi per Minggu (Class)" },
       tooltip: {
         trigger: "axis",
-        formatter: (params) => {
-          const idx = params[0].dataIndex;
-          // Cari salah satu record untuk mendapatkan week_end_date
-          const contohRec = extr.find(
-            (r) => r.week_start_date === uniqueWeeks[idx]
-          );
-          let header = `Minggu ${idx + 1} (${this.formatDate(
-            contohRec.week_start_date
-          )} - ${this.formatDate(contohRec.week_end_date)})<br/>`;
-          params.forEach((p) => {
-            if (p.data > 0) {
-              header += `${p.marker} ${p.seriesName}: ${p.data}<br/>`;
+        axisPointer: { type: "cross" },
+        formatter: function (params) {
+          let result = `${params[0].axisValue}<br/>`;
+          params.forEach((param) => {
+            let value = param.value;
+            let formattedValue = "";            if (param.seriesName.includes("Jumlah Ekstraksi")) {
+              formattedValue = `${value} ekstraksi`;
+            } else if (param.seriesName.includes("Logbook")) {
+              formattedValue = `${value} logbook`;
+            } else if (param.seriesName.includes("Rasio")) {
+              formattedValue = `${value.toFixed(2)}x (${value * 100}%)`;
             }
+
+            result += `${param.marker}${param.seriesName}: ${formattedValue}<br/>`;
           });
-          return header;
+          return result;
         },
       },
       legend: {
-        data: classNames,
-        top: 30,
+        top: 40,
         type: "scroll",
+        padding: [5, 10],
+        selected: {},
+        emphasis: {
+          selectorLabel: {
+            show: true,
+          },
+        },
+      },
+      series: allSeries.map((series) => ({
+        ...series,
+        legendHoverLink: true,
+        emphasis: {
+          focus: "series",
+          blurScope: "coordinateSystem",
+          scale: true,
+          lineStyle:
+            series.type === "line"
+              ? {
+                  width: 4,
+                }
+              : undefined,
+          itemStyle:
+            series.type === "bar"
+              ? {
+                  shadowBlur: 10,
+                  shadowOffsetX: 0,
+                  shadowColor: "rgba(0, 0, 0, 0.5)",
+                }
+              : undefined,
+        },
+      })),
+      grid: {
+        right: "15%", // beri ruang lebih di kanan
+        top: "25%",
+        containLabel: true, // pastikan label axis masuk hitungan
       },
       xAxis: {
         type: "category",
-        name: "Minggu",
         data: weekLabels,
         axisLabel: { interval: 0 },
-      },
-      yAxis: {
-        type: "value",
-        name: "Total Ekstraksi",
-      },
-      series: series,
+      },      yAxis: [
+        {
+          type: "value",
+          name: "Jumlah Ekstraksi", 
+          position: "left",
+          nameLocation: "middle", 
+          nameGap: 50,
+          splitLine: { show: false },
+        },
+        {
+          type: "value",
+          name: "Jumlah Logbook",
+          position: "right",
+          offset: 0, // axis pertama di kanan
+          nameLocation: "middle",
+          nameGap: 50,
+          nameRotate: 90,
+          axisLine: { show: true },
+          axisTick: { show: true },
+          splitLine: { show: false },
+        },
+        {
+          type: "value",
+          name: "Rasio Ekstraksi",
+          position: "right",
+          offset: 80, // geser lebih jauh ke kanan
+          nameLocation: "middle",
+          nameGap: 70, // jarak nama axis dari axis
+          nameRotate: 90,
+          axisLabel: {
+            formatter: "{value}x",
+          },
+          axisLine: { show: true },
+          axisTick: { show: true },
+          splitLine: { show: false },
+          min: 0,
+          max: yAxisMaxRatio,
+        },
+      ],
+
     };
 
     chart.setOption(option);
-    this.echarts.chart3 = chart;
+    this.echarts.chart_activity = chart;
   }
 
   renderExtractionStackedBarByCategoryAndClass() {
