@@ -45,8 +45,8 @@
 
         <div class="row mt-3">
             <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
                         <h3 class="card-title">Grafik Tren Waktu per Kelas</h3>
                     </div>
                     <div class="card-body">
@@ -64,8 +64,8 @@
     <!-- Statistik Deskriptif Ekstraksi per Kelas -->
     <div class="row mt-3">
       <div class="col-12">
-        <div class="card">
-          <div class="card-header">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
             <h3 class="card-title">Statistik Deskriptif Ekstraksi per Kelas</h3>
           </div>
           <div class="card-body p-0">
@@ -106,8 +106,8 @@
     <!-- Bagian Chart Tren Ekstraksi (chart3) -->
     <div class="row mt-3">
       <div class="col-12">
-        <div class="card">
-          <div class="card-header">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
             <h3 class="card-title">Grafik Tren Waktu Ekstraksi Logbook per Kelas</h3>
           </div>
           <div class="card-body" style="height: 400px;">
