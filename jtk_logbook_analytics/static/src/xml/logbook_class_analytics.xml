@@ -94,7 +94,6 @@
                       <div class="chart-container" style="height: 400px;">
                           <div id="chart_productivity" style="height: 400px;"></div>
                       </div>
-                      <p class="text-secondary fst-italic" style="margin-left: 10px; margin-top:10px">*Mahasiswa yang submit logbook</p>
                       
                   </div>
                   

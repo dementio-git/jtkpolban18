@@ -290,6 +290,30 @@ export class LogbookClassAnalytics extends Component {
       "#EA7CCC", // Pink
     ];
 
+    const averages = {};
+    Object.entries(grouped).forEach(([className, stats]) => {
+      averages[className] = {
+        logbook:
+          stats.reduce((sum, s) => sum + s.avg_logbooks_per_week, 0) /
+          stats.length,
+        active:
+          stats.reduce((sum, s) => sum + s.avg_active_students_per_week, 0) /
+          stats.length,
+        productivity:
+          stats.reduce((sum, s) => sum + s.avg_logbooks_per_student_week, 0) /
+          stats.length,
+      };
+    });
+
+    const averagesText = Object.entries(averages).map(([className, avg]) => {
+      return [
+        `${className}:`,
+        `Rata-rata Logbook: ${avg.logbook.toFixed(1)}`,
+        `Rata-rata Mahasiswa Aktif: ${avg.active.toFixed(1)}`,
+        `Rata-rata Produktivitas: ${avg.productivity.toFixed(2)}`,
+      ].join(" | ");
+    });
+
     // Fungsi untuk menghasilkan variasi warna
     function generateColorVariants(baseColor) {
       const color = echarts.color.lift(baseColor, 0); // Convert to RGB
@@ -350,6 +374,19 @@ export class LogbookClassAnalytics extends Component {
     });
 
     const option = {
+      title: [
+        {},
+        // Tambahkan rata-rata sebagai subtitle di bawah
+        ...averagesText.map((text, idx) => ({
+          text: text,
+          bottom: 10 + idx * 16, // Posisikan dari bawah
+          left: 10,
+          textStyle: {
+            fontSize: 11,
+            fontWeight: "normal",
+          },
+        })),
+      ],
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "cross" },
@@ -388,6 +425,7 @@ export class LogbookClassAnalytics extends Component {
       grid: {
         right: "15%",
         top: "25%",
+        bottom: 10 + averagesText.length * 16 + 20, // Sesuaikan bottom margin untuk text rata-rata
         containLabel: true,
       },
       xAxis: {
@@ -461,6 +499,28 @@ export class LogbookClassAnalytics extends Component {
       ),
     ];
 
+    const averages = {};
+    Object.entries(grouped).forEach(([className, stats]) => {
+      averages[className] = {
+        extraction:
+          stats.reduce((sum, s) => sum + s.extraction_count, 0) / stats.length,
+        logbook:
+          stats.reduce((sum, s) => sum + s.logbook_count, 0) / stats.length,
+        ratio:
+          stats.reduce((sum, s) => sum + s.extraction_ratio, 0) / stats.length,
+      };
+    });
+
+    // Format averages text
+    const averagesText = Object.entries(averages).map(([className, avg]) => {
+      return [
+        `${className}:`,
+        `Rata-rata Ekstraksi: ${avg.extraction.toFixed(1)}`,
+        `Rata-rata Logbook: ${avg.logbook.toFixed(1)}`,
+        `Rata-rata Rasio: ${avg.ratio.toFixed(2)}x`,
+      ].join(" | ");
+    });
+
     const colorPalettes = {
       default: [
         "#5470c6",
@@ -473,6 +533,8 @@ export class LogbookClassAnalytics extends Component {
       dark: ["#4a5c8c", "#6b8e57", "#ba9545", "#b34d4d", "#538da6", "#2d7a57"],
       light: ["#a8b7db", "#c8deb7", "#fde4b3", "#f7b3b3", "#b9dff0", "#9ed3b9"],
     };
+
+
 
     // Bulatkan ke atas ke nilai yang lebih bagus untuk ditampilkan
     const yAxisMaxRatio = Math.ceil(maxRatio * 1.1);
@@ -548,6 +610,19 @@ export class LogbookClassAnalytics extends Component {
 
     // Opsi chart
     const option = {
+      title: [
+        {},
+        // Tambahkan rata-rata sebagai subtitle di bawah
+        ...averagesText.map((text, idx) => ({
+          text: text,
+          bottom: 20 + idx * 16, // Posisikan dari bawah
+          left: 10,
+          textStyle: {
+            fontSize: 11,
+            fontWeight: "normal",
+          },
+        })),
+      ],
       tooltip: {
         trigger: "axis",
         axisPointer: { type: "cross" },
@@ -607,6 +682,7 @@ export class LogbookClassAnalytics extends Component {
         right: "15%", // beri ruang lebih di kanan
         top: "25%",
         containLabel: true, // pastikan label axis masuk hitungan
+        bottom: 10 + averagesText.length * 16 + 60, // Sesuaikan bottom margin untuk text rata-rata
       },
       xAxis: {
         type: "category",
