@@ -11,8 +11,8 @@ export class LogbookAnalytics extends Component {}
 LogbookAnalytics.template = "jtk_logbook_analytics.LogbookAnalytics";
 LogbookAnalytics.components = {
     LogbookProjectAnalytics,
-//     LogbookClassAnalytics,
-//     LogbookStudentAnalytics,
+    LogbookClassAnalytics,
+    LogbookStudentAnalytics,
 };
 
 registry

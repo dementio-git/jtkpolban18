@@ -282,7 +282,6 @@ export class LogbookProjectAnalytics extends Component {
     this.renderExtractionLabelPointHeatmap();
     this.renderExtractionLabelOverallRadarChart();
     this.renderWordcloudChart();
-    // this.renderWordcloudOverallChart();
   }
 
   renderWordcloudChart() {
@@ -363,44 +362,6 @@ export class LogbookProjectAnalytics extends Component {
     this.echarts.wordcloud = echarts.init(chartDom);
     this.echarts.wordcloud.setOption(option);
   }
-
-  // renderWordcloudOverallChart() {
-  //   const chartDom = document.getElementById("wordcloud_overall");
-  //   if (!chartDom) return;
-
-  //   const chart = echarts.init(chartDom);
-
-  //   // Transform data untuk wordcloud overall - menggunakan frequency sebagai nilai
-  //   const data = this.state.wordcloudOverallData
-  //     .map((item) => ({
-  //       name: item.keyword,
-  //       value: item.frequency,
-  //     }))
-  //     .sort((a, b) => b.value - a.value)
-  //     .slice(0, 200);
-
-  //   const option = {
-  //     title: { text: "Word Cloud Keyword Logbook (Overall)" },
-  //     tooltip: {
-  //       formatter: ({ data }) => `${data.name}: ${data.value}`,
-  //     },
-  //     series: [
-  //       {
-  //         type: "wordCloud",
-  //         gridSize: 8,
-  //         sizeRange: [12, 40],
-  //         rotationRange: [-45, 90],
-  //         shape: "circle",
-  //         textStyle: {
-  //           color: () => `hsl(${Math.random() * 360}, 70%, 50%)`,
-  //         },
-  //         data,
-  //       },
-  //     ],
-  //   };
-
-  //   chart.setOption(option);
-  // }
 
   formatDate(dateStr) {
     const date = new Date(dateStr);
