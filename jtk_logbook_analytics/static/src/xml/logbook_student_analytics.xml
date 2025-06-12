@@ -1,7 +1,7 @@
 <templates xml:space="preserve">
     <t t-name="jtk_logbook_analytics.LogbookStudentAnalytics">
 
-    <!-- CARD 1: Clustering Mahasiswa (Default Open) -->
+        <!-- CARD 1: Clustering Mahasiswa (Default Open) -->
     <div class="row mt-3">
         <div class="col-12">
             <div class="card shadow">
@@ -21,7 +21,7 @@
         </div>
     </div>
 
-    <!-- CARD 2: Statistik Aktivitas Mahasiswa (Collapsed) -->
+        <!-- CARD 2: Statistik Aktivitas Mahasiswa (Collapsed) -->
     <div class="row mt-3">
         <div class="col-12">
             <div class="card shadow">
@@ -39,7 +39,7 @@
         </div>
     </div>
 
-    <!-- CARD 3: Statistik Ekstraksi Aktivitas Mahasiswa (Collapsed) -->
+        <!-- CARD 3: Statistik Ekstraksi Aktivitas Mahasiswa (Collapsed) -->
     <div class="row mt-3">
         <div class="col-12">
             <div class="card shadow">
@@ -57,7 +57,7 @@
         </div>
     </div>
 
-    <!-- CARD 4: Tabel Hasil Akhir Poin Perlabel Mahasiswa (Collapsed) -->
+        <!-- CARD 4: Tabel Hasil Akhir Poin Perlabel Mahasiswa (Collapsed) -->
     <div class="row mt-3">
         <div class="col-12">
             <div class="card shadow">
@@ -74,6 +74,40 @@
             </div>
         </div>
     </div>
+
+        <!-- Update in logbook_student_analytics.xml -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center"
+                 data-bs-toggle="collapse" data-bs-target="#collapseStudentDetail" style="cursor: pointer;">
+                <h3 class="card-title m-0">Detail Data Mahasiswa Perminggu </h3>
+                <i class="fa fa-chevron-down"></i>
+            </div>
+            <div id="collapseStudentDetail" class="collapse">
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <select class="form-select" t-on-change="onStudentChange">
+                                <option value="">Pilih Mahasiswa...</option>
+                                <t t-foreach="state.studentList" t-as="student" t-key="student.student_id">
+                                    <option t-att-value="student.student_id">
+                                        <t t-esc="student.student_name"/> - <t t-esc="student.class_name"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-4">
+                            <div id="chart_student_activity" style="width: 100%; height: 400px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 </t>
 

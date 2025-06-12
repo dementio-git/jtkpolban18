@@ -16,7 +16,8 @@ function getRecordIdFromPath() {
 
 export class LogbookStudentAnalytics extends Component {
   setup() {
-    this.orm = useService("orm");    
+    this.orm = useService("orm");
+    this.echarts = {};
     this.state = useState({
       students: [],
       components: {},
@@ -25,6 +26,9 @@ export class LogbookStudentAnalytics extends Component {
       categories: [],
       statsData: [],
       extractionStatsData: [], // Tambah state baru
+      selectedStudentId: null,
+      studentWeeklyStats: [],
+      studentWeeklyActivity: [],
     });
     this.table = null;
     this.statsTable = null;
@@ -32,7 +36,7 @@ export class LogbookStudentAnalytics extends Component {
 
     onWillStart(async () => {
       const projectCourseId = getRecordIdFromPath();
-      if (!projectCourseId) return;      
+      if (!projectCourseId) return;
       await Promise.all([
         this.fetchClusteringData(projectCourseId),
         this.fetchNormalizationData(projectCourseId),
@@ -109,6 +113,44 @@ export class LogbookStudentAnalytics extends Component {
       ]
     );
   }
+  async onStudentChange(event) {
+    const studentId = parseInt(event.target.value);
+    this.state.selectedStudentId = studentId;
+
+    if (studentId) {
+      await this.loadStudentWeeklyStats(studentId);
+      await this.loadStudentWeeklyActivity(studentId);
+      this.renderStudentCharts();
+    }
+  }
+
+  async loadStudentWeeklyStats(studentId) {
+    const projectCourseId = getRecordIdFromPath();
+    this.state.studentWeeklyStats = await this.orm.searchRead(
+      "logbook.weekly.stats.student",
+      [
+        ["project_course_id", "=", projectCourseId],
+        ["student_id", "=", studentId],
+      ],
+      ["week_label", "week_start_date", "week_end_date", "total_logbooks"]
+    );
+  }
+
+  async loadStudentWeeklyActivity(studentId) {
+    const projectCourseId = getRecordIdFromPath();
+    this.state.studentWeeklyActivity = await this.orm.searchRead(
+      "logbook.extraction.weekly.student",
+      [
+        ["project_course_id", "=", projectCourseId],
+        ["student_id", "=", studentId],
+      ],
+      ["week_label", "week_start_date", "week_end_date", "extraction_count"]
+    );
+  }
+
+  renderStudentCharts() {
+    this.renderStudentWeeklyActivityChart();
+  }
 
   processDataStructures() {
     const studentMap = {};
@@ -119,7 +161,8 @@ export class LogbookStudentAnalytics extends Component {
       const [lid, lname] = row.label_id;
       const [cid, cname] = row.category_id;
       const subid = row.subcategory_id?.[0] ?? null;
-      const subname = row.subcategory_id?.[1] ?? "-";      const point = row.avg_norm_point;
+      const subname = row.subcategory_id?.[1] ?? "-";
+      const point = row.avg_norm_point;
       const className = row.class_name || "-";
 
       this.updateStudentMap(studentMap, sid, sname, lid, point, className);
@@ -250,7 +293,8 @@ export class LogbookStudentAnalytics extends Component {
         frozen: true,
         headerSort: true,
         headerFilter: "input",
-      },      ...sortedCategories.map((cat) => ({
+      },
+      ...sortedCategories.map((cat) => ({
         title: cat.name,
         columns: cat.subcategories
           .sort((a, b) => a.id - b.id)
@@ -279,19 +323,19 @@ export class LogbookStudentAnalytics extends Component {
         frozen: true,
         headerHozAlign: "center",
         hozAlign: "center",
-        formatter: function(cell) {
+        formatter: function (cell) {
           const v = cell.getValue();
           if (v == null) return "-";
           return parseFloat(v).toFixed(2);
         },
       },
-    ];    // Build data rows
+    ]; // Build data rows
     const data = this.state.studentList.map((s) => {
-      const row = { 
+      const row = {
         student_name: s.student_name,
-        class_name: s.class_name
+        class_name: s.class_name,
       };
-      
+
       let total = 0;
       Object.entries(s.scores).forEach(([key, val]) => {
         const value = val != null ? parseFloat(val) : null;
@@ -302,7 +346,7 @@ export class LogbookStudentAnalytics extends Component {
       });
       row.total = total;
       return row;
-    });    // Calculate average row
+    }); // Calculate average row
     const averageRow = {
       student_name: "Rata-rata",
       class_name: "",
@@ -310,16 +354,17 @@ export class LogbookStudentAnalytics extends Component {
     };
 
     // Calculate averages for each label column
-    this.state.categories.forEach(category => {
-      category.subcategories.forEach(sub => {
-        sub.labels.forEach(label => {
+    this.state.categories.forEach((category) => {
+      category.subcategories.forEach((sub) => {
+        sub.labels.forEach((label) => {
           const fieldName = `label_${label.id}`;
           const values = data
-            .map(row => row[fieldName])
-            .filter(val => val != null);
-          
+            .map((row) => row[fieldName])
+            .filter((val) => val != null);
+
           if (values.length > 0) {
-            averageRow[fieldName] = values.reduce((sum, val) => sum + val, 0) / values.length;
+            averageRow[fieldName] =
+              values.reduce((sum, val) => sum + val, 0) / values.length;
           } else {
             averageRow[fieldName] = null;
           }
@@ -414,11 +459,27 @@ export class LogbookStudentAnalytics extends Component {
     const averageRow = {
       student_name: "Rata-rata",
       class_name: "",
-      total_logbooks: this.state.statsData.reduce((sum, row) => sum + row.total_logbooks, 0) / this.state.statsData.length,
-      avg_logbooks_per_week: this.state.statsData.reduce((sum, row) => sum + row.avg_logbooks_per_week, 0) / this.state.statsData.length,
-      std_dev_logbooks: this.state.statsData.reduce((sum, row) => sum + row.std_dev_logbooks, 0) / this.state.statsData.length,
-      active_weeks: this.state.statsData.reduce((sum, row) => sum + row.active_weeks, 0) / this.state.statsData.length,
-      participation_rate: this.state.statsData.reduce((sum, row) => sum + row.participation_rate, 0) / this.state.statsData.length,
+      total_logbooks:
+        this.state.statsData.reduce((sum, row) => sum + row.total_logbooks, 0) /
+        this.state.statsData.length,
+      avg_logbooks_per_week:
+        this.state.statsData.reduce(
+          (sum, row) => sum + row.avg_logbooks_per_week,
+          0
+        ) / this.state.statsData.length,
+      std_dev_logbooks:
+        this.state.statsData.reduce(
+          (sum, row) => sum + row.std_dev_logbooks,
+          0
+        ) / this.state.statsData.length,
+      active_weeks:
+        this.state.statsData.reduce((sum, row) => sum + row.active_weeks, 0) /
+        this.state.statsData.length,
+      participation_rate:
+        this.state.statsData.reduce(
+          (sum, row) => sum + row.participation_rate,
+          0
+        ) / this.state.statsData.length,
     };
 
     // Add average row at the top
@@ -462,7 +523,8 @@ export class LogbookStudentAnalytics extends Component {
         field: "class_name",
         headerSort: true,
         headerFilter: "input",
-      },      {
+      },
+      {
         title: "Jumlah Logbook",
         field: "total_extraction",
         headerSort: true,
@@ -482,13 +544,25 @@ export class LogbookStudentAnalytics extends Component {
         hozAlign: "right",
         formatter: (cell) => parseFloat(cell.getValue()).toFixed(2),
       },
-    ];    // Calculate averages for numeric columns
+    ]; // Calculate averages for numeric columns
     const averageRow = {
       student_name: "Rata-rata",
       class_name: "",
-      total_extraction: this.state.extractionStatsData.reduce((sum, row) => sum + row.total_extraction, 0) / this.state.extractionStatsData.length,
-      avg_extraction_per_logbook: this.state.extractionStatsData.reduce((sum, row) => sum + row.avg_extraction_per_logbook, 0) / this.state.extractionStatsData.length,
-      std_extraction_per_logbook: this.state.extractionStatsData.reduce((sum, row) => sum + row.std_extraction_per_logbook, 0) / this.state.extractionStatsData.length,
+      total_extraction:
+        this.state.extractionStatsData.reduce(
+          (sum, row) => sum + row.total_extraction,
+          0
+        ) / this.state.extractionStatsData.length,
+      avg_extraction_per_logbook:
+        this.state.extractionStatsData.reduce(
+          (sum, row) => sum + row.avg_extraction_per_logbook,
+          0
+        ) / this.state.extractionStatsData.length,
+      std_extraction_per_logbook:
+        this.state.extractionStatsData.reduce(
+          (sum, row) => sum + row.std_extraction_per_logbook,
+          0
+        ) / this.state.extractionStatsData.length,
     };
 
     // Add average row at the top
@@ -507,6 +581,205 @@ export class LogbookStudentAnalytics extends Component {
         resizable: true,
       },
     });
+  }
+  renderStudentWeeklyActivityChart() {
+    const chartDom = document.getElementById("chart_student_activity");
+    if (!chartDom) return;
+    if (this.echarts.chart_student_activity) {
+      this.echarts.chart_student_activity.dispose();
+    }
+    const chart = echarts.init(chartDom);
+
+    const weekLabels = [
+      ...new Set(
+        this.state.studentWeeklyStats
+          .sort(
+            (a, b) => new Date(a.week_start_date) - new Date(b.week_start_date)
+          )
+          .map((s) => s.week_label)
+      ),
+    ];
+
+    // Calculate averages
+    const avgLogbooks =
+      this.state.studentWeeklyStats.reduce(
+        (sum, w) => sum + w.total_logbooks,
+        0
+      ) / weekLabels.length;
+    const avgExtractions =
+      this.state.studentWeeklyActivity.reduce(
+        (sum, w) => sum + w.extraction_count,
+        0
+      ) / weekLabels.length;
+    const extractionRatios = this.state.studentWeeklyStats.map((w, idx) => {
+      const extractionCount =
+        this.state.studentWeeklyActivity[idx]?.extraction_count || 0;
+      const logbookCount = w.total_logbooks || 1;
+      return extractionCount / logbookCount;
+    });
+    const maxRatio = Math.max(...extractionRatios);
+    const yAxisMaxRatio = Math.ceil(maxRatio * 1.1);
+
+    const option = {
+      title: {
+        text: "Aktivitas Logbook & Ekstraksi Mahasiswa",
+        left: "center",
+      },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "cross" },
+        formatter: (params) => {
+          const index = params[0].dataIndex;
+          const logbookData = this.state.studentWeeklyStats[index];
+          const extractionData = this.state.studentWeeklyActivity[index];
+          const ratio = extractionRatios[index];
+
+          let result = `${logbookData.week_label} (${this.formatDate(
+            logbookData.week_start_date
+          )} - ${this.formatDate(logbookData.week_end_date)})<br/>`;
+
+          params.forEach((param) => {
+            let value = param.value;
+            let formattedValue = "";
+
+            if (param.seriesName === "Jumlah Ekstraksi") {
+              formattedValue = `${value} ekstraksi`;
+            } else if (param.seriesName === "Jumlah Logbook") {
+              formattedValue = `${value} logbook`;
+            } else if (param.seriesName === "Rasio Ekstraksi") {
+              formattedValue = `${value.toFixed(2)}x (${(value * 100).toFixed(
+                1
+              )}%)`;
+            }
+
+            result += `${param.marker}${param.seriesName}: ${formattedValue}<br/>`;
+          });
+          return result;
+        },
+      },
+      legend: {
+        top: 40,
+        data: ["Jumlah Ekstraksi", "Jumlah Logbook", "Rasio Ekstraksi"],
+      },
+      grid: {
+        right: "15%",
+        top: "25%",
+        containLabel: true,
+      },
+      xAxis: {
+        type: "category",
+        data: weekLabels,
+        axisLabel: { interval: 0 },
+      },
+      yAxis: [
+        {
+          type: "value",
+          name: "Jumlah Ekstraksi",
+          position: "left",
+          axisLine: { show: true },
+          splitLine: { show: false },
+        },
+        {
+          type: "value",
+          name: "Jumlah Logbook",
+          position: "right",
+          offset: 0,
+          axisLine: { show: true },
+          splitLine: { show: false },
+        },
+        {
+          type: "value",
+          name: "Rasio Ekstraksi",
+          min: 0,
+          max: yAxisMaxRatio,
+          position: "right",
+          offset: 80,
+          axisLabel: {
+            formatter: "{value}x",
+          },
+          axisLine: { show: true },
+          splitLine: { show: false },
+        },
+      ],
+      series: [
+        {
+          name: "Jumlah Ekstraksi",
+          type: "bar",
+          data: this.state.studentWeeklyActivity.map((w) => w.extraction_count),
+          yAxisIndex: 0,
+          itemStyle: { color: "#5470C6" },
+          markLine: {
+            symbol: "none",
+            label: {
+              formatter: "Rata-rata\nJumlah Ekstraksi:\n{c}",
+              position: "end",
+              lineHeight: 15,
+              fontSize: 10,
+            },
+            data: [{ yAxis: avgExtractions }],
+            lineStyle: { type: "dashed", color: "#5470C6" },
+          },
+        },
+        {
+          name: "Jumlah Logbook",
+          type: "line",
+          data: this.state.studentWeeklyStats.map((w) => w.total_logbooks),
+          yAxisIndex: 1,
+          symbol: "circle",
+          itemStyle: { color: "#91CC75" },
+          markLine: {
+            symbol: "none",
+            label: {
+              formatter: "Rata-rata\nJumlah Logbook:\n{c}",
+              position: "end",
+              lineHeight: 15,
+              fontSize: 10,
+            },
+            data: [{ yAxis: avgLogbooks }],
+            lineStyle: { type: "dashed", color: "#91CC75" },
+          },
+        },
+        {
+          name: "Rasio Ekstraksi",
+          type: "line",
+          data: extractionRatios,
+          yAxisIndex: 2,
+          symbol: "circle",
+          lineStyle: { type: "dashed" },
+          itemStyle: { color: "#EE6666" },
+          markLine: {
+            symbol: "none",
+            label: {
+              formatter: "Rata-rata\nRasio Ekstraksi:\n{c}",
+              position: "end",
+              lineHeight: 15,
+              fontSize: 10,
+            },
+            data: [
+              {
+                yAxis:
+                  extractionRatios.reduce((sum, r) => sum + r, 0) /
+                  extractionRatios.length,
+              },
+            ],
+            lineStyle: { type: "dashed", color: "#EE6666" },
+          },
+        },
+      ],
+    };
+
+    chart.setOption(option);
+    this.echarts.chart_student_activity = chart;
+  }
+
+  // Add this method to the LogbookStudentAnalytics class
+  formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return `${date.getDate().toString().padStart(2, "0")}/${(
+      date.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}/${date.getFullYear()}`;
   }
 
   // di dalam class, di bawah renderTable()
