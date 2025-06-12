@@ -5,16 +5,17 @@
         <!-- 2 kolom pertama -->
         <div class="row mt-3">
           <!-- 1 kolom full untuk student -->
-          <div class="col-12">
+          <!-- <div class="col-12">
             <LogbookStudentAnalytics projectId="props.projectId"/>
-          </div>
+          </div> -->
         </div>
         <div class="col-md-6 mb-4">
           <LogbookProjectAnalytics projectId="props.projectId"/>
         </div>
         <div class="col-md-6 mb-4">
-          <LogbookClassAnalytics projectId="props.projectId"/>
+          <!-- <LogbookClassAnalytics projectId="props.projectId"/> -->
         </div>
+        Tes
       </div>
     </div>
   </t>

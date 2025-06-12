@@ -35,16 +35,14 @@
     
     'assets': {
         'web.assets_backend': [
-            'jtk_logbook_analytics/static/src/js/lib/chart.js',
-            'jtk_logbook_analytics/static/src/js/lib/echarts.min.js',
+            'jtk_logbook_analytics/static/src/js/lib/echarts.js',
             'jtk_logbook_analytics/static/src/js/lib/echarts_shim.js',
             'jtk_logbook_analytics/static/src/js/lib/echarts-wordcloud.js',
             'jtk_logbook_analytics/static/src/js/lib/xlsx.full.min.js',
-            'jtk_logbook_analytics/static/src/js/lib/tabulator.min.js',
+            'jtk_logbook_analytics/static/src/js/lib/tabulator.js',
             'jtk_logbook_analytics/static/src/js/*.js',
-            'jtk_logbook_analytics/static/src/css/lib/tabulator.min.css',
-            # 'jtk_logbook_analytics/static/src/css/lib/tabulator_modern.min.css', 
-            'jtk_logbook_analytics/static/src/css/lib/tabulator_bootstrap4.min.css',
+            'jtk_logbook_analytics/static/src/css/lib/tabulator.css',
+            'jtk_logbook_analytics/static/src/css/lib/tabulator_bootstrap5.css',
             'jtk_logbook_analytics/static/src/css/*.css',
             'jtk_logbook_analytics/static/src/xml/*.xml',
         ],
