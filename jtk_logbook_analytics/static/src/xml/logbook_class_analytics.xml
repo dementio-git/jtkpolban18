@@ -128,6 +128,19 @@
         </div>
       </div>
     </div>
+
+    <div class="row mt-3">
+      <div class="col-12">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
+            <h3 class="card-title">Tren Jumlah dan Point Per SubKategori Label</h3>
+          </div>
+          <div class="card-body" style="height: fit-content;max-height: 500px;">
+            <div id="chart5" style="height: 500px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   
 
     <!-- Bagian Chart Tren Ekstraksi (chart3) -->
@@ -135,20 +148,28 @@
       <div class="col-12">
         <div class="card shadow">
           <div class="card-header bg-primary text-white">
-            <h3 class="card-title">Grafik Tren Waktu Ekstraksi Logbook per Kelas</h3>
+            <h3 class="card-title">Heatmap Jumlah dan Point Per Label</h3>
           </div>
 
-          <div class="card-body" style="height: 400px;">
-            <div id="chart5" style="height: 400px;"></div>
-          </div>
           <div class="card-body" style="height: 1300px;">
             <div id="heatmapLabelFreqClass" style="min-height: 1000px; height: auto;"></div>
           </div>
           <div class="card-body" style="height: 1300px;">
             <div id="heatmapLabelPointClass" style="min-height: 1000px; height: auto;"></div>
           </div>
-          <div class="card-body" style="height: 1300px;">
-            <div id="labelPointRadarClass" style="min-height: 1000px; height: auto;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mt-3">
+      <div class="col-12">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
+            <h3 class="card-title">Profiling dari Point Label</h3>
+          </div>
+
+          <div class="card-body" style="height: 1000px;">
+            <div id="labelPointRadarClass" style="min-height: 700px; height: auto;"></div>
           </div>
         </div>
       </div>
