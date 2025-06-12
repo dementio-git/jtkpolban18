@@ -750,7 +750,7 @@ export class LogbookProjectAnalytics extends Component {
   }
 
   renderExtractionCategoryTrendChart() {
-    const chartDom = document.getElementById("chart4");
+    const chartDom = document.getElementById("chart_extraction_category");
     if (!chartDom) return;
 
     const data = this.state.extractionByCategory;
@@ -989,7 +989,7 @@ export class LogbookProjectAnalytics extends Component {
 
   // === Grafik Tren Ekstraksi per Subkategori ===
   renderExtractionSubcategoryTrendChart() {
-    const chartDom = document.getElementById("chart5");
+    const chartDom = document.getElementById("chart_extraction_subcategory");
     if (!chartDom) return;
 
     const chart = echarts.init(chartDom);

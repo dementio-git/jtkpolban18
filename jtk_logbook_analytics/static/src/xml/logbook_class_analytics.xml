@@ -92,7 +92,7 @@
                   </div>
                   <div class="card-body">
                       <div class="chart-container" style="height: 400px;">
-                          <div id="chart_productivity" style="height: 400px;"></div>
+                          <div id="chart_productivity_class" style="height: 400px;"></div>
                       </div>
                       
                   </div>
@@ -110,7 +110,7 @@
             <h3 class="card-title">Tren Aktivitas Logbook(Jumlah Logbook, Jumlah Ekstraksi Logbook, dan Rasio Ekstraksi)</h3>
           </div>
           <div class="card-body" style="height: 400px;">
-            <div id="chart_activity" style="height: 400px;"></div>
+            <div id="chart_activity_class" style="height: 400px;"></div>
           </div>
         </div>
       </div>
@@ -123,7 +123,7 @@
             <h3 class="card-title">Tren Jumlah dan Point Per Kategori Label</h3>
           </div>
           <div class="card-body" style="height: fit-content;max-height: 500px;">
-            <div id="chart4" style="height: 400px;"></div>
+            <div id="chart_extraction_category_class" style="height: 400px;"></div>
           </div>
         </div>
       </div>
@@ -135,8 +135,8 @@
           <div class="card-header bg-primary text-white">
             <h3 class="card-title">Tren Jumlah dan Point Per SubKategori Label</h3>
           </div>
-          <div class="card-body" style="height: fit-content;max-height: 500px;">
-            <div id="chart5" style="height: 500px;"></div>
+          <div class="card-body" style="height: fit-content; max-height: 500px;">
+            <div id="chart_extraction_subcategory_class" style="height: 500px;"></div>
           </div>
         </div>
       </div>
@@ -151,11 +151,11 @@
             <h3 class="card-title">Heatmap Jumlah dan Point Per Label</h3>
           </div>
 
-          <div class="card-body" style="height: 1300px;">
-            <div id="heatmapLabelFreqClass" style="min-height: 1000px; height: auto;"></div>
+          <div class="card-body" style="height: fit-content;">
+            <div id="heatmapLabelFreqClass" style="height: fit-content;"></div>
           </div>
-          <div class="card-body" style="height: 1300px;">
-            <div id="heatmapLabelPointClass" style="min-height: 1000px; height: auto;"></div>
+          <div class="card-body" style="height: 1100px;">
+            <div id="heatmapLabelPointClass" style="height: 700px;"></div>
           </div>
         </div>
       </div>
@@ -168,8 +168,8 @@
             <h3 class="card-title">Profiling dari Point Label</h3>
           </div>
 
-          <div class="card-body" style="height: 1000px;">
-            <div id="labelPointRadarClass" style="min-height: 700px; height: auto;"></div>
+          <div class="card-body" style="height: 700px;">
+            <div id="labelPointRadarClass" style="height: 700px;"></div>
           </div>
         </div>
       </div>

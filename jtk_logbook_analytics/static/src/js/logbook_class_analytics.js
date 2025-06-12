@@ -261,10 +261,10 @@ export class LogbookClassAnalytics extends Component {
   }
 
   renderClassProductivityChart() {
-    const chartDom = document.getElementById("chart_productivity");
+    const chartDom = document.getElementById("chart_productivity_class");
     if (!chartDom) return;
-    if (this.echarts.chart_productivity) {
-      this.echarts.chart_productivity.dispose();
+    if (this.echarts.chart_productivity_class) {
+      this.echarts.chart_productivity_class.dispose();
     }
     const chart = echarts.init(chartDom);
 
@@ -456,14 +456,14 @@ export class LogbookClassAnalytics extends Component {
     };
 
     chart.setOption(option);
-    this.echarts.chart_productivity = chart;
+    this.echarts.chart_productivity_class = chart;
   }
 
   renderWeeklyActivityChart() {
-    const chartDom = document.getElementById("chart_activity");
+    const chartDom = document.getElementById("chart_activity_class");
     if (!chartDom) return;
-    if (this.echarts.chart_activity) {
-      this.echarts.chart_activity.dispose();
+    if (this.echarts.chart_activity_class) {
+      this.echarts.chart_activity_class.dispose();
     }
     const chart = echarts.init(chartDom);
 
@@ -718,11 +718,11 @@ export class LogbookClassAnalytics extends Component {
     };
 
     chart.setOption(option);
-    this.echarts.chart_activity = chart;
+    this.echarts.chart_activity_class = chart;
   }
 
   renderExtractionStackedBarByCategoryAndClass() {
-    const chartDom = document.getElementById("chart4");
+    const chartDom = document.getElementById("chart_extraction_category_class");
     if (!chartDom) return;
 
     const data = this.state.extractionByCategory;
@@ -1118,7 +1118,7 @@ export class LogbookClassAnalytics extends Component {
   }
 
   renderExtractionSubcategoryTrendByClass() {
-    const chartDom = document.getElementById("chart5");
+    const chartDom = document.getElementById("chart_extraction_subcategory_class");
     if (!chartDom) return;
 
     const data = this.state.extractionBySubcategoryClass;
@@ -1440,7 +1440,7 @@ export class LogbookClassAnalytics extends Component {
     this.echarts.chart5 = chart;
   }
 
-  renderExtractionLabelFreqHeatmapClass() {
+renderExtractionLabelFreqHeatmapClass() {
     const chartDom = document.getElementById("heatmapLabelFreqClass");
     if (!chartDom) return;
 
@@ -1455,18 +1455,8 @@ export class LogbookClassAnalytics extends Component {
     const parseDate = (s) => {
       const [d, m, y] = s.split(" ");
       const monthMap = {
-        Jan: 0,
-        Feb: 1,
-        Mar: 2,
-        Apr: 3,
-        May: 4,
-        Jun: 5,
-        Jul: 6,
-        Aug: 7,
-        Sep: 8,
-        Oct: 9,
-        Nov: 10,
-        Dec: 11,
+        Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
+        Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
       };
       return new Date(+y, monthMap[m], +d);
     };
@@ -1475,104 +1465,109 @@ export class LogbookClassAnalytics extends Component {
     );
     const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
 
-    // --- 2) Kelas
+    // --- 2) Kelas dan label info
     const classList = Array.from(new Set(data.map((d) => d.class_name))).sort();
-    const classCount = classList.length;
 
-    // --- 3) Label
+    // --- 3) Label info 
     const labelMap = new Map();
     data.forEach((r) => {
       const [labelId, labelName] = r.label_id;
       const [catId, catName] = r.category_id;
-      const subcat = r.subcategory_id?.[1] || "";
-      const prefix = subcat ? `[${catName}-${subcat}]` : `[${catName}]`;
+      const subName = r.subcategory_id?.[1] || "";
+      const prefix = subName ? `[${catName}-${subName}]` : `[${catName}]`;
       const formatted = `${prefix} ${labelName}`;
       if (!labelMap.has(labelId)) {
-        labelMap.set(labelId, { labelId, catId, formatted });
+        labelMap.set(labelId, { labelId, categoryId: catId, formatted });
       }
     });
-    const labels = Array.from(labelMap.values()).sort(
-      (a, b) => b.catId - a.catId || b.labelId - a.labelId
+    const labelInfos = Array.from(labelMap.values()).sort((a, b) =>
+      b.categoryId !== a.categoryId
+        ? b.categoryId - a.categoryId
+        : b.labelId - a.labelId
     );
-    const yLabels = labels.map((l) => l.formatted);
-    const labelIndex = new Map(labels.map((l, i) => [l.labelId, i]));
+    const yLabels = labelInfos.map((info) => info.formatted);
+    const labelIndexMap = new Map(labelInfos.map((info, i) => [info.labelId, i]));
 
-    // --- 4) Pivot per kelas
-    const pivotByClass = {};
-    classList.forEach((cls) => {
-      pivotByClass[cls] = [];
-    });
-    data.forEach((r) => {
-      const cls = r.class_name;
-      const week = r.week_label;
-      const [labelId] = r.label_id;
-      const x = weekLabels.indexOf(week);
-      const y = labelIndex.get(labelId);
-      if (x !== -1 && y !== undefined) {
-        pivotByClass[cls].push([x, y, r.extraction_count]);
-      }
-    });
+    // --- 4) Hitung tinggi dinamis
+    const rowHeight = 22; // tinggi per label row
+    const basePadding = 80; // untuk legend + title
+    const perGridHeight = Math.max(200, yLabels.length * rowHeight);
+    chartDom.style.height = `${classList.length * perGridHeight + basePadding}px`;
 
-    // --- 5) Tinggi dinamis berdasarkan jumlah kelas (misal 250px per kelas)
-    const containerHeight = 250 * classCount + 80;
-    chartDom.style.height = `${containerHeight}px`;
+    const grids = [],
+      xAxes = [],
+      yAxes = [],
+      series = [],
+      titles = [];
 
-    // --- 6) Layout grid pakai persen
-    const heightPercent = 80 / classCount; // sisakan atas 10%, bawah 10%
-    const grids = classList.map((_, i) => ({
-      top: `${10 + i * heightPercent}%`,
-      height: `${heightPercent - 5}%`, // 5% padding antar grid
-      left: 60,
-      right: 60,
-      containLabel: true,
-    }));
+    // --- 5) Bangun heatmap per kelas
+    classList.forEach((cls, idx) => {
+      const heatmapData = [];
+      
+      data.forEach((r) => {
+        if (r.class_name !== cls) return;
+        const wl = r.week_label;
+        const [labelId] = r.label_id;
+        const x = weekLabels.indexOf(wl);
+        const y = labelIndexMap.get(labelId);
+        if (x !== -1 && y !== undefined) {
+          heatmapData.push([x, y, r.extraction_count]);
+        }
+      });
 
-    const xAxis = classList.map((_, i) => ({
-      type: "category",
-      data: weekIndexLabels,
-      gridIndex: i,
-      name: "Minggu",
-      axisLabel: { interval: 0 },
-      splitArea: { show: true },
-    }));
+      const gridTop = basePadding + idx * perGridHeight;
+      grids.push({
+        top: `${gridTop}px`,
+        height: `${perGridHeight - 40}px`,
+        left: 100,
+        right: 60,
+        containLabel: true,
+      });
 
-    const yAxis = classList.map((_, i) => ({
-      type: "category",
-      data: yLabels,
-      gridIndex: i,
-      name: "Label",
-      axisLabel: {
-        interval: 0,
-        fontSize: 8,
-      },
-      splitArea: { show: true },
-    }));
+      xAxes.push({
+        type: "category",
+        data: weekIndexLabels,
+        gridIndex: idx,
+        name: "Minggu",
+        axisLabel: { interval: 0, fontSize: 9 },
+        splitArea: { show: true },
+      });
 
-    const series = classList.map((cls, i) => ({
-      name: `Kelas ${cls}`,
-      type: "heatmap",
-      xAxisIndex: i,
-      yAxisIndex: i,
-      data: pivotByClass[cls],
-      label: {
-        show: true,
-        fontSize: 10,
-        formatter: (param) => param.value[2],
-      },
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 10,
-          shadowColor: "rgba(0, 0, 0, 0.5)",
+      yAxes.push({
+        type: "category",
+        data: yLabels,
+        gridIndex: idx,
+        name: "",
+        splitArea: { show: true },
+        axisLabel: { fontSize: 10 },
+      });
+
+      series.push({
+        name: cls,
+        type: "heatmap",
+        data: heatmapData,
+        xAxisIndex: idx,
+        yAxisIndex: idx,
+        label: {
+          show: true,
+          fontSize: 9,
+          formatter: (param) => param.value[2],
         },
-      },
-    }));
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: "rgba(0,0,0,0.5)",
+          },
+        },
+      });
 
-    const titles = classList.map((cls, i) => ({
-      text: `Kelas ${cls}`,
-      left: "center",
-      top: `${10 + i * heightPercent - 4}%`,
-      textStyle: { fontSize: 12, fontWeight: "bold" },
-    }));
+      titles.push({
+        text: `Kelas ${cls}`,
+        top: `${gridTop - 22}px`,
+        left: "center",
+        textStyle: { fontWeight: "bold", fontSize: 13 },
+      });
+    });
 
     if (this.echarts.heatmapLabelFreqClass) {
       this.echarts.heatmapLabelFreqClass.dispose();
@@ -1581,16 +1576,12 @@ export class LogbookClassAnalytics extends Component {
     const chart = echarts.init(chartDom);
     chart.setOption({
       title: [
-        {
-          text: "Heatmap Ekstraksi Label — per Kelas",
-          left: "center",
-          top: "2%",
-        },
+        { },
         ...titles,
       ],
       tooltip: {
         position: "top",
-        formatter: function (params) {
+        formatter: (params) => {
           const [x, y, val] = params.data;
           return `${yLabels[y]}<br/>${weekIndexLabels[x]} (${weekLabels[x]}): ${val}`;
         },
@@ -1601,12 +1592,12 @@ export class LogbookClassAnalytics extends Component {
         calculable: true,
         orient: "horizontal",
         left: "center",
-        bottom: 10,
+        bottom: 5,
       },
       grid: grids,
-      xAxis,
-      yAxis,
-      series,
+      xAxis: xAxes,
+      yAxis: yAxes,
+      series: series,
     });
 
     this.echarts.heatmapLabelFreqClass = chart;
@@ -1756,7 +1747,7 @@ export class LogbookClassAnalytics extends Component {
     const chart = echarts.init(chartDom);
     chart.setOption({
       title: [
-        { text: "Heatmap Ekstraksi Label — per Kelas", left: "center", top: 0 },
+        { },
         ...titles,
       ],
       tooltip: {
@@ -1849,10 +1840,6 @@ export class LogbookClassAnalytics extends Component {
     });
 
     chart.setOption({
-      title: {
-        text: "Radar: AVG Point Normalisasi (per Kelas)",
-        left: "center",
-      },
       tooltip: {
         trigger: "item",
         formatter: (param) => {
