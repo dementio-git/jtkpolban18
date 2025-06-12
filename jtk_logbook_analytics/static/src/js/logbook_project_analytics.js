@@ -812,13 +812,15 @@ export class LogbookProjectAnalytics extends Component {
       };
     });
 
-    const averagesText = categoryIds.map((catId) => {
-      const catName = categoryNames[categoryIds.indexOf(catId)];
-      const avg = averages[catName];
-      return `${catName}: Rata-rata Ekstraksi: ${avg.count.toFixed(
-        1
-      )} | Point: ${avg.point.toFixed(2)}`;
-    }).reverse();;
+    const averagesText = categoryIds
+      .map((catId) => {
+        const catName = categoryNames[categoryIds.indexOf(catId)];
+        const avg = averages[catName];
+        return `${catName}: Rata-rata Ekstraksi: ${avg.count.toFixed(
+          1
+        )} | Point: ${avg.point.toFixed(2)}`;
+      })
+      .reverse();
 
     // Generate series
     const series = [];
@@ -1057,13 +1059,15 @@ export class LogbookProjectAnalytics extends Component {
       };
     });
 
-    const subAveragesText = subIds.map((subId) => {
-      const subName = subNames[subIds.indexOf(subId)];
-      const avg = subAverages[subName];
-      return `${subName}: Rata-rata Ekstraksi: ${avg.count.toFixed(
-        1
-      )} | Point: ${avg.point.toFixed(2)}`;
-    }).reverse();;
+    const subAveragesText = subIds
+      .map((subId) => {
+        const subName = subNames[subIds.indexOf(subId)];
+        const avg = subAverages[subName];
+        return `${subName}: Rata-rata Ekstraksi: ${avg.count.toFixed(
+          1
+        )} | Point: ${avg.point.toFixed(2)}`;
+      })
+      .reverse();
 
     // Generate series
     const series = [];
@@ -1553,10 +1557,6 @@ export class LogbookProjectAnalytics extends Component {
 
     // 5) Siapkan opsi ECharts
     const option = {
-      title: {
-        text: "Radar: AVG Point Ternormalisasi (Overall)",
-        left: "center",
-      },
       tooltip: {
         trigger: "item",
         textStyle: {
@@ -1586,8 +1586,27 @@ export class LogbookProjectAnalytics extends Component {
         shape: "circle",
         splitNumber: 5,
         axisName: {
-          formatter: (name) =>
-            name.length > 20 ? name.slice(0, 17) + "..." : name,
+          formatter: function (name) {
+            // Pecah berdasarkan spasi
+            const parts = name.split(" ");
+            let lines = [];
+            let current = "";
+            parts.forEach((p) => {
+              if ((current + " " + p).length > 18) {
+                lines.push(current);
+                current = p;
+              } else {
+                current += (current ? " " : "") + p;
+              }
+            });
+            if (current) lines.push(current);
+            return lines.join("\n"); // pecah ke baris baru
+          },
+          rich: {
+            a: {
+              lineHeight: 14,
+            },
+          },
         },
       },
       series: [

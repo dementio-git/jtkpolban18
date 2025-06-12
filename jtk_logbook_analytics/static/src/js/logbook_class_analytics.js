@@ -1662,7 +1662,7 @@ export class LogbookClassAnalytics extends Component {
       }
     });
     const classes = Array.from(classMap.entries())
-      .sort((a, b) => b[0] - a[0])// urutkan berdasarkan class_id
+      .sort((a, b) => b[0] - a[0]) // urutkan berdasarkan class_id
       .map((entry) => entry[1]); // ambil hanya nama kelas
     const labelMap = new Map();
     allData.forEach((r) => {
@@ -1819,13 +1819,15 @@ export class LogbookClassAnalytics extends Component {
       }
     });
 
-    const labelInfos = Array.from(labelMap.values());
+    const labelInfos = Array.from(labelMap.values()).sort((a, b) => {
+      if (a.categoryId !== b.categoryId) return b.categoryId - a.categoryId;
+      return b.labelId - a.labelId;
+    });
+
     const labelIndexMap = new Map(labelInfos.map((l, i) => [l.labelId, i]));
-    const radarIndicators = labelInfos.map((i) => ({
-      name:
-        i.formatted.length > 25
-          ? i.formatted.slice(0, 22) + "..."
-          : i.formatted,
+
+    const radarIndicators = labelInfos.map((info) => ({
+      name: wrapLabel(info.formatted, 25), // ⬅️
       max: 1,
     }));
 
@@ -1857,6 +1859,23 @@ export class LogbookClassAnalytics extends Component {
         value: values,
       };
     });
+    function wrapLabel(name, maxLen = 25) {
+      const words = name.split(" ");
+      const lines = [];
+      let cur = "";
+
+      for (const w of words) {
+        // kalau ditambah w melebihi batas, pindah baris
+        if ((cur + " " + w).length > maxLen) {
+          if (cur) lines.push(cur);
+          cur = w;
+        } else {
+          cur += (cur ? " " : "") + w;
+        }
+      }
+      if (cur) lines.push(cur);
+      return lines.join("\n");
+    }
 
     chart.setOption({
       tooltip: {
@@ -1882,6 +1901,11 @@ export class LogbookClassAnalytics extends Component {
         indicator: radarIndicators,
         shape: "circle",
         splitNumber: 5,
+        axisName: {
+          fontSize: 10,
+          lineHeight: 12,
+        },
+        axisNameGap: 12, // tambah jarak sedikit
       },
       series: [
         {
