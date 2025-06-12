@@ -23,12 +23,38 @@
 
         <!-- CARD 2: Statistik Aktivitas Mahasiswa (Collapsed) -->
     <div class="row mt-3">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center"
-                     data-bs-toggle="collapse" data-bs-target="#collapseStatAktivitas" style="cursor: pointer;">
-                    <h3 class="card-title m-0">Statistik Aktivitas Mahasiswa</h3>
-                    <i class="fa fa-chevron-down"></i>
+        <!-- Kolom Kiri - Statistik Aktivitas -->
+        <div class="col-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white d-flex align-items-center">
+                    <!-- 1️⃣ Judul – dibuat fleksibel agar mendorong konten lain ke kanan -->
+                    <h3  class="card-title m-0 flex-grow-1"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapseStatAktivitas"
+                        style="cursor:pointer">
+                        Tabel Statistik Aktivitas Mahasiswa
+                    </h3>
+
+                    <!-- 2️⃣ Kelompok tombol – beri jarak ke kanan panah -->
+                    <div class="btn-group me-2">
+                        <button type="button"
+                                class="btn btn-sm btn-light text-primary"
+                                t-on-click="downloadCSV">
+                            Download CSV
+                        </button>
+                        <button type="button"
+                                class="btn btn-sm btn-light text-primary"
+                                t-on-click="downloadXLSX">
+                            Download XLSX
+                        </button>
+                    </div>
+
+                    <!-- 3️⃣ Tombol panah collapse -->
+                    <button class="btn btn-link text-white p-0"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapseStatAktivitas">
+                        <i class="fa fa-chevron-down"></i>
+                    </button>
                 </div>
                 <div id="collapseStatAktivitas" class="collapse">
                     <div class="card-body">
@@ -37,16 +63,34 @@
                 </div>
             </div>
         </div>
-    </div>
 
-        <!-- CARD 3: Statistik Ekstraksi Aktivitas Mahasiswa (Collapsed) -->
-    <div class="row mt-3">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center"
-                     data-bs-toggle="collapse" data-bs-target="#collapseEkstraksi" style="cursor: pointer;">
-                    <h3 class="card-title m-0">Statistik Ekstraksi Logbook Mahasiswa</h3>
-                    <i class="fa fa-chevron-down"></i>
+        <!-- Kolom Kanan - Statistik Ekstraksi -->
+        <div class="col-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white d-flex align-items-center">
+                    <h3 class="card-title m-0 flex-grow-1"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapseEkstraksi"
+                        style="cursor: pointer;">
+                        Tabel Statistik Ekstraksi Logbook Mahasiswa
+                    </h3>
+                    <div class="btn-group me-2">
+                        <button type="button"
+                                class="btn btn-sm btn-light text-primary"
+                                t-on-click="downloadCSV">
+                            Download CSV
+                        </button>
+                        <button type="button"
+                                class="btn btn-sm btn-light text-primary"
+                                t-on-click="downloadXLSX">
+                            Download XLSX
+                        </button>
+                    </div>
+                    <button class="btn btn-link text-white p-0"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapseEkstraksi">
+                        <i class="fa fa-chevron-down"></i>
+                    </button>
                 </div>
                 <div id="collapseEkstraksi" class="collapse">
                     <div class="card-body">
@@ -55,16 +99,37 @@
                 </div>
             </div>
         </div>
+
     </div>
 
         <!-- CARD 4: Tabel Hasil Akhir Poin Perlabel Mahasiswa (Collapsed) -->
     <div class="row mt-3">
         <div class="col-12">
             <div class="card shadow">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center"
-                     data-bs-toggle="collapse" data-bs-target="#collapseTabel" style="cursor: pointer;">
-                    <h3 class="card-title m-0">Tabel Hasil Akhir Poin Mahasiswa Perlabel </h3>
-                    <i class="fa fa-chevron-down"></i>
+                <div class="card-header bg-primary text-white d-flex align-items-center">
+                    <h3 class="card-title m-0 flex-grow-1"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#collapseTabel"
+                        style="cursor: pointer;">
+                        Tabel Hasil Akhir Poin Mahasiswa Perlabel
+                    </h3>
+                    <div class="btn-group me-2">
+                        <button type="button"
+                                class="btn btn-sm btn-light text-primary"
+                                t-on-click="downloadCSV">
+                            Download CSV
+                        </button>
+                        <button type="button"
+                                class="btn btn-sm btn-light text-primary"
+                                t-on-click="downloadXLSX">
+                            Download XLSX
+                        </button>
+                    </div>
+                    <button class="btn btn-link text-white p-0"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapseTabel">
+                        <i class="fa fa-chevron-down"></i>
+                    </button>
                 </div>
                 <div id="collapseTabel" class="collapse">
                     <div class="card-body">
@@ -73,9 +138,8 @@
                 </div>
             </div>
         </div>
-    </div>
 
-        <!-- Update in logbook_student_analytics.xml -->
+    </div>
 <div class="row mt-3">
     <div class="col-12">
         <div class="card shadow">

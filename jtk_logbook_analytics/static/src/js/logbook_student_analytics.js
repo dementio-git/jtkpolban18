@@ -459,27 +459,32 @@ export class LogbookStudentAnalytics extends Component {
     const averageRow = {
       student_name: "Rata-rata",
       class_name: "",
-      total_logbooks:
+      total_logbooks: +(
         this.state.statsData.reduce((sum, row) => sum + row.total_logbooks, 0) /
-        this.state.statsData.length,
-      avg_logbooks_per_week:
+        this.state.statsData.length
+      ).toFixed(2),
+      avg_logbooks_per_week: +(
         this.state.statsData.reduce(
           (sum, row) => sum + row.avg_logbooks_per_week,
           0
-        ) / this.state.statsData.length,
-      std_dev_logbooks:
+        ) / this.state.statsData.length
+      ).toFixed(2),
+      std_dev_logbooks: +(
         this.state.statsData.reduce(
           (sum, row) => sum + row.std_dev_logbooks,
           0
-        ) / this.state.statsData.length,
-      active_weeks:
+        ) / this.state.statsData.length
+      ).toFixed(2),
+      active_weeks: +(
         this.state.statsData.reduce((sum, row) => sum + row.active_weeks, 0) /
-        this.state.statsData.length,
-      participation_rate:
+        this.state.statsData.length
+      ).toFixed(2),
+      participation_rate: +(
         this.state.statsData.reduce(
           (sum, row) => sum + row.participation_rate,
           0
-        ) / this.state.statsData.length,
+        ) / this.state.statsData.length
+      ).toFixed(2),
     };
 
     // Add average row at the top
@@ -548,21 +553,24 @@ export class LogbookStudentAnalytics extends Component {
     const averageRow = {
       student_name: "Rata-rata",
       class_name: "",
-      total_extraction:
+      total_extraction: +(
         this.state.extractionStatsData.reduce(
           (sum, row) => sum + row.total_extraction,
           0
-        ) / this.state.extractionStatsData.length,
-      avg_extraction_per_logbook:
+        ) / this.state.extractionStatsData.length
+      ).toFixed(2),
+      avg_extraction_per_logbook: +(
         this.state.extractionStatsData.reduce(
           (sum, row) => sum + row.avg_extraction_per_logbook,
           0
-        ) / this.state.extractionStatsData.length,
-      std_extraction_per_logbook:
+        ) / this.state.extractionStatsData.length
+      ).toFixed(2),
+      std_extraction_per_logbook: +(
         this.state.extractionStatsData.reduce(
           (sum, row) => sum + row.std_extraction_per_logbook,
           0
-        ) / this.state.extractionStatsData.length,
+        ) / this.state.extractionStatsData.length
+      ).toFixed(2),
     };
 
     // Add average row at the top
