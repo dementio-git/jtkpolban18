@@ -324,7 +324,7 @@ export class LogbookProjectAnalytics extends Component {
       baseOption: {
         timeline: {
           axisType: "category",
-          autoPlay: true,
+          autoPlay: false,
           playInterval: 3000,
           data: weekLabels.map((w, i) => (w === "All" ? "All" : `W${i + 1}`)),
           label: {

@@ -1118,7 +1118,9 @@ export class LogbookClassAnalytics extends Component {
   }
 
   renderExtractionSubcategoryTrendByClass() {
-    const chartDom = document.getElementById("chart_extraction_subcategory_class");
+    const chartDom = document.getElementById(
+      "chart_extraction_subcategory_class"
+    );
     if (!chartDom) return;
 
     const data = this.state.extractionBySubcategoryClass;
@@ -1440,7 +1442,7 @@ export class LogbookClassAnalytics extends Component {
     this.echarts.chart5 = chart;
   }
 
-renderExtractionLabelFreqHeatmapClass() {
+  renderExtractionLabelFreqHeatmapClass() {
     const chartDom = document.getElementById("heatmapLabelFreqClass");
     if (!chartDom) return;
 
@@ -1455,8 +1457,18 @@ renderExtractionLabelFreqHeatmapClass() {
     const parseDate = (s) => {
       const [d, m, y] = s.split(" ");
       const monthMap = {
-        Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5,
-        Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11
+        Jan: 0,
+        Feb: 1,
+        Mar: 2,
+        Apr: 3,
+        May: 4,
+        Jun: 5,
+        Jul: 6,
+        Aug: 7,
+        Sep: 8,
+        Oct: 9,
+        Nov: 10,
+        Dec: 11,
       };
       return new Date(+y, monthMap[m], +d);
     };
@@ -1468,7 +1480,7 @@ renderExtractionLabelFreqHeatmapClass() {
     // --- 2) Kelas dan label info
     const classList = Array.from(new Set(data.map((d) => d.class_name))).sort();
 
-    // --- 3) Label info 
+    // --- 3) Label info
     const labelMap = new Map();
     data.forEach((r) => {
       const [labelId, labelName] = r.label_id;
@@ -1486,13 +1498,17 @@ renderExtractionLabelFreqHeatmapClass() {
         : b.labelId - a.labelId
     );
     const yLabels = labelInfos.map((info) => info.formatted);
-    const labelIndexMap = new Map(labelInfos.map((info, i) => [info.labelId, i]));
+    const labelIndexMap = new Map(
+      labelInfos.map((info, i) => [info.labelId, i])
+    );
 
     // --- 4) Hitung tinggi dinamis
     const rowHeight = 22; // tinggi per label row
     const basePadding = 80; // untuk legend + title
     const perGridHeight = Math.max(200, yLabels.length * rowHeight);
-    chartDom.style.height = `${classList.length * perGridHeight + basePadding}px`;
+    chartDom.style.height = `${
+      classList.length * perGridHeight + basePadding
+    }px`;
 
     const grids = [],
       xAxes = [],
@@ -1503,7 +1519,7 @@ renderExtractionLabelFreqHeatmapClass() {
     // --- 5) Bangun heatmap per kelas
     classList.forEach((cls, idx) => {
       const heatmapData = [];
-      
+
       data.forEach((r) => {
         if (r.class_name !== cls) return;
         const wl = r.week_label;
@@ -1575,10 +1591,7 @@ renderExtractionLabelFreqHeatmapClass() {
 
     const chart = echarts.init(chartDom);
     chart.setOption({
-      title: [
-        { },
-        ...titles,
-      ],
+      title: [{}, ...titles],
       tooltip: {
         position: "top",
         formatter: (params) => {
@@ -1641,7 +1654,16 @@ renderExtractionLabelFreqHeatmapClass() {
     const weekIndexLabels = weekLabels.map((_, i) => `W${i + 1}`);
 
     // 2) Kelas dan label info
-    const classes = Array.from(new Set(allData.map((d) => d.class_name)));
+    const classMap = new Map();
+    allData.forEach((d) => {
+      const [id, name] = d.class_id;
+      if (!classMap.has(id)) {
+        classMap.set(id, name);
+      }
+    });
+    const classes = Array.from(classMap.entries())
+      .sort((a, b) => b[0] - a[0])// urutkan berdasarkan class_id
+      .map((entry) => entry[1]); // ambil hanya nama kelas
     const labelMap = new Map();
     allData.forEach((r) => {
       const [labelId, labelName] = r.label_id;
@@ -1746,10 +1768,7 @@ renderExtractionLabelFreqHeatmapClass() {
 
     const chart = echarts.init(chartDom);
     chart.setOption({
-      title: [
-        { },
-        ...titles,
-      ],
+      title: [{}, ...titles],
       tooltip: {
         position: "top",
         formatter: (params) => {
