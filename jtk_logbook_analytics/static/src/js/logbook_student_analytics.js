@@ -118,10 +118,22 @@ export class LogbookStudentAnalytics extends Component {
     this.state.selectedStudentId = studentId;
 
     if (studentId) {
-      await this.loadStudentWeeklyStats(studentId);
-      await this.loadStudentWeeklyActivity(studentId);
+      await Promise.all([
+        this.loadStudentWeeklyStats(studentId),
+        this.loadStudentWeeklyActivity(studentId),
+        this.loadWeeklySimilarity(studentId), // Tambahkan ini
+      ]);
       this.renderStudentCharts();
     }
+  }
+
+  async loadWeeklySimilarity(studentId) {
+    const projectCourseId = getRecordIdFromPath();
+    const result = await rpc("/logbook/similarity/weekly", {
+      student_id: studentId,
+      project_course_id: projectCourseId,
+    });
+    this.state.similarityData = result;
   }
 
   async loadStudentWeeklyStats(studentId) {
@@ -150,6 +162,7 @@ export class LogbookStudentAnalytics extends Component {
 
   renderStudentCharts() {
     this.renderStudentWeeklyActivityChart();
+    this.renderSimilarityHeatmap(); // Tambahkan ini
   }
 
   processDataStructures() {
@@ -899,6 +912,89 @@ export class LogbookStudentAnalytics extends Component {
     link.download = "clustering_data.csv";
     link.click();
     URL.revokeObjectURL(link.href);
+  }
+
+  renderSimilarityHeatmap() {
+    const container = document.getElementById("chart_similarity");
+    if (!container || !this.state.similarityData) return;
+
+    if (this.echarts.chart_similarity) {
+      this.echarts.chart_similarity.dispose();
+    }
+
+    const chart = echarts.init(container);
+    const { similarity_matrix, week_labels } = this.state.similarityData;
+
+    // Transform data untuk heatmap
+    const data = [];
+    similarity_matrix.forEach((row, i) => {
+      row.forEach((val, j) => {
+        data.push([i, j, val.toFixed(2)]);
+      });
+    });
+
+    const option = {
+      title: {
+        text: "Similaritas Logbook Antar Minggu",
+        left: "center",
+      },
+      tooltip: {
+        position: "top",
+        formatter: function (params) {
+          const weekI = week_labels[params.data[0]];
+          const weekJ = week_labels[params.data[1]];
+          const similarity = params.data[2];
+          return `${weekI} vs ${weekJ}: ${similarity}`;
+        },
+      },
+      grid: {
+        left: "15%",
+        right: "15%",
+        top: "15%",
+        bottom: "15%",
+      },
+      xAxis: {
+        type: "category",
+        data: week_labels,
+        splitArea: {
+          show: true,
+        },
+      },
+      yAxis: {
+        type: "category",
+        data: week_labels,
+        splitArea: {
+          show: true,
+        },
+      },
+      visualMap: {
+        min: 0,
+        max: 1,
+        calculable: true,
+        orient: "horizontal",
+        left: "center",
+        bottom: "0%",
+      },
+      series: [
+        {
+          name: "Similaritas",
+          type: "heatmap",
+          data: data,
+          label: {
+            show: true,
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: "rgba(0, 0, 0, 0.5)",
+            },
+          },
+        },
+      ],
+    };
+
+    chart.setOption(option);
+    this.echarts.chart_similarity = chart;
   }
 }
 

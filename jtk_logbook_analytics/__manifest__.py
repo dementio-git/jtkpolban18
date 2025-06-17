@@ -48,6 +48,19 @@
             'jtk_logbook_analytics/static/src/xml/*.xml',
         ],
     },
+    
+    'external_dependencies': {
+        'python': [
+            'sentence_transformers',
+            'torch',
+            'transformers',
+            'pandas',
+            'scikit-learn',  # Ini mencakup StandardScaler dan KMeans
+            'numpy'  # Diperlukan oleh pandas dan scikit-learn
+        ],
+    },
+    
+    
 
 
 

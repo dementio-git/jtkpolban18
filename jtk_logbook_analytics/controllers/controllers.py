@@ -35,4 +35,13 @@ class LogbookDashboardAPI(http.Controller):
         return result
 
 
-    
+    @http.route('/logbook/similarity/weekly', type='json', auth='user')
+    def get_weekly_similarity(self, student_id=None, project_course_id=None, **kw):
+        if not student_id or not project_course_id:
+            return {"similarity_matrix": [], "week_labels": []}
+        
+        result = request.env['logbook.similarity.service'].get_weekly_similarity(
+            int(student_id), 
+            int(project_course_id)
+        )
+        return result
