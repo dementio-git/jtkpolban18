@@ -6,12 +6,19 @@
             <field name="model">project.course</field>
             <field name="inherit_id" ref="jtk_project_course_base.view_project_course_form"/>
             <field name="arch" type="xml">
-                <xpath expr="//page[@name='group']" position="after">
+                <xpath expr="//notebook" position="inside">
                     <page string="Logbook" name="logbook">
                         <group >
                             <field name="logbook_label_ids" widget="many2many_tags"/>
+                            
                         </group>
                         <group name="clustering" string="Clustering">
+                            <group>
+                                <field name="point_coefficient"/>
+                            </group>
+                            <group>
+                                <field name="frequency_coefficient"/>
+                            </group>
                             <group string="X Axis">
                                 <field name="logbook_clustering_x_axis_name"/>
                                 <field name="logbook_clustering_x_axis_label_ids" widget="many2many_tags" domain="[('id', 'in', logbook_label_ids)]" options="{'no_create': True, 'no_delete': True}"/>

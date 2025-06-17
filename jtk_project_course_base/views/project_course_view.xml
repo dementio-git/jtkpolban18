@@ -75,23 +75,25 @@
                     <group>
                         <group>
                             <field name="name"/>
+                            <field name="subject_id"
+                                    options="{'no_create': True}"
+                                    domain="[('study_program_id', '=', study_program_id), ('active', '=', True)]"/>
                             <field name="code"/>
+                            <field name="class_ids" 
+                                widget="many2many_tags" 
+                                options="{'no_create': True}"
+                                domain="[('study_program_id', '=', study_program_id), ('active', '=', True)]"/>
+                        </group>
+                        <group>
                             <field name="semester"/>
                             <field name="study_program_id" 
-                                   options="{'no_create': True}"
-                                   domain="[('active', '=', True)]"/>
-                            <field name="class_ids" 
-                                   widget="many2many_tags" 
-                                   options="{'no_create': True}"
-                                   domain="[('study_program_id', '=', study_program_id), ('active', '=', True)]"/>
-                            <field name="subject_id"
-                                   options="{'no_create': True}"
-                                   domain="[('study_program_id', '=', study_program_id), ('active', '=', True)]"/>
+                                    options="{'no_create': True}"
+                                    domain="[('active', '=', True)]"/>
                             <field name="active" widget="boolean_toggle"/>
                         </group>
                     </group>
                     <notebook>                        
-                        <page string="Kelompok" name="group">
+                        <!-- <page string="Kelompok" name="group"> -->
                             <!-- <field name="student_group_ids" 
                                    context="{'default_project_course_id': id}">
                                 <list>
@@ -109,6 +111,15 @@
                                            options="{'no_create': True}"/>
                                 </list>
                             </field> -->
+                        <!-- </page> -->
+                        <page string="Mahasiswa" name="student">
+                            <field name="student_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="nim"/>
+                                    <field name="class_id"/>
+                                </list>
+                            </field>
                         </page>
                         <page string="Calendar" name="calendar">
                             <group>

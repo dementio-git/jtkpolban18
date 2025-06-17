@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from . import logbook_clustering_service
+from . import clustering_service, similarity_service

@@ -225,19 +225,44 @@ export class LogbookStudentAnalytics extends Component {
     const container = document.getElementById("chart");
     if (!container) return;
     const chart = echarts.init(container);
-    const data = this.state.students.map((s) => ({
+
+    // Buat series: setiap mahasiswa dipetakan sebagai series terpisah
+    const series = this.state.students.map((s) => ({
       name: s.student_name,
-      value: [s.x, s.y],
-      cluster: s.cluster,
+      type: "scatter",
+      data: [
+        {
+          value: [s.x, s.y],
+          cluster: s.cluster,
+        },
+      ],
+      itemStyle: {
+        color: this.getColor(s.cluster),
+      },
     }));
+
     chart.setOption({
-      title: { text: "Clustering Mahasiswa", left: "center" },
+      title: {
+        text: "Clustering Mahasiswa",
+        left: "center",
+      },
+      grid: {
+        left: "5%", // Atur margin kiri
+        right: "20%", // Berikan ruang untuk legenda di kanan
+        top: "10%",
+        bottom: "10%",
+        containLabel: true,
+      },
       tooltip: {
         trigger: "item",
-        formatter: ({ data }) =>
-          `Mahasiswa: ${data.name}<br/>Cluster: ${data.cluster}
-           <br/>X: ${data.value[0].toFixed(2)}
-           <br/>Y: ${data.value[1].toFixed(2)}`,
+        formatter: function (params) {
+          return (
+            `Mahasiswa: ${params.seriesName}<br/>` +
+            `Cluster: ${params.data.cluster}<br/>` +
+            `X: ${params.data.value[0].toFixed(2)}<br/>` +
+            `Y: ${params.data.value[1].toFixed(2)}`
+          );
+        },
       },
       xAxis: {
         name: this.state.components.x_axis_name || "X-Axis",
@@ -247,15 +272,15 @@ export class LogbookStudentAnalytics extends Component {
         name: this.state.components.y_axis_name || "Y-Axis",
         scale: true,
       },
-      series: [
-        {
-          type: "scatter",
-          data,
-          itemStyle: {
-            color: (params) => this.getColor(params.data.cluster),
-          },
-        },
-      ],
+      legend: {
+        type: "scroll",
+        orient: "vertical",
+        right: 10,
+        top: 60,
+        // Gunakan legend dari backend: daftar nama mahasiswa (urutan berdasarkan student_id)
+        data: this.state.components.legend || [],
+      },
+      series: series,
     });
   }
 
@@ -790,21 +815,90 @@ export class LogbookStudentAnalytics extends Component {
       .padStart(2, "0")}/${date.getFullYear()}`;
   }
 
-  // di dalam class, di bawah renderTable()
-  downloadCSV() {
-    if (this.table) {
-      this.table.download("csv", "logbook_data.csv", {
-        bom: true, // untuk encoding UTF-8
-        delimiter: ",",
-      });
+  downloadTableData(tableType, format) {
+    let table;
+    let filename;
+
+    // Tambahkan logging untuk debugging
+    console.log("Table type:", tableType);
+    console.log("Stats table:", this.statsTable);
+    console.log("Extraction table:", this.extractionStatsTable);
+    console.log("Points table:", this.table);
+
+    switch (tableType) {
+      case "stats":
+        if (!this.statsTable) {
+          console.error("Stats table belum diinisialisasi");
+          return;
+        }
+        table = this.statsTable;
+        filename = "statistik_aktivitas";
+        break;
+
+      case "extraction":
+        if (!this.extractionStatsTable) {
+          console.error("Extraction stats table belum diinisialisasi");
+          return;
+        }
+        table = this.extractionStatsTable;
+        filename = "statistik_ekstraksi";
+        break;
+
+      case "points":
+        if (!this.table) {
+          console.error("Points table belum diinisialisasi");
+          return;
+        }
+        table = this.table;
+        filename = "poin_mahasiswa";
+        break;
+
+      default:
+        console.error("Tipe tabel tidak valid:", tableType);
+        return;
+    }
+
+    if (table) {
+      try {
+        if (format === "csv") {
+          table.download("csv", `${filename}.csv`, {
+            bom: true,
+            delimiter: ",",
+          });
+        } else if (format === "xlsx") {
+          table.download("xlsx", `${filename}.xlsx`, {
+            sheetName: filename,
+          });
+        }
+      } catch (error) {
+        console.error("Error saat download:", error);
+      }
     }
   }
-  downloadXLSX() {
-    if (this.table) {
-      this.table.download("xlsx", "logbook_data.xlsx", {
-        sheetName: "Logbook",
-      });
-    }
+
+  downloadClusteringData() {
+    // Persiapkan data
+    const headers = ["Nama Mahasiswa", "Cluster", "Nilai X", "Nilai Y"];
+    const rows = this.state.students.map((s) => [
+      s.student_name,
+      s.cluster,
+      s.x.toFixed(2),
+      s.y.toFixed(2),
+    ]);
+
+    // Gabung headers dan rows
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
+
+    // Buat blob dan trigger download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "clustering_data.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 }
 

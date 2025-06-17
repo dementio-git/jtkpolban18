@@ -34,3 +34,5 @@ class LogbookDashboardAPI(http.Controller):
         result = request.env['logbook.clustering.service'].cluster_by_label_axes(project_course_id)
         return result
 
+
+    

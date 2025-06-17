@@ -8,6 +8,15 @@ class ProjectCourse(models.Model):
         string='Logbook Labels'
     )
     
+    point_coefficient = fields.Float(
+        string='Coefficient Point',
+        help='Coefficient for calculating points in logbook'
+    )
+    
+    frequency_coefficient = fields.Float(
+        string='Coefficient Frequency',
+        help='Coefficient for calculating frequency in logbook'
+    )
     
     logbook_clustering_x_axis_name = fields.Char(
         string='X-Axis Name for Clustering',

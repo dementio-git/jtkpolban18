@@ -4,14 +4,15 @@ from odoo import models, fields, tools
 
 class LogbookExtractionStudentLabelAggregate(models.Model):
     _name = "logbook.extraction.student.label.aggregate"
-    _description = "Total Poin per Mahasiswa per Label"
+    _description = "Total Poin dan Frekuensi per Mahasiswa per Label"
     _auto = False
 
     student_id = fields.Many2one("student.student", string="Mahasiswa", readonly=True)
     student_name = fields.Char(string="Nama Mahasiswa", readonly=True)
-    project_course_id = fields.Many2one("project.course", string="Mata Kuliah", readonly=True)  # ✅ Tambah ini
+    project_course_id = fields.Many2one("project.course", string="Mata Kuliah", readonly=True)
     label_id = fields.Many2one("logbook.label", string="Label", readonly=True)
     total_point = fields.Float(string="Total Poin", readonly=True)
+    frequency = fields.Integer(string="Frekuensi", readonly=True)  # Tambah field frequency
 
     def init(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
@@ -21,14 +22,22 @@ class LogbookExtractionStudentLabelAggregate(models.Model):
                     row_number() OVER () AS id,
                     lb.student_id,
                     s.name AS student_name,
-                    lb.project_course_id,                     -- ✅ SELECT juga project_course_id
+                    lb.project_course_id,
                     e.label_id,
-                    SUM(e.point) AS total_point
+                    SUM(COALESCE(e.point, 0)) AS total_point,
+                    COUNT(e.id) AS frequency  -- Tambah perhitungan frequency
                 FROM logbook_extraction e
                 JOIN logbook_logbook lb ON lb.id = e.logbook_id
                 JOIN student_student s ON s.id = lb.student_id
-                WHERE e.label_id IS NOT NULL AND e.point IS NOT NULL
-                GROUP BY lb.student_id, s.name, lb.project_course_id, e.label_id
+                WHERE 
+                    e.label_id IS NOT NULL 
+                    AND e.content IS NOT NULL 
+                    AND e.content != ''
+                GROUP BY 
+                    lb.student_id, 
+                    s.name, 
+                    lb.project_course_id, 
+                    e.label_id
             )
         """ % self._table)
 
