@@ -28,7 +28,9 @@
             <!-- <div t-if="state.activeTab === 'project'">📊 Konten Dashboard Proyek</div> -->
             <!-- <div t-if="state.activeTab === 'class'"><LogbookClassDashboard projectId="state.projectId"/></div> -->
             <div t-if="state.activeTab === 'logbook'" class="container-fluid">
-                <LogbookAnalytics projectId="state.projectId"/>
+                <LogbookAnalytics t-props="{
+              projectId: state.projectId
+          }"/>
             </div>
             <!-- <div t-if="state.activeTab === 'student'">👩‍🎓 Konten Dashboard Per Mahasiswa</div> -->
             <!-- <div t-if="state.activeTab === 'week'">🗓️ Konten Kalender dan Mingguan</div> -->

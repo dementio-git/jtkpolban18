@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
-        <record model="ir.ui.view" id="project_course_form_inherit">
-            <field name="name">project.course.form.inherit</field>
+        <record model="ir.ui.view" id="project_course_kanban_inherit">
+            <field name="name">project.course.kanban.inherit</field>
             <field name="model">project.course</field>
             <field name="inherit_id" ref="jtk_project_course_base.view_project_course_kanban"/>
             <field name="arch" type="xml">

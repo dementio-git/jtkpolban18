@@ -1,3 +1,5 @@
+# jtkpolban18\jtk_logbook_base\models\logbook_label.py
+
 from odoo import models, fields, api
 
 class LogbookLabel(models.Model):

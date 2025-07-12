@@ -9,7 +9,10 @@ function getRecordIdFromPath() {
   let m = window.location.pathname.match(
     /\/(?:odoo\/)?project-course\/(\d+)(\/|$)/
   );
-  if (m) return parseInt(m[1], 10);
+  if (m) {
+    return parseInt(m[1], 10);
+  }
+  // fallback: cari angka saja di path
   m = window.location.pathname.split("/").find((seg) => /^\d+$/.test(seg));
   return m ? parseInt(m, 10) : null;
 }
@@ -25,6 +28,7 @@ export class LogbookStudentAnalytics extends Component {
       studentList: [],
       categories: [],
       statsData: [],
+      projectCourseId: null, // Tambah state baru
       extractionStatsData: [], // Tambah state baru
       selectedStudentId: null,
       studentWeeklyStats: [],
@@ -35,13 +39,20 @@ export class LogbookStudentAnalytics extends Component {
     this.extractionStatsTable = null;
 
     onWillStart(async () => {
-      const projectCourseId = getRecordIdFromPath();
-      if (!projectCourseId) return;
+      const pid = this.props.projectId;
+      this.state.projectCourseId = pid;
+      if (!pid) {
+        this.state.projectCourseId = getRecordIdFromPath();
+        if (!this.state.projectCourseId) {
+          console.warn("projectCourseId belum tersedia");
+          return;
+        }
+      }
       await Promise.all([
-        this.fetchClusteringData(projectCourseId),
-        this.fetchNormalizationData(projectCourseId),
-        this.fetchStatsData(projectCourseId),
-        this.fetchExtractionStatsData(projectCourseId), // Tambah fungsi fetch baru
+        this.fetchClusteringData(this.state.projectCourseId),
+        this.fetchNormalizationData(this.state.projectCourseId),
+        this.fetchStatsData(this.state.projectCourseId),
+        this.fetchExtractionStatsData(this.state.projectCourseId), // Tambah fungsi fetch baru
       ]);
 
       this.processDataStructures();
@@ -255,13 +266,9 @@ export class LogbookStudentAnalytics extends Component {
     }));
 
     chart.setOption({
-      title: {
-        text: "Clustering Mahasiswa",
-        left: "center",
-      },
       grid: {
         left: "5%", // Atur margin kiri
-        right: "20%", // Berikan ruang untuk legenda di kanan
+        right: "32%", // Berikan ruang untuk legenda di kanan
         top: "10%",
         bottom: "10%",
         containLabel: true,
@@ -280,10 +287,21 @@ export class LogbookStudentAnalytics extends Component {
       xAxis: {
         name: this.state.components.x_axis_name || "X-Axis",
         scale: true,
+        nameLocation: "center", // letaknya di tengah sumbu
+        nameGap: 25, // jarak dari sumbu ke label
+        nameTextStyle: {
+          fontSize: 12, // perkecil ukuran font
+        },
       },
       yAxis: {
         name: this.state.components.y_axis_name || "Y-Axis",
         scale: true,
+        nameLocation: "center", // letaknya di tengah sumbu Y
+        nameGap: 35, // sedikit lebih jauh agar tidak bertabrakan dengan angka
+        nameRotate: 90, // rotasi agar teks vertikal
+        nameTextStyle: {
+          fontSize: 12, // ukuran teks lebih kecil
+        },
       },
       legend: {
         type: "scroll",

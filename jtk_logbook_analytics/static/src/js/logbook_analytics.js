@@ -8,6 +8,10 @@ import { LogbookStudentAnalytics } from "@jtk_logbook_analytics/js/logbook_stude
 
 export class LogbookAnalytics extends Component {}
 
+LogbookAnalytics.props = {
+  projectId: { type: Number },
+};
+
 LogbookAnalytics.template = "jtk_logbook_analytics.LogbookAnalytics";
 LogbookAnalytics.components = {
     LogbookProjectAnalytics,

@@ -12,12 +12,20 @@
                             <field name="logbook_label_ids" widget="many2many_tags"/>
                             
                         </group>
-                        <group name="clustering" string="Clustering">
+                        <group name="clustering" string="Extraction Clustering">
                             <group>
                                 <field name="point_coefficient"/>
                             </group>
                             <group>
                                 <field name="frequency_coefficient"/>
+                            </group>
+
+                            <group string="Similarity Clustering">
+                                <field name="alpha" />
+                            </group>
+
+                            <group>
+
                             </group>
                             <group string="X Axis">
                                 <field name="logbook_clustering_x_axis_name"/>

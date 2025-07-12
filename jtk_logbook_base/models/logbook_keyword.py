@@ -1,3 +1,5 @@
+# jtkpolban18\jtk_logbook_base\models\logbook_keyword.py
+
 from odoo import models, fields, api
 
 class LogbookKeyword(models.Model):

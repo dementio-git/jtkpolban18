@@ -1,0 +1,50 @@
+
+@startuml
+title Sequence Diagram - Logbook Analytics (User → View → Controller → Service → Model → DB)
+
+actor User
+participant "View
+(OWL Template + JS)" as View
+participant "Controller
+(@http.route)" as Controller
+participant "Service
+(LogbookClusteringService / Similarity)" as Service
+participant "Model
+(SQL View)" as Model
+database DB
+
+== Halaman Dibuka ==
+
+User -> View : Open Logbook Analytics Page
+View -> Controller : GET /get_label_clustering
+Controller -> Service : cluster_by_label_axes()
+Service -> Model : query logbook.extraction.student.label.aggregate
+Model -> DB : Execute SQL View
+DB --> Model : Clustering Data
+Model --> Service : Return Recordset
+Service --> Controller : Return Clustering Result
+Controller --> View : JSON Clustering Data
+View --> User : Render Clustering Chart
+
+== Statistik Umum ==
+View -> Model : ORM searchRead (label.norm, stats)
+Model -> DB : Query multiple SQL Views
+DB --> Model : Stats Data
+Model --> View : Return Stats
+View --> User : Render Overview
+
+== Pilih Mahasiswa ==
+User -> View : Select Mahasiswa
+View -> Controller : GET /get_weekly_similarity
+Controller -> Service : get_weekly_similarity()
+Service -> Model : read weekly.stats
+Service -> Model : read extraction.weekly
+Service -> Model : read subcategory.weekly
+Model -> DB : Run SQL Views
+DB --> Model : Return Weekly Data
+Model --> Service : Return All Weekly Records
+Service --> Controller : JSON Result
+Controller --> View : Send to UI
+View --> User : Render Student Dashboard
+
+@enduml

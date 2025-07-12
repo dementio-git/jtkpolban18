@@ -1,3 +1,5 @@
+# jtkpolban18\jtk_logbook_base\models\project_course.py
+
 from odoo import models, fields
 
 class ProjectCourse(models.Model):
@@ -9,15 +11,21 @@ class ProjectCourse(models.Model):
     )
     
     point_coefficient = fields.Float(
-        string='Coefficient Point',
+        string='Coefficient For Point',
         help='Coefficient for calculating points in logbook'
     )
     
     frequency_coefficient = fields.Float(
-        string='Coefficient Frequency',
+        string='Coefficient For Frequency',
         help='Coefficient for calculating frequency in logbook'
     )
     
+    alpha = fields.Float(
+        string="Bobot Kesamaan Berdasarkan Kata",
+        default=0.5,
+        help="Tentukan seberapa besar kemiripan logbook dihitung berdasarkan kemiripan kata. Nilai lebih tinggi akan lebih menekankan kesamaan kata (tekstual), sedangkan nilai lebih rendah lebih menekankan kesamaan makna (kontekstual)."
+    )
+        
     logbook_clustering_x_axis_name = fields.Char(
         string='X-Axis Name for Clustering',
         help='Name for the X-axis in clustering visualizations'

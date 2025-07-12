@@ -638,7 +638,7 @@ class LogbookExtractionWeeklyLabelNorm(models.Model):
                     e.label_sub_category_id
             )
         """ % {'table': self._table})
-
+ 
 class LogbookKeywordCloud(models.Model):
     _name = 'logbook.keyword.cloud'
     _auto = False

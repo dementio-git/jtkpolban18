@@ -185,7 +185,7 @@ class LogbookWeeklyStatsClass(models.Model):
           sw.week_id, dw.start_date, dw.end_date, dw.week_num
         ORDER BY sw.project_course_id, dw.week_num;
         """)
-
+ 
 class LogbookWeeklyActivityClass(models.Model):
     _name = "logbook.weekly.activity.class"
     _auto = False
@@ -284,6 +284,7 @@ class LogbookWeeklyActivityClass(models.Model):
             dw.class_id,
             dw.week_num;
         """)
+
 class LogbookExtractionDescriptiveStatsClass(models.Model):
     _name = "logbook.extraction.descriptive.stats.class"
     _auto = False

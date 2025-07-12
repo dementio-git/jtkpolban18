@@ -1,3 +1,5 @@
+# jtkpolban18\jtk_project_course_base\models\project_course.py
+
 from odoo import models, fields, api
 
 class ProjectCourse(models.Model):

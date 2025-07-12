@@ -36,11 +36,16 @@ export class LogbookClassAnalytics extends Component {
     this.echarts = {};
 
     onWillStart(async () => {
-      let pid = this.props.action?.context?.default_project_course_id;
-      if (!pid) {
-        pid = getRecordIdFromPath();
-      }
+      // ambil langsung dari prop yang parent sudah set
+      const pid = this.props.projectId;
       this.state.projectCourseId = pid;
+      if (!pid) {
+        this.state.projectCourseId = getRecordIdFromPath();
+        if (!this.state.projectCourseId) {
+          console.warn("projectCourseId belum tersedia");
+          return;
+        }
+      }
 
       await this.loadStats();
       await this.loadWeeklyStats();
@@ -60,7 +65,7 @@ export class LogbookClassAnalytics extends Component {
   async loadWeeklyStats() {
     const pid = this.state.projectCourseId;
     if (!pid) {
-      console.warn("projectCourseId belum tersedia");
+      console.warn("projectCourseId belum tersediaAAAAABBB");
       this.state.weeklyStats = [];
       return;
     }
@@ -1921,6 +1926,11 @@ export class LogbookClassAnalytics extends Component {
     this.echarts.labelPointRadarClass = chart;
   }
 }
+
+LogbookClassAnalytics.props = {
+  projectId: { type: Number },
+};
+
 
 LogbookClassAnalytics.template = "jtk_logbook_analytics.LogbookClassAnalytics";
 registry

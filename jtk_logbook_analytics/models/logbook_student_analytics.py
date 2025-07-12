@@ -40,7 +40,7 @@ class LogbookExtractionStudentLabelAggregate(models.Model):
                     e.label_id
             )
         """ % self._table)
-
+ 
 class LogbookExtractionStudentLabelNorm(models.Model):
     _name = 'logbook.extraction.student.label.norm'
     _description = 'Rata-Rata Point Ternormalisasi per Mahasiswa & Label'
