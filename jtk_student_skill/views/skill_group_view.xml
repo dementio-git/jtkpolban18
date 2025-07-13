@@ -13,11 +13,15 @@
                     </group>
                     <notebook>
                         <page string="Skill Items">
-                            <field name="skill_item_ids"/>
+                            <field name="skill_item_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                </list>
+                            </field>
                         </page>
-                        <page string="Skill Lines">
+                        <!-- <page string="Skill Lines">
                             <field name="skill_line_ids"/>
-                        </page>
+                        </page> -->
                     </notebook>
                 </sheet>
             </form>

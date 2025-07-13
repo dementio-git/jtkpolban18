@@ -2,24 +2,24 @@
 <odoo>
     <data>
 
-        <menuitem
+        <!-- <menuitem
             id="menu_skill_root"
-            name="Student Skill"
+            name="Skill "
             parent="jtk_academic_base.menu_academic_root"
-            sequence="30"/>
+            sequence="30"/> -->
 
-        <menuitem
+        <!-- <menuitem
             id="menu_skill_item"
             name="Skill Item"
             parent="menu_skill_root"
             sequence="10"
-            action="action_skill_item"/>
+            action="action_skill_item"/> -->
         
         <menuitem
             id="menu_skill_detail"
-            name="Skill Group"
-            parent="menu_skill_root"
-            sequence="20"
+            name="Skill"
+            parent="jtk_academic_base.menu_academic_root"
+            sequence="90"
             action="action_skill_group"/>
 
 
