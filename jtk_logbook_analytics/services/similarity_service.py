@@ -64,19 +64,24 @@ class LogbookSimilarityService(models.TransientModel):
 
         week_mapping = {week.id: idx + 1 for idx, week in enumerate(course_weeks)}
 
-        logbooks = self.env['logbook.logbook'].search([
-            ('student_id', '=', student_id),
-            ('project_course_id', '=', project_course_id),
-            ('week_id', 'in', course_weeks.ids)
-        ])
+        logbooks_data = self.env['logbook.logbook'].search_read(
+            [
+                ('student_id', '=', student_id),
+                ('project_course_id', '=', project_course_id),
+                ('week_id', 'in', course_weeks.ids)
+            ],
+            ['week_id', 'logbook_content']  # Tentukan field yang ingin diambil
+        )
+
 
         week_contents = {week.id: [] for week in course_weeks}
         week_labels = [f"W{week_mapping[week.id]}" for week in course_weeks]
 
-        for log in logbooks:
-            if log.week_id.id in week_contents:
-                week_contents[log.week_id.id].append(log.logbook_content)
-
+        for log_data in logbooks_data:
+            # Akses data dari dictionary, bukan record ORM
+            week_id = log_data['week_id'][0] # search_read mengembalikan tuple (id, name)
+            if week_id in week_contents:
+                week_contents[week_id].append(log_data['logbook_content'])
         week_texts = []
         non_empty_weeks = []
 

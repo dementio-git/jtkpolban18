@@ -43,7 +43,7 @@ class LogbookLLMService(models.AbstractModel):
         for cat, lbls in labels_by_category.items():
             rules_lines.append(f"\nKategori: {cat}")
             for lbl in lbls:
-                line = f'- {lbl.name}';
+                line = f'- {lbl.name}'
                 if lbl.is_required:
                     line += ' (Wajib dimasukkan)'
                 if lbl.description:
@@ -84,19 +84,19 @@ Tugas Anda:
 8. Ekstrak kata kunci teknis (lihat pedoman asli).
 
 Format JSON:
-{ {
+{{
 "summary": "...",
 "full_text": "...",
-"extracted_aspects": [ { { "label": "...", "isi": "...", "keywords": ["..."], "poin": ..., "deskriptor_poin": "..." } } ],
-"skills": [ { { "name": "...", "type": "...", "group": "...", "point": ..., "source": "..." } } ]
-} }
+"extracted_aspects": [{{ "label": "...", "isi": "...", "keywords": ["..."], "poin": ..., "deskriptor_poin": "..." }}],
+"skills": [{{ "name": "...", "type": "...", "group": "...", "point": ..., "source": "..." }}]
+}}
 
 Berikan hanya JSON valid. Jangan sertakan markdown, komentar, atau penjelasan tambahan.
 """
         return prompt
 
     def _call_llm(self, prompt):
-        api_key = self.env['ir.config_parameter'].sudo().get_param('gemini.api_key') or 'YOUR_GEMINI_KEY'
+        api_key = self.env['ir.config_parameter'].sudo().get_param('gemini.api_key') or 'AIzaSyBfwRw6VIr1nKHPqFzDo556OySn0UebmF0'
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)

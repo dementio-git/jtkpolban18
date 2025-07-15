@@ -21,7 +21,7 @@
                             </group>
 
                             <group string="Similarity Clustering">
-                                <field name="alpha" />
+                                <field name="alpha" widget="slider" options="{'min': 0, 'max': 1, 'step': 1}" />
                             </group>
 
                             <group>
